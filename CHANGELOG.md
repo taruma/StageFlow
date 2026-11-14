@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+#### Responsive & FOV-Normalized 3D Billboard Label Sizing (GH Issue #16)
+
+- **Pure Horizontal-FOV Normalization & Tighter Perspective Scale Bounds (`src/stage/labelLodMath.ts`)**:
+  - Tightened `MAX_PERSPECTIVE_SCALE` from `1.55` to `1.08` and raised `MIN_PERSPECTIVE_SCALE` from `0.72` to `0.75` to eliminate close-range label bloat on desktop and mobile while retaining subtle depth cueing.
+  - Added `COMPACT_CANVAS_WIDTH_PX = 768`, `BillboardSizeTier` (`'compact' | 'standard'`), and `getBillboardSizeTier(viewportWidth)` aligned with `isNarrowDiorama` (`< 768px` unified `CompactDioramaHeader` breakpoint).
+  - Added `computeEffectiveLodDistanceM(distM, fovDeg, aspectRatio)` anchored to StageFlow's `35mm` full-frame horizontal baseline (`REF_HALF_HORIZ_TAN`), and extended `computeBillboardLodMetrics(..., options?)` to evaluate scaling and collapse bands using effective angular distance while keeping physical proximity culling (`< 1.2m`) on raw `distM`.
+- **Unified-Breakpoint CSS Sizing & 60fps FOV Sync (`src/stage/StageBillboardLabel.tsx`)**:
+  - Subscribed to `getBillboardSizeTier(s.size.width)` (re-rendering only across the `768px` threshold) to switch cleanly between `standard` (`px-3 py-1`, `text-[13px]`/`text-[11px]`) and `compact` (`px-2 py-0.5`, `text-[11px]`/`text-[10px]`) pill typography while preserving all label and sublabel text intact.
+  - Passed live `PerspectiveCamera.fov` and `canvasSize` aspect ratio inside `useLayoutEffect` and `useFrame` (`syncDomStyles`) with zero Tier-1 React re-renders.
+- **Unit Tests & Specification Sync (`tests/unit/billboardLabelLod.test.ts`, `docs/DIORAMA_3D_AND_UI_SPECIFICATIONS.md`)**:
+  - Added unit tests covering `[0.75, 1.08]` bounds, `< 768px` `compact`/`standard` tier switching, telephoto (`85mm`) vs. wide (`24mm`) FOV normalization, adaptive narrow-pane FOV invariance, and physical proximity culling; synchronized Layer 4 specification docs.
+
 ## [1.1.1] - 2026-11-14
 
 ### Changed

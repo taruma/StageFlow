@@ -1,14 +1,23 @@
 import { describe, it, expect } from 'vitest';
 import {
   computeBillboardLodMetrics,
+  computeEffectiveLodDistanceM,
   getBillboardBaseOpacity,
+  getBillboardSizeTier,
   getBillboardZIndexRange,
   PROXIMITY_CULL_M,
+  MIN_PERSPECTIVE_SCALE,
+  MAX_PERSPECTIVE_SCALE,
+  COMPACT_CANVAS_WIDTH_PX,
   ENTITY_COLLAPSE_START_M,
   ENTITY_COLLAPSE_END_M,
   CAMERA_COLLAPSE_START_M,
   CAMERA_COLLAPSE_END_M,
 } from '../../src/stage/labelLodMath';
+import {
+  computeAdaptiveDioramaFovDeg,
+  focalLengthToVerticalFovDeg,
+} from '../../src/core/opticsMath';
 
 describe('labelLodMath — 3D Billboard Label LOD & Hierarchy Engine', () => {
   describe('Proximity Culling (< 1.2m)', () => {
@@ -201,6 +210,87 @@ describe('labelLodMath — 3D Billboard Label LOD & Hierarchy Engine', () => {
       expect(focus[0]).toBeGreaterThan(char[0]);
       expect(char[0]).toBeGreaterThan(prop[0]);
       expect(prop[0]).toBeGreaterThan(marker[0]);
+    });
+  });
+
+  describe('Tightened Perspective Scale Bounds ([0.75, 1.08])', () => {
+    it('clamps close-up pill scale at MAX_PERSPECTIVE_SCALE (1.08) instead of ballooning', () => {
+      const veryClose = computeBillboardLodMetrics(2.0, 'character');
+      const defaultObserver = computeBillboardLodMetrics(7.5, 'character');
+
+      expect(veryClose.pillScale).toBeCloseTo(MAX_PERSPECTIVE_SCALE);
+      expect(defaultObserver.pillScale).toBeCloseTo(MAX_PERSPECTIVE_SCALE);
+      expect(veryClose.pillScale).toBeLessThanOrEqual(1.08);
+    });
+
+    it('clamps distant pill scale at MIN_PERSPECTIVE_SCALE (0.75)', () => {
+      const distant = computeBillboardLodMetrics(23.5, 'character');
+      expect(distant.pillScale).toBeCloseTo(MIN_PERSPECTIVE_SCALE);
+      expect(distant.pillScale).toBeGreaterThanOrEqual(0.75);
+    });
+  });
+
+  describe('Unified-HUD Breakpoint Size Tier (< 768px)', () => {
+    it('returns compact below 768px and standard at or above 768px', () => {
+      expect(COMPACT_CANVAS_WIDTH_PX).toBe(768);
+      expect(getBillboardSizeTier(390)).toBe('compact');
+      expect(getBillboardSizeTier(767)).toBe('compact');
+      expect(getBillboardSizeTier(768)).toBe('standard');
+      expect(getBillboardSizeTier(1280)).toBe('standard');
+    });
+  });
+
+  describe('Horizontal-FOV Normalization', () => {
+    it('preserves raw distance on 35mm @ 16:9 baseline and when FOV options are omitted', () => {
+      const baselineFov = focalLengthToVerticalFovDeg(35, 16 / 9);
+      const effective = computeEffectiveLodDistanceM(18.0, baselineFov, 16 / 9);
+      expect(effective).toBeCloseTo(18.0, 4);
+      expect(computeEffectiveLodDistanceM(18.0)).toBe(18.0);
+    });
+
+    it('keeps telephoto (85mm) entity pills uncollapsed beyond 28m while preserving physical proximity cull', () => {
+      const teleFov = focalLengthToVerticalFovDeg(85, 16 / 9);
+      const farTele = computeBillboardLodMetrics(30.0, 'character', false, false, {
+        fovDeg: teleFov,
+        aspectRatio: 16 / 9,
+      });
+
+      expect(farTele.showPill).toBe(true);
+      expect(farTele.showDot).toBe(false);
+      expect(farTele.pillOpacity).toBeCloseTo(0.85);
+
+      // Physical proximity cull (< 1.2m) must still trigger even under telephoto FOV
+      const nearTele = computeBillboardLodMetrics(0.9, 'character', false, false, {
+        fovDeg: teleFov,
+        aspectRatio: 16 / 9,
+      });
+      expect(nearTele.culled).toBe(true);
+    });
+
+    it('collapses wide-lens (24mm) entity pills earlier when subject shrinks in frame', () => {
+      const wideFov = focalLengthToVerticalFovDeg(24, 16 / 9);
+      const wideAt22m = computeBillboardLodMetrics(22.0, 'character', false, false, {
+        fovDeg: wideFov,
+        aspectRatio: 16 / 9,
+      });
+
+      expect(wideAt22m.showPill).toBe(false);
+      expect(wideAt22m.showDot).toBe(true);
+    });
+
+    it('keeps effective distance invariant under adaptive narrow-pane FOV widening', () => {
+      const baseFov = focalLengthToVerticalFovDeg(35, 16 / 9);
+      const phoneW = 390;
+      const phoneH = 450;
+      const phoneAspect = phoneW / phoneH;
+      const adaptedPhoneFov = computeAdaptiveDioramaFovDeg(baseFov, phoneW, phoneH, 16 / 9);
+
+      const effectivePhone = computeEffectiveLodDistanceM(
+        15.0,
+        adaptedPhoneFov,
+        phoneAspect
+      );
+      expect(effectivePhone).toBeCloseTo(15.0, 2);
     });
   });
 });
