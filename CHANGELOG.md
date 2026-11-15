@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+#### Entity Pitch & Roll Rotations — 3D Mesh Tilt (GH Issue #18)
+
+- **Layer 1 Core Types, Pure `YXZ` Math & Kinematic Helpers (`src/core/types.ts`, `src/core/sphericalMath.ts`, `src/core/entityKinematicUtils.ts`)**:
+  - Added optional `pitchRad` and `rollRad` fields on `SceneEntityDef`, `EntityCueOverride`, `BlockingCueSpec`, and `EvaluatedEntityState`, plus `EntityPoseSnapshot` and `ChainedBlockingCueEntry`.
+  - Implemented pure zero-dependency `rotateVec3YXZ` in `src/core/sphericalMath.ts` ($R_y(\psi) R_x(\theta) R_z(\phi)$) with an upright fast-path preserving bit-for-bit coordinates when `pitch = 0, roll = 0`.
+  - Added shared `lerpAngleShortest` helper in `src/core/entityKinematicUtils.ts` for shortest-arc $[-\pi, \pi]$ angular interpolation.
+- **YAML Parsers & Dual Evaluators (`src/core/scoreParser.ts`, `src/core/scorePrimitives.ts`, `src/core/entityBlockingEvaluator.ts`, `src/core/entityLegacyEvaluator.ts`, `src/core/cameraTargetResolver.ts`)**:
+  - Parsed `pitch` and `roll` (degrees or `rad`, defaulting to `0`) across all 4 authoring paths: `entities[]`, `shots[].entities`, and `blocking:` Format A and Format B.
+  - Forward-chained `pitchRad` and `rollRad` across cues/shots in both `evaluateBlockingEntitiesAtTime` and `evaluateLegacyEntitiesAtTime`, independent of yaw-only `look_at` and locomotion auto-facing, with instant snapping on `cut: true`.
+  - Updated `getEntityLookAnchor` in `src/core/cameraTargetResolver.ts` to rotate the vertical look-at offset via `rotateVec3YXZ` so camera `target` and `focus` track prone and flying entities in 3D.
+- **Layer 4 3D Rig Isolation (`src/stage/DirectionalMannequin.tsx`)**:
+  - Added an unscaled `tiltGroupRef` wrapping `meshContainerRef` inside `groupRef`, imperatively applying `rotation.set(pitchRad, 0, rollRad, 'YXZ')` at 60fps in `syncEntityTransform` while keeping floor footprints, `+Z` ground chevrons, and floating labels flat/upright without scale shear.
+- **Unit Tests & Documentation Sync (`tests/unit/scoreParser.test.ts`, `tests/unit/entityEngine.test.ts`, `tests/unit/stagePerfHelpers.test.ts`, `docs/*.md`, `.agents/skills/stageflow-score-creator/SKILL.md`)**:
+  - Added parser, blocking/legacy evaluator, shortest-arc wrapping, `cut: true`, `look_at` independence, 3D `getEntityLookAnchor`, and `React.memo` perf gate unit tests; synchronized math, AST contract, authoring guide, and 3D diorama specs.
+
 ## [1.1.2] - 2026-11-15
 
 ### Changed

@@ -96,6 +96,7 @@ Scene entities (`character`, `prop`, `marker`) are rendered with unambiguous ori
     - `silhouette`: High-contrast dark matte body (`#0f172a`) with illuminated pure white eye visor cone, ideal for optical framing and composition studies.
     - `wireframe`: Pure blueprint wireframe mesh cage.
   - **Directional Eye-Visor Wedge & Ground Chevron**: A white visor cone on the front of the head (`+Z` local forward) paired with a ground chevron arrow pointing along `rotationYRad`, making character gaze and body facing immediately readable from overhead or side angles.
+  - **Isolated 3D Mesh Tilt (`tiltGroupRef`)**: Optional `pitchRad` (X-axis) and `rollRad` (Z-axis) rotations apply imperatively at 60fps in intrinsic `'YXZ'` order (`rotation.set(pitchRad, 0, rollRad, 'YXZ')`) on an unscaled `tiltGroupRef` wrapping `meshContainerRef`. Ground contact/selection rings (`footprintRef`), `+Z` floor chevrons, and `<StageBillboardLabel>` remain flat on `Y = 0` and upright under `groupRef`, while local `(sx, sy, sz)` scaling evaluates inside `meshContainerRef` before tilt to prevent shear.
   - **Ground Contact Ring**: Circular base disc at `y = 0.012m` that expands and brightens when `highlighted === true`.
 - **Geometric Props (`kind === 'prop'`)**:
   - Parametric 3D solid resting at floor level ($Y = 0$), centered vertically at $h/2$, supporting four geometric primitives via `shape:` (`box`, `sphere`, `cylinder`, `capsule`) and four presentation styles via `style:`:

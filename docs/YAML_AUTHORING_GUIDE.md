@@ -391,6 +391,8 @@ entities:
     style: "mannequin"         # "mannequin" (default) | "edges" | "silhouette" | "wireframe"
     position: [-1.2, 0, 0]     # [x, y, z] in meters (Y=0 is floor plane)
     rotation: 90               # Facing +90° (toward +X Stage Right; alias: yaw)
+    pitch: 0                   # Optional forward/back tilt in degrees (+90 = prone toward +Z, -90 = supine)
+    roll: 0                    # Optional lateral bank in degrees (+ = CW from behind entity)
     size: [0.55, 1.82, 0.45]   # [w, h, d] 3D dimensions in meters (or explicit width, height, depth)
     color: "#38bdf8"           # Hex token for proxy, badge, and floor ring
 
@@ -849,6 +851,8 @@ blocking:
     position: [2.5, 0, 0.4]    # Destination position at end of cue
     height: 1.15               # Dynamic crouching posture over cue duration (alias: size)
     rotation: 45               # Explicit destination facing angle in degrees (alias: yaw)
+    pitch: 0                   # Optional destination X-axis tilt in degrees (+90 = prone / head-first flight)
+    roll: 0                    # Optional destination Z-axis bank in degrees (+ = CW from behind)
     look_at: "witness"         # Dynamic continuous gaze tracking (alias: lookAt)
     easing: "cruise"           # Movement easing curve
     highlighted: true          # Active focus ring and tag (alias: highlight)
@@ -868,8 +872,9 @@ blocking:
       witness: { rotation: 180, highlighted: true }
 ```
 
-#### Dynamic Posture & Dimension Transformations
-Actors and props can dynamically transform dimensions during `blocking:` cues:
+#### Dynamic Posture, Tilt & Dimension Transformations
+Actors and props can dynamically transform dimensions and 3D mesh tilt (`pitch`, `roll`) during `blocking:` cues:
+- **3D Mesh Tilt (`pitch` & `roll`)**: Entities pivot around their bottom-center base (`Y = 0`) in intrinsic `YXZ` order (`yaw -> pitch -> roll`). Only the 3D mesh tilts; ground footprints and badges stay flat/upright. Positive `pitch` tilts forward toward local `+Z` (`pitch: 90` = prone or head-first flight; `-90` = supine), and positive `roll` banks clockwise from behind. Both interpolate along the shortest arc using the cue's `easing`, preserve across `look_at` / walking auto-facing cues when omitted, and snap immediately on `cut: true`. For a character lying prone on the floor (`pitch: 90`), set `position: [x, 0.18, z]` so the horizontal torso rests cleanly atop the `Y = 0` grid.
 - **Animated Posture Changes**: Authoring `height: 1.15` causes an actor to smoothly crouch down or sit in a chair over the cue duration using the specified easing curve. Specifying `from_height` or `from_size` explicitly sets starting bounds; omitting them glides smoothly from the preceding cue's terminal dimensions.
 - **Rigid Anatomical Proportions (Telescoping Torso)**: When lowering an actor's height to sit on a chair or crouch behind cover (e.g. `height: 1.15`), StageFlow automatically protects anatomical proportions: the head sphere ($r = 0.14\text{m}$) and eye-visor cone remain perfectly spherical ($Y \equiv 1.0$) and the shoulder bar maintains standard thickness ($0.08\text{m}$). The torso column telescopes cleanly between the floor and shoulders without squashing the head or neck into a pancake.
 - **Per-Axis Forward Chaining**: Overriding one dimension (e.g. `height: 1.15`) does not reset other dimensions (`width`, `depth`) back to default; each axis preserves its active state across cues.
@@ -950,6 +955,8 @@ shots:
         from: [-1.2, 0, 0]     # Start position for this shot (alias: from_position)
         position: [0.5, 0, 0]  # Destination position by end of this shot
         rotation: 45           # Facing angle in degrees
+        pitch: 0               # Optional destination X-axis tilt in degrees
+        roll: 0                # Optional destination Z-axis bank in degrees
         look_at: "witness"     # Continuous gaze tracking
         easing: "smooth"
         highlighted: true

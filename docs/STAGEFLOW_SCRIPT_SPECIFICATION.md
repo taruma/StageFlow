@@ -113,7 +113,7 @@ StageFlow models a standard 35mm full-frame sensor with horizontal gate width $W
 
 ## 4. Entities, Anchors & Orientation
 
-Each entity $i$ declared in `entities` has a normalized kind $k_i \in \{\text{"character"}, \text{"prop"}, \text{"marker"}\}$ (normalizing aliases: $\text{"actor"}/\text{"person"} \to \text{"character"}$, $\text{"set"}/\text{"furniture"}/\text{"item"}/\text{"object"} \to \text{"prop"}$, $\text{"spike"}/\text{"mark"} \to \text{"marker"}$), an optional geometric shape $s_i$ (for props: $\text{"box"}$, $\text{"sphere"}$, $\text{"cylinder"}$, $\text{"capsule"}$; for markers: $\text{"x"}$, $\text{"t"}$, $\text{"circle"}$, $\text{"puck"}$), presentation style (character: $\text{"mannequin"}$, $\text{"edges"}$, $\text{"silhouette"}$, $\text{"wireframe"}$; prop: $\text{"edges"}$, $\text{"glass"}$, $\text{"solid"}$, $\text{"wireframe"}$; marker: $\text{"tape"}$, $\text{"glow"}$, $\text{"beacon"}$), floor/base coordinate $\vec{p}_i = (x_i, y_i, z_i)$, height $h_i$, radius $r_i$, and horizontal facing angle $\psi_{\text{entity}, i}$.
+Each entity $i$ declared in `entities` has a normalized kind $k_i \in \{\text{"character"}, \text{"prop"}, \text{"marker"}\}$ (normalizing aliases: $\text{"actor"}/\text{"person"} \to \text{"character"}$, $\text{"set"}/\text{"furniture"}/\text{"item"}/\text{"object"} \to \text{"prop"}$, $\text{"spike"}/\text{"mark"} \to \text{"marker"}$), an optional geometric shape $s_i$ (for props: $\text{"box"}$, $\text{"sphere"}$, $\text{"cylinder"}$, $\text{"capsule"}$; for markers: $\text{"x"}$, $\text{"t"}$, $\text{"circle"}$, $\text{"puck"}$), presentation style (character: $\text{"mannequin"}$, $\text{"edges"}$, $\text{"silhouette"}$, $\text{"wireframe"}$; prop: $\text{"edges"}$, $\text{"glass"}$, $\text{"solid"}$, $\text{"wireframe"}$; marker: $\text{"tape"}$, $\text{"glow"}$, $\text{"beacon"}$), floor/base coordinate $\vec{p}_i = (x_i, y_i, z_i)$, height $h_i$, radius $r_i$, horizontal facing yaw $\psi_{\text{entity}, i}$, and optional 3D mesh tilt angles `pitch` ($\theta_{\text{entity}, i}$) and `roll` ($\phi_{\text{entity}, i}$).
 
 ### 4.1 Default Geometry & Intrinsic Look-At Anchor ($\vec{A}_i$)
 When a camera `target` or `from` references an entity by `id` or `label` (in either baseline `stage` cameras or shot cues), it resolves to the entity's intrinsic 3D anchor $\vec{A}_i$:
@@ -134,11 +134,15 @@ When a camera `target` or `from` references an entity by `id` or `label` (in eit
 - **Target Offset Displacement**: Adding `target_offset: [dx, dy, dz]` shifts the resolved anchor in world space:
   $$\vec{T}_{\text{effective}} = \vec{A} + (\text{dx},\; \text{dy},\; \text{dz})$$
 
-### 4.2 Entity Facing Angle (`rotation` & `look_at`)
-- An entity with $\psi_{\text{entity}} = 0^\circ$ faces $+Z$ (downstage). $+90^\circ$ faces $+X$ (stage right). $-90^\circ$ faces $-X$ (stage left). $\pm 180^\circ$ faces $-Z$ (upstage).
-- **Dynamic Gaze (`look_at`)**: When an entity specifies `look_at: "<target_id>"` (or `[x, y, z]`) at position $\vec{p}_{\text{target}}$, its horizontal facing yaw at time $t$ is computed continuously as:
+### 4.2 Entity Orientation (`rotation`, `pitch`, `roll` & `look_at`)
+- **Horizontal Yaw (`rotation` / `yaw`)**: $\psi_{\text{entity}} = 0^\circ$ faces $+Z$ (downstage). $+90^\circ$ faces $+X$ (stage right). $-90^\circ$ faces $-X$ (stage left). $\pm 180^\circ$ faces $-Z$ (upstage).
+- **3D Mesh Tilt (`pitch` & `roll`, Intrinsic `YXZ` Order)**: Evaluated around the entity's bottom-center `(0, 0, 0)` base pivot via $R_y(\psi) R_x(\theta) R_z(\phi)$ on the 3D mesh only (keeping floor footprints, `+Z` facing arrows, and labels flat/upright):
+  - `pitch > 0` tilts forward toward local `+Z` (`+90°` = prone / head-first flight; `-90°` = supine).
+  - `roll > 0` banks clockwise from behind the entity (right shoulder down toward `-X`).
+  - `pitch` and `roll` forward-chain independently of `look_at` and locomotion auto-facing via $\Delta_{\text{short}}$ easing, and snap immediately on `cut: true`.
+- **Dynamic Gaze (`look_at`)**: When an entity specifies `look_at: "<target_id>"` (or `[x, y, z]`) at position $\vec{p}_{\text{target}}$, its horizontal facing yaw at time $t$ is computed continuously (yaw-only, preserving inherited `pitch` and `roll`) as:
   $$\psi_{\text{entity}}(t) = \operatorname{atan2}\!\left(x_{\text{target}}(t) - x_{\text{self}}(t),\; z_{\text{target}}(t) - z_{\text{self}}(t)\right)$$
-- **Automatic Locomotion Heading**: If an entity translates during a cue ($\|\vec{p}_{\text{end}, xz} - \vec{p}_{\text{start}, xz}\| > 0.05\text{ m}$) and neither `rotation` nor `look_at` is specified for that cue, $\psi_{\text{entity}}$ automatically aligns with the displacement vector $\operatorname{atan2}(\Delta x, \Delta z)$.
+- **Automatic Locomotion Heading**: If an entity translates during a cue ($\|\vec{p}_{\text{end}, xz} - \vec{p}_{\text{start}, xz}\| > 0.05\text{ m}$) and neither `rotation` nor `look_at` is specified for that cue, $\psi_{\text{entity}}$ automatically aligns with the displacement vector $\operatorname{atan2}(\Delta x, \Delta z)$ while preserving `pitch` and `roll`.
 
 ### 4.3 3D Spatial Dimensions, Ground Footprints & Blocking Scale Transformations
 Entities in StageFlow can specify custom 3-dimensional extents ($X, Y, Z$) at baseline and dynamically animate them during blocking cues:
@@ -161,9 +165,10 @@ Entities in StageFlow can specify custom 3-dimensional extents ($X, Y, Z$) at ba
     $$w(t) = w_{\text{start}} + u \cdot (w_{\text{end}} - w_{\text{start}}), \quad h(t) = h_{\text{start}} + u \cdot (h_{\text{end}} - h_{\text{start}}), \quad d(t) = d_{\text{start}} + u \cdot (d_{\text{end}} - d_{\text{start}})$$
   - Individual dimension axes forward-chain independently across cues: modifying `height` in a cue preserves previously overridden `width` and `depth`.
 - **Dynamic Look-At Anchor & Thin-Lens Focus Tracking**:
-  - When an entity scales or crouches during a cue, its intrinsic look-at anchor $\vec{A}_i(t)$ updates dynamically on every frame:
-    $$\vec{A}_i(t) = \left(x_i(t),\; y_i(t) + \text{ratio} \cdot h_i(t),\; z_i(t)\right)$$
-  - Cameras targeting or focusing on entity $i$ smoothly follow changing posture and elevation without visual lag.
+  - When an entity scales, crouches, pitches, or rolls during a cue, its intrinsic look-at anchor $\vec{A}_i(t)$ rotates in world space from base pivot $\vec{p}_i(t)$ using intrinsic `YXZ` rotation:
+    $$\vec{A}_i(t) = \vec{p}_i(t) + R_y(\psi_i(t))\, R_x(\theta_i(t))\, R_z(\phi_i(t)) \begin{pmatrix} 0 \\ \text{ratio} \cdot h_i(t) \\ 0 \end{pmatrix}$$
+  - When upright ($\theta_i = 0, \phi_i = 0$), this reduces identically to $(x_i(t),\; y_i(t) + \text{ratio} \cdot h_i(t),\; z_i(t))$.
+  - Cameras targeting or focusing on entity $i$ smoothly follow changing posture, pitch/roll tilt, and elevation without visual lag.
 
 ---
 
@@ -298,12 +303,12 @@ StageFlow is a **stateless functional evaluator** (`Frame_t = f(t, score)`). Eff
 | | `fromPosition`, `position` | `Vec3 \| undefined` world positions in $\text{m}$ (when `cut: true`, `startPos = position`) |
 | | `fromWidth`, `fromHeight`, `fromDepth` | `number \| undefined` start dimensions in $\text{m}$ for animated transitions |
 | | `width`, `height`, `depth` | `number \| undefined` destination dimensions in $\text{m}$ |
-| | `rotationYRad`, `lookAt` | Optional facing yaw in radians; anchor identifier or world `Vec3` |
+| | `rotationYRad`, `pitchRad`, `rollRad`, `lookAt` | Optional facing yaw, X-axis pitch, and Z-axis roll in radians; anchor identifier or world `Vec3` |
 | | `easing`, `highlighted`, `visible`, `note` | `CameraEasing` (default `'smooth'`), `boolean`, `boolean`, `string \| undefined` |
 | **`EntityCueOverride`** | `position`, `fromPosition`, `cut` | Optional per-shot entity movement overrides and instant cut flag |
 | | `fromWidth`, `fromHeight`, `fromDepth` | `number \| undefined` start dimensions in $\text{m}$ for per-shot transitions |
 | | `width`, `height`, `depth` | `number \| undefined` destination dimensions in $\text{m}$ |
-| | `rotationYRad`, `lookAt`, `easing` | Optional facing angle, gaze target (`TargetAnchor = string \| string[] \| Vec3`), and velocity easing profile |
+| | `rotationYRad`, `pitchRad`, `rollRad`, `lookAt`, `easing` | Optional facing yaw, X-axis pitch, Z-axis roll, gaze target (`TargetAnchor`), and velocity easing profile |
 | | `highlighted`, `visible`, `note`, `continuous` | Hybrid per-shot highlight badge, visibility toggle, note, and continuity flag |
 | **`SphericalPose`** | `target` | `Vec3` $\{x, y, z\} \in \mathbb{R}^3\text{ m}$ |
 | | `distance` | `number` $d \in [0.4, 100.0]\text{ m}$ |
@@ -311,11 +316,11 @@ StageFlow is a **stateless functional evaluator** (`Frame_t = f(t, score)`). Eff
 | | `focalLengthMm` | `number` $f_{\text{mm}} \in [12, 200]\text{ mm}$ |
 | **`SceneEntityDef`** | `id`, `label`, `color` | `string` unique key, badge label, and hex color token |
 | | `kind`, `shape`, `style` | `EntityKind`, `EntityShape \| undefined`, `EntityStyle` |
-| | `position`, `rotationYRad` | `Vec3` floor position in $\text{m}$; facing yaw $\psi_{\text{entity}} \in \mathbb{R}\text{ rad}$ |
+| | `position`, `rotationYRad`, `pitchRad`, `rollRad` | `Vec3` base position in $\text{m}$; facing yaw $\psi_{\text{entity}}$ and optional base `pitch`/`roll` in $\text{rad}$ |
 | | `height`, `radius` | `number` $h_i > 0\text{ m}$, $r_i > 0\text{ m}$ |
 | | `width`, `depth` | `number \| undefined` $w_i > 0\text{ m}$, $d_i > 0\text{ m}$ (default $2r_i$) |
 | **`EvaluatedEntityState`** | `id`, `def` | Entity ID and immutable definition reference |
-| | `position`, `rotationYRad` | 60fps evaluated world position $\vec{p}(t)$ and facing angle $\psi(t)$ |
+| | `position`, `rotationYRad`, `pitchRad`, `rollRad` | 60fps evaluated world position $\vec{p}(t)$, facing yaw $\psi(t)$, and 3D mesh `pitch`/`roll` in $\text{rad}$ |
 | | `size` | `Vec3 \| undefined` 60fps evaluated dimensions $\{w(t), h(t), d(t)\}$ in $\text{m}$ |
 | | `trailPoints` | `Vec3[]` 16-segment ground trail path points |
 | | `highlighted`, `visible`, `opacity` | Directorial focus styling and visibility flags |

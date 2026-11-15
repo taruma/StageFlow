@@ -1441,4 +1441,69 @@ shots:
       expect(res3.score?.metadata).toBeUndefined();
     });
   });
+
+  describe('Entity pitch and roll rotation parsing', () => {
+    it('parses pitch and roll across entities, shots[].entities, and blocking Format A & B with 0 defaults', () => {
+      const yaml = `
+version: "1.0"
+id: "entity-tilt-parse"
+title: "Entity Tilt Parse"
+entities:
+  - id: "hero"
+    kind: "character"
+    pitch: 90
+    roll: "-15deg"
+  - id: "upright"
+    kind: "prop"
+blocking:
+  - id: "cue-single"
+    entity: "hero"
+    start: 0
+    end: 2
+    pitch: 0
+    roll: "0.5rad"
+  - id: "cue-multi"
+    start: 2
+    end: 4
+    entities:
+      hero: { pitch: 65, roll: 25 }
+      upright: { pitch: -30 }
+shots:
+  - id: "shot-1"
+    start: 0
+    end: 4
+    entities:
+      hero: { pitch: 45, roll: -20 }
+      upright: { roll: 15 }
+`;
+      const { score, error } = parseStageScore(yaml);
+      expect(error).toBeNull();
+      expect(score).not.toBeNull();
+
+      const heroDef = score!.entities.find((e) => e.id === 'hero')!;
+      const uprightDef = score!.entities.find((e) => e.id === 'upright')!;
+      expect(radToDeg(heroDef.pitchRad!)).toBeCloseTo(90, 4);
+      expect(radToDeg(heroDef.rollRad!)).toBeCloseTo(-15, 4);
+      expect(uprightDef.pitchRad).toBe(0);
+      expect(uprightDef.rollRad).toBe(0);
+
+      const b0 = score!.blocking![0];
+      expect(b0.pitchRad).toBe(0);
+      expect(b0.rollRad).toBeCloseTo(0.5, 4);
+
+      const b1Hero = score!.blocking![1];
+      const b1Upright = score!.blocking![2];
+      expect(radToDeg(b1Hero.pitchRad!)).toBeCloseTo(65, 4);
+      expect(radToDeg(b1Hero.rollRad!)).toBeCloseTo(25, 4);
+      expect(radToDeg(b1Upright.pitchRad!)).toBeCloseTo(-30, 4);
+      expect(b1Upright.rollRad).toBeUndefined();
+
+      const shotHero = score!.shots[0].entities['hero'];
+      const shotUpright = score!.shots[0].entities['upright'];
+      expect(radToDeg(shotHero.pitchRad!)).toBeCloseTo(45, 4);
+      expect(radToDeg(shotHero.rollRad!)).toBeCloseTo(-20, 4);
+      expect(shotUpright.pitchRad).toBeUndefined();
+      expect(radToDeg(shotUpright.rollRad!)).toBeCloseTo(15, 4);
+    });
+  });
 });

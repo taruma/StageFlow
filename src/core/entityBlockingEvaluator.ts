@@ -18,12 +18,12 @@ import { evaluateCameraEasing } from './maneuvers';
 import {
   cloneVec3,
   computeLookAtYawRad,
-  shortestAngleDiff,
 } from './sphericalMath';
 import {
   type ChainedBlockingCueEntry,
   buildGroundTrailPoints,
   getEntityBaseSize,
+  lerpAngleShortest,
   resolveCueStartEndSize,
   resolveLookAtPoint,
 } from './entityKinematicUtils';
@@ -79,6 +79,10 @@ export function evaluateBlockingEntitiesAtTime(
         endPos,
         startRot: def.rotationYRad,
         endRot: def.rotationYRad,
+        startPitch: def.pitchRad ?? 0,
+        endPitch: def.pitchRad ?? 0,
+        startRoll: def.rollRad ?? 0,
+        endRoll: def.rollRad ?? 0,
         startSize,
         endSize,
         visible,
@@ -125,10 +129,12 @@ export function evaluateBlockingEntitiesAtTime(
     return posMap;
   };
 
-  // Pass 2: Build forward-chained facing rotations (including C0 look_at handoff)
+  // Pass 2: Build forward-chained facing rotations & pitch/roll (including C0 look_at handoff)
   for (const def of score.entities) {
     const chain = chainsByEntity.get(def.id) ?? [];
     let prevRot = def.rotationYRad;
+    let prevPitch = def.pitchRad ?? 0;
+    let prevRoll = def.rollRad ?? 0;
 
     for (const entry of chain) {
       entry.startRot = prevRot;
@@ -159,6 +165,15 @@ export function evaluateBlockingEntitiesAtTime(
 
       entry.endRot = endRot;
       prevRot = endRot;
+
+      const endPitch = entry.cue.pitchRad ?? prevPitch;
+      const endRoll = entry.cue.rollRad ?? prevRoll;
+      entry.startPitch = entry.isCut ? endPitch : prevPitch;
+      entry.endPitch = endPitch;
+      entry.startRoll = entry.isCut ? endRoll : prevRoll;
+      entry.endRoll = endRoll;
+      prevPitch = endPitch;
+      prevRoll = endRoll;
     }
   }
 
@@ -188,6 +203,8 @@ export function evaluateBlockingEntitiesAtTime(
       .find((e) => elapsedSec >= e.cue.endSec);
 
     let rotY = def.rotationYRad;
+    let pitchRad = def.pitchRad ?? 0;
+    let rollRad = def.rollRad ?? 0;
     let size: Vec3 = getEntityBaseSize(def);
     let visible = shotOv?.visible ?? true;
     let highlighted = Boolean(shotOv?.highlighted);
@@ -203,9 +220,9 @@ export function evaluateBlockingEntitiesAtTime(
       );
       const u = evaluateCameraEasing(active.cue.easing, tau);
 
-      rotY =
-        active.startRot +
-        u * shortestAngleDiff(active.endRot, active.startRot);
+      rotY = lerpAngleShortest(active.startRot, active.endRot, u);
+      pitchRad = lerpAngleShortest(active.startPitch, active.endPitch, u);
+      rollRad = lerpAngleShortest(active.startRoll, active.endRoll, u);
 
       size = {
         x: active.startSize.x + u * (active.endSize.x - active.startSize.x),
@@ -233,6 +250,8 @@ export function evaluateBlockingEntitiesAtTime(
       cueId = active.cue.id;
     } else if (lastFinished) {
       rotY = lastFinished.endRot;
+      pitchRad = lastFinished.endPitch;
+      rollRad = lastFinished.endRoll;
       size = cloneVec3(lastFinished.endSize);
       visible = lastFinished.visible;
       cueId = `hold:${lastFinished.cue.id}`;
@@ -244,6 +263,8 @@ export function evaluateBlockingEntitiesAtTime(
       cueId,
       position: pos,
       rotationYRad: rotY,
+      pitchRad,
+      rollRad,
       size,
       highlighted,
       visible,

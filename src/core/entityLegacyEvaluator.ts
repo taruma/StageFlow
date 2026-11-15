@@ -19,12 +19,12 @@ import { evaluateCameraEasing } from './maneuvers';
 import {
   cloneVec3,
   computeLookAtYawRad,
-  shortestAngleDiff,
 } from './sphericalMath';
 import {
   type EntityPoseSnapshot,
   buildGroundTrailPoints,
   getEntityBaseSize,
+  lerpAngleShortest,
   resolveCueStartEndSize,
   resolveLookAtPoint,
 } from './entityKinematicUtils';
@@ -47,6 +47,8 @@ export function evaluateLegacyEntitiesAtTime(
     baselinePoses.set(def.id, {
       position: cloneVec3(def.position),
       rotationYRad: def.rotationYRad,
+      pitchRad: def.pitchRad ?? 0,
+      rollRad: def.rollRad ?? 0,
       visible: true,
       size: getEntityBaseSize(def),
     });
@@ -61,6 +63,8 @@ export function evaluateLegacyEntitiesAtTime(
     runningPoses.set(id, {
       position: cloneVec3(pose.position),
       rotationYRad: pose.rotationYRad,
+      pitchRad: pose.pitchRad,
+      rollRad: pose.rollRad,
       visible: pose.visible,
       size: cloneVec3(pose.size),
     });
@@ -97,9 +101,14 @@ export function evaluateLegacyEntitiesAtTime(
         isCut
       );
 
+      const endPitch = override?.pitchRad ?? prev.pitchRad;
+      const endRoll = override?.rollRad ?? prev.rollRad;
+
       startMap.set(def.id, {
         position: startPos,
         rotationYRad: prev.rotationYRad,
+        pitchRad: isCut ? endPitch : prev.pitchRad,
+        rollRad: isCut ? endRoll : prev.rollRad,
         visible: override?.visible ?? prev.visible,
         size: startSize,
       });
@@ -107,7 +116,7 @@ export function evaluateLegacyEntitiesAtTime(
       endSizes.set(def.id, endSize);
     }
 
-    // Second pass: resolve end rotations (including lookAt)
+    // Second pass: resolve end rotations (including lookAt) & pitch/roll
     for (const def of score.entities) {
       const startSnap = startMap.get(def.id)!;
       const override = shot.entities[def.id];
@@ -139,6 +148,8 @@ export function evaluateLegacyEntitiesAtTime(
       const endSnap: EntityPoseSnapshot = {
         position: endPos,
         rotationYRad: endRot,
+        pitchRad: override?.pitchRad ?? startSnap.pitchRad,
+        rollRad: override?.rollRad ?? startSnap.rollRad,
         visible: override?.visible ?? startSnap.visible,
         size: endSizes.get(def.id)!,
       };
@@ -251,13 +262,21 @@ export function evaluateLegacyEntitiesAtTime(
     const pos = livePositions.get(def.id)!;
     const override = activeShot?.entities[def.id];
 
-    let rotY =
-      item.startSnap.rotationYRad +
-      item.u *
-        shortestAngleDiff(
-          item.endSnap.rotationYRad,
-          item.startSnap.rotationYRad
-        );
+    let rotY = lerpAngleShortest(
+      item.startSnap.rotationYRad,
+      item.endSnap.rotationYRad,
+      item.u
+    );
+    const pitchRad = lerpAngleShortest(
+      item.startSnap.pitchRad,
+      item.endSnap.pitchRad,
+      item.u
+    );
+    const rollRad = lerpAngleShortest(
+      item.startSnap.rollRad,
+      item.endSnap.rollRad,
+      item.u
+    );
 
     if (override?.lookAt) {
       const lookTarget = resolveLookAtPoint(
@@ -295,6 +314,8 @@ export function evaluateLegacyEntitiesAtTime(
       cueId: activeShot?.id ?? null,
       position: pos,
       rotationYRad: rotY,
+      pitchRad,
+      rollRad,
       size,
       highlighted: item.highlighted,
       visible: item.visible,

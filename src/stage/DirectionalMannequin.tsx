@@ -80,6 +80,7 @@ const DirectionalMannequinComponent: React.FC<DirectionalMannequinProps> = ({
 }) => {
   const groupRef = useRef<THREE.Group | null>(null);
   const lastSyncedEntityRef = useRef<EvaluatedEntityState | null>(null);
+  const tiltGroupRef = useRef<THREE.Group | null>(null);
   const meshContainerRef = useRef<THREE.Group | null>(null);
   const footprintRef = useRef<THREE.Group | null>(null);
   const labelGroupRef = useRef<THREE.Group | null>(null);
@@ -123,6 +124,14 @@ const DirectionalMannequinComponent: React.FC<DirectionalMannequinProps> = ({
       entity.position.z
     );
     groupRef.current.rotation.set(0, entity.rotationYRad, 0);
+    if (tiltGroupRef.current) {
+      tiltGroupRef.current.rotation.set(
+        entity.pitchRad ?? 0,
+        0,
+        entity.rollRad ?? 0,
+        'YXZ'
+      );
+    }
 
     const liveW = entity.size?.x ?? baseWidth;
     const liveH = entity.size?.y ?? height;
@@ -604,15 +613,18 @@ const DirectionalMannequinComponent: React.FC<DirectionalMannequinProps> = ({
           />
         )}
 
-        {/* Scaled 3D Mesh Container (Base at Y=0) */}
-        <group ref={meshContainerRef}>
-          {def.kind === 'character' ? (
-            renderCharacter()
-          ) : def.kind === 'prop' ? (
-            renderPropShape()
-          ) : (
-            renderMarkerShape()
-          )}
+        {/* 3D Mesh Pitch/Roll Tilt Group (YXZ order, unscaled to prevent shear) */}
+        <group ref={tiltGroupRef}>
+          {/* Scaled 3D Mesh Container (Base at Y=0) */}
+          <group ref={meshContainerRef}>
+            {def.kind === 'character' ? (
+              renderCharacter()
+            ) : def.kind === 'prop' ? (
+              renderPropShape()
+            ) : (
+              renderMarkerShape()
+            )}
+          </group>
         </group>
 
         {/* Floating Identity Badge (Independent of Mesh Scale) */}

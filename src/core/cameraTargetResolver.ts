@@ -11,6 +11,7 @@ import type {
   Vec3,
 } from './types';
 import { ENTITY_DEFAULTS } from './constants';
+import { rotateVec3YXZ } from './sphericalMath';
 
 export const ZERO_OFFSET: Vec3 = { x: 0, y: 0, z: 0 };
 
@@ -99,15 +100,20 @@ export function resolveShotDestOffset(
  */
 export function getEntityLookAnchor(ent: EvaluatedEntityState): Vec3 {
   const effectiveHeight = ent.size?.y ?? ent.def.height;
-  const anchorY =
+  const anchorOffsetY =
     ent.def.kind === 'character'
-      ? ent.position.y +
-        effectiveHeight * ENTITY_DEFAULTS.CHARACTER_LOOK_ANCHOR_RATIO
-      : ent.position.y + effectiveHeight * 0.5;
+      ? effectiveHeight * ENTITY_DEFAULTS.CHARACTER_LOOK_ANCHOR_RATIO
+      : effectiveHeight * 0.5;
+  const rotated = rotateVec3YXZ(
+    { x: 0, y: anchorOffsetY, z: 0 },
+    ent.rotationYRad,
+    ent.pitchRad ?? 0,
+    ent.rollRad ?? 0
+  );
   return {
-    x: ent.position.x,
-    y: anchorY,
-    z: ent.position.z,
+    x: ent.position.x + rotated.x,
+    y: ent.position.y + rotated.y,
+    z: ent.position.z + rotated.z,
   };
 }
 

@@ -211,7 +211,7 @@ describe('stagePerfHelpers — Issue #9 deterministic performance guards', () =>
       ).toBe(false);
     });
 
-    it('skips re-render when only position/rotationYRad/uiFrame/fresh equal trailPoints change', () => {
+    it('skips re-render when only position/rotationYRad/pitchRad/rollRad/uiFrame/fresh equal trailPoints change', () => {
       const def = makeEntityDef();
       const frameRef = { current: makeFrame(makeStageCameraState()) };
       const initialA: EvaluatedEntityState = {
@@ -220,6 +220,8 @@ describe('stagePerfHelpers — Issue #9 deterministic performance guards', () =>
         cueId: 'cue-1',
         position: { x: 0, y: 0, z: 0 },
         rotationYRad: 0,
+        pitchRad: 0,
+        rollRad: 0,
         size: { x: 0.6, y: 1.75, z: 0.6 },
         highlighted: false,
         visible: true,
@@ -233,6 +235,8 @@ describe('stagePerfHelpers — Issue #9 deterministic performance guards', () =>
         ...initialA,
         position: { x: 1.2, y: 0, z: 0.5 },
         rotationYRad: 1.1,
+        pitchRad: 0.8,
+        rollRad: -0.35,
         size: { x: 0.6, y: 1.75, z: 0.6 },
         trailPoints: [
           { x: 0, y: 0, z: 0 },
