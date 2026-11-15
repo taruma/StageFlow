@@ -14,6 +14,7 @@ import { useFrame } from '@react-three/fiber';
 import { Line, Edges } from '@react-three/drei';
 import * as THREE from 'three';
 import { ENTITY_DEFAULTS } from '../core/constants';
+import { rotateVec3YXZ } from '../core/sphericalMath';
 import type { Vec3 } from '../core/types';
 import { resolveGatedState } from './stageSyncGate';
 
@@ -80,6 +81,7 @@ const DirectionalMannequinComponent: React.FC<DirectionalMannequinProps> = ({
 }) => {
   const groupRef = useRef<THREE.Group | null>(null);
   const lastSyncedEntityRef = useRef<EvaluatedEntityState | null>(null);
+  const tiltGroupRef = useRef<THREE.Group | null>(null);
   const meshContainerRef = useRef<THREE.Group | null>(null);
   const footprintRef = useRef<THREE.Group | null>(null);
   const labelGroupRef = useRef<THREE.Group | null>(null);
@@ -123,6 +125,14 @@ const DirectionalMannequinComponent: React.FC<DirectionalMannequinProps> = ({
       entity.position.z
     );
     groupRef.current.rotation.set(0, entity.rotationYRad, 0);
+    if (tiltGroupRef.current) {
+      tiltGroupRef.current.rotation.set(
+        entity.pitchRad ?? 0,
+        0,
+        entity.rollRad ?? 0,
+        'YXZ'
+      );
+    }
 
     const liveW = entity.size?.x ?? baseWidth;
     const liveH = entity.size?.y ?? height;
@@ -161,7 +171,17 @@ const DirectionalMannequinComponent: React.FC<DirectionalMannequinProps> = ({
       footprintRef.current.scale.set(sx, 1, sz);
     }
     if (labelGroupRef.current) {
-      labelGroupRef.current.position.set(0, liveH + 0.28, 0);
+      const tiltedTop = rotateVec3YXZ(
+        { x: 0, y: liveH, z: 0 },
+        0,
+        entity.pitchRad ?? 0,
+        entity.rollRad ?? 0
+      );
+      labelGroupRef.current.position.set(
+        tiltedTop.x,
+        Math.max(0, tiltedTop.y) + 0.28,
+        tiltedTop.z
+      );
     }
   };
 
@@ -604,15 +624,18 @@ const DirectionalMannequinComponent: React.FC<DirectionalMannequinProps> = ({
           />
         )}
 
-        {/* Scaled 3D Mesh Container (Base at Y=0) */}
-        <group ref={meshContainerRef}>
-          {def.kind === 'character' ? (
-            renderCharacter()
-          ) : def.kind === 'prop' ? (
-            renderPropShape()
-          ) : (
-            renderMarkerShape()
-          )}
+        {/* 3D Mesh Pitch/Roll Tilt Group (YXZ order, unscaled to prevent shear) */}
+        <group ref={tiltGroupRef}>
+          {/* Scaled 3D Mesh Container (Base at Y=0) */}
+          <group ref={meshContainerRef}>
+            {def.kind === 'character' ? (
+              renderCharacter()
+            ) : def.kind === 'prop' ? (
+              renderPropShape()
+            ) : (
+              renderMarkerShape()
+            )}
+          </group>
         </group>
 
         {/* Floating Identity Badge (Independent of Mesh Scale) */}

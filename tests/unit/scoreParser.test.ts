@@ -1441,4 +1441,175 @@ shots:
       expect(res3.score?.metadata).toBeUndefined();
     });
   });
+
+  describe('Entity pitch and roll rotation parsing', () => {
+    it('parses pitch and roll across entities, shots[].entities, and blocking Format A & B with 0 defaults', () => {
+      const yaml = `
+version: "1.0"
+id: "entity-tilt-parse"
+title: "Entity Tilt Parse"
+entities:
+  - id: "hero"
+    kind: "character"
+    pitch: 90
+    roll: "-15deg"
+  - id: "upright"
+    kind: "prop"
+blocking:
+  - id: "cue-single"
+    entity: "hero"
+    start: 0
+    end: 2
+    pitch: 0
+    roll: "0.5rad"
+  - id: "cue-multi"
+    start: 2
+    end: 4
+    entities:
+      hero: { pitch: 65, roll: 25 }
+      upright: { pitch: -30 }
+shots:
+  - id: "shot-1"
+    start: 0
+    end: 4
+    entities:
+      hero: { pitch: 45, roll: -20 }
+      upright: { roll: 15 }
+`;
+      const { score, error } = parseStageScore(yaml);
+      expect(error).toBeNull();
+      expect(score).not.toBeNull();
+
+      const heroDef = score!.entities.find((e) => e.id === 'hero')!;
+      const uprightDef = score!.entities.find((e) => e.id === 'upright')!;
+      expect(radToDeg(heroDef.pitchRad!)).toBeCloseTo(90, 4);
+      expect(radToDeg(heroDef.rollRad!)).toBeCloseTo(-15, 4);
+      expect(uprightDef.pitchRad).toBe(0);
+      expect(uprightDef.rollRad).toBe(0);
+
+      const b0 = score!.blocking![0];
+      expect(b0.pitchRad).toBe(0);
+      expect(b0.rollRad).toBeCloseTo(0.5, 4);
+
+      const b1Hero = score!.blocking![1];
+      const b1Upright = score!.blocking![2];
+      expect(radToDeg(b1Hero.pitchRad!)).toBeCloseTo(65, 4);
+      expect(radToDeg(b1Hero.rollRad!)).toBeCloseTo(25, 4);
+      expect(radToDeg(b1Upright.pitchRad!)).toBeCloseTo(-30, 4);
+      expect(b1Upright.rollRad).toBeUndefined();
+
+      const shotHero = score!.shots[0].entities['hero'];
+      const shotUpright = score!.shots[0].entities['upright'];
+      expect(radToDeg(shotHero.pitchRad!)).toBeCloseTo(45, 4);
+      expect(radToDeg(shotHero.rollRad!)).toBeCloseTo(-20, 4);
+      expect(shotUpright.pitchRad).toBeUndefined();
+      expect(radToDeg(shotUpright.rollRad!)).toBeCloseTo(15, 4);
+    });
+
+    it('parses degree symbol & negative rad strings and handles invalid/NaN/null/Infinity pitch/roll values', () => {
+      const yaml = `
+version: "1.0"
+id: "entity-tilt-edge-parse"
+title: "Entity Tilt Edge Parse"
+entities:
+  - id: "deg-sym"
+    kind: "character"
+    pitch: "45°"
+    roll: "-0.5 rad"
+  - id: "bad-def"
+    kind: "prop"
+    pitch: null
+    roll: "not-an-angle"
+  - id: "nan-def"
+    kind: "prop"
+    pitch: .nan
+    roll: .inf
+blocking:
+  - id: "b-single"
+    entity: "deg-sym"
+    start: 0
+    end: 2
+    pitch: .nan
+    roll: null
+  - id: "b-multi"
+    start: 2
+    end: 4
+    entities:
+      deg-sym: { pitch: "bad", roll: .inf }
+shots:
+  - id: "s1"
+    start: 0
+    end: 4
+    entities:
+      deg-sym: { pitch: null, roll: "invalid" }
+      bad-def: { pitch: "45°", roll: "-0.5 rad" }
+`;
+      const { score, error } = parseStageScore(yaml);
+      expect(error).toBeNull();
+      expect(score).not.toBeNull();
+
+      const degSym = score!.entities.find((e) => e.id === 'deg-sym')!;
+      expect(radToDeg(degSym.pitchRad!)).toBeCloseTo(45, 4);
+      expect(degSym.rollRad).toBeCloseTo(-0.5, 4);
+
+      const badDef = score!.entities.find((e) => e.id === 'bad-def')!;
+      expect(badDef.pitchRad).toBe(0);
+      expect(badDef.rollRad).toBe(0);
+
+      const nanDef = score!.entities.find((e) => e.id === 'nan-def')!;
+      expect(nanDef.pitchRad).toBe(0);
+      expect(nanDef.rollRad).toBe(0);
+
+      const bSingle = score!.blocking![0];
+      expect(bSingle.pitchRad).toBeUndefined();
+      expect(bSingle.rollRad).toBeUndefined();
+
+      const bMulti = score!.blocking![1];
+      expect(bMulti.pitchRad).toBeUndefined();
+      expect(bMulti.rollRad).toBeUndefined();
+
+      const shotDegSym = score!.shots[0].entities['deg-sym'];
+      expect(shotDegSym.pitchRad).toBeUndefined();
+      expect(shotDegSym.rollRad).toBeUndefined();
+
+      const shotBadDef = score!.shots[0].entities['bad-def'];
+      expect(radToDeg(shotBadDef.pitchRad!)).toBeCloseTo(45, 4);
+      expect(shotBadDef.rollRad).toBeCloseTo(-0.5, 4);
+    });
+
+    it('rotates baseline stage.stage_camera.target when pointing to an entity with base pitch/roll', () => {
+      const yaml = `
+version: "1.0"
+id: "baseline-tilted-target"
+title: "Baseline Tilted Target"
+stage:
+  stage_camera:
+    target: "prone_hero"
+    distance: 4
+    pitch: 15
+    yaw: 0
+entities:
+  - id: "prone_hero"
+    kind: "character"
+    position: [1.0, 0.2, -0.5]
+    height: 1.8
+    rotation: 90
+    pitch: 90
+    roll: 0
+shots:
+  - id: "s1"
+    start: 0
+    end: 2
+`;
+      const { score, error } = parseStageScore(yaml);
+      expect(error).toBeNull();
+      expect(score).not.toBeNull();
+
+      // Anchor offset (0, 1.8 * 0.9 = 1.62, 0) tilted pitch=+90deg -> local (0, 0, 1.62), rotated yaw=+90deg -> world (+1.62, 0, 0)
+      const target = score!.stage.defaultStageCameraPose.target;
+      expect(target.x).toBeCloseTo(1.0 + 1.62, 4);
+      expect(target.y).toBeCloseTo(0.2, 4);
+      expect(target.z).toBeCloseTo(-0.5, 4);
+    });
+  });
 });

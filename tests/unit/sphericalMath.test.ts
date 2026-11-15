@@ -9,6 +9,7 @@ import {
   MAX_SAFE_POLAR_ANGLE_RAD,
   MIN_FLOOR_CLEARANCE_M,
   radToDeg,
+  rotateVec3YXZ,
   shortestAngleDiff,
   sphericalToCartesian,
 } from '../../src/core/sphericalMath';
@@ -313,6 +314,82 @@ describe('sphericalMath — Metric Coordinates & Shortest-Angle Unwrapping', () 
         focalLengthMm: 35,
       });
       expect(clampedMax.distance).toBe(100.0);
+    });
+  });
+
+  describe('rotateVec3YXZ — Intrinsic YXZ Euler Rotation', () => {
+    it('preserves upright (0, y, 0) bit-for-bit across arbitrary yaw when pitch=0 and roll=0', () => {
+      const upright = rotateVec3YXZ({ x: 0, y: 1.575, z: 0 }, degToRad(137), 0, 0);
+      expect(upright).toEqual({ x: 0, y: 1.575, z: 0 });
+    });
+
+    it('rotates non-Y vectors accurately along the yaw-only fast path (pitch=0, roll=0)', () => {
+      const rotated = rotateVec3YXZ({ x: 0, y: 0.5, z: 2.0 }, degToRad(90), 0, 0);
+      expect(rotated.x).toBeCloseTo(2.0, 6);
+      expect(rotated.y).toBeCloseTo(0.5, 6);
+      expect(rotated.z).toBeCloseTo(0, 6);
+    });
+
+    it('follows right-handed Y-up single-axis sign conventions (+X pitch, +Y yaw, +Z roll)', () => {
+      // +90 deg yaw around +Y: +Z forward -> +X right; +X -> -Z
+      const yawZ = rotateVec3YXZ({ x: 0, y: 0, z: 1 }, degToRad(90), 0, 0);
+      expect(yawZ.x).toBeCloseTo(1, 6);
+      expect(yawZ.y).toBeCloseTo(0, 6);
+      expect(yawZ.z).toBeCloseTo(0, 6);
+
+      // +90 deg pitch around +X: +Y up -> +Z forward (prone forward)
+      const pitchPos = rotateVec3YXZ({ x: 0, y: 1, z: 0 }, 0, degToRad(90), 0);
+      expect(pitchPos.x).toBeCloseTo(0, 6);
+      expect(pitchPos.y).toBeCloseTo(0, 6);
+      expect(pitchPos.z).toBeCloseTo(1, 6);
+
+      // -90 deg pitch around +X: +Y up -> -Z backward (supine)
+      const pitchNeg = rotateVec3YXZ({ x: 0, y: 1, z: 0 }, 0, degToRad(-90), 0);
+      expect(pitchNeg.x).toBeCloseTo(0, 6);
+      expect(pitchNeg.y).toBeCloseTo(0, 6);
+      expect(pitchNeg.z).toBeCloseTo(-1, 6);
+
+      // +90 deg roll around +Z: +Y up -> -X (CW bank from behind entity), +X -> +Y
+      const rollUp = rotateVec3YXZ({ x: 0, y: 1, z: 0 }, 0, 0, degToRad(90));
+      expect(rollUp.x).toBeCloseTo(-1, 6);
+      expect(rollUp.y).toBeCloseTo(0, 6);
+      expect(rollUp.z).toBeCloseTo(0, 6);
+
+      const rollRight = rotateVec3YXZ({ x: 1, y: 0, z: 0 }, 0, 0, degToRad(90));
+      expect(rollRight.x).toBeCloseTo(0, 6);
+      expect(rollRight.y).toBeCloseTo(1, 6);
+      expect(rollRight.z).toBeCloseTo(0, 6);
+    });
+
+    it('composes combined yaw + pitch + roll in exact intrinsic YXZ order Ry(yaw)*Rx(pitch)*Rz(roll) for general (x,y,z)', () => {
+      const v = { x: 0.4, y: 1.2, z: -0.7 };
+      const yaw = degToRad(40);
+      const pitch = degToRad(-30);
+      const roll = degToRad(55);
+
+      // Sequential Rz(roll) -> Rx(pitch) -> Ry(yaw)
+      const afterZ = rotateVec3YXZ(v, 0, 0, roll);
+      const afterXZ = rotateVec3YXZ(afterZ, 0, pitch, 0);
+      const expected = rotateVec3YXZ(afterXZ, yaw, 0, 0);
+
+      const combined = rotateVec3YXZ(v, yaw, pitch, roll);
+      expect(combined.x).toBeCloseTo(expected.x, 10);
+      expect(combined.y).toBeCloseTo(expected.y, 10);
+      expect(combined.z).toBeCloseTo(expected.z, 10);
+
+      // Also verify Euclidean norm is strictly preserved (orthogonal rotation)
+      const normIn = Math.hypot(v.x, v.y, v.z);
+      const normOut = Math.hypot(combined.x, combined.y, combined.z);
+      expect(normOut).toBeCloseTo(normIn, 10);
+
+      // Verify order matters: (yaw=90, pitch=90, roll=90) on (0, 1, 0)
+      // Step 1: Rz(90)*(0,1,0) = (-1, 0, 0)
+      // Step 2: Rx(90)*(-1,0,0) = (-1, 0, 0)
+      // Step 3: Ry(90)*(-1,0,0) = (0, 0, 1)
+      const ordered = rotateVec3YXZ({ x: 0, y: 1, z: 0 }, degToRad(90), degToRad(90), degToRad(90));
+      expect(ordered.x).toBeCloseTo(0, 6);
+      expect(ordered.y).toBeCloseTo(0, 6);
+      expect(ordered.z).toBeCloseTo(1, 6);
     });
   });
 });

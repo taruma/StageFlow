@@ -12,10 +12,13 @@ import type {
   Vec3,
 } from './types';
 import { ENTITY_DEFAULTS } from './constants';
+import { shortestAngleDiff } from './sphericalMath';
 
 export interface EntityPoseSnapshot {
   position: Vec3;
   rotationYRad: number;
+  pitchRad: number;
+  rollRad: number;
   visible: boolean;
   size: Vec3;
 }
@@ -26,10 +29,25 @@ export interface ChainedBlockingCueEntry {
   endPos: Vec3;
   startRot: number;
   endRot: number;
+  startPitch: number;
+  endPitch: number;
+  startRoll: number;
+  endRoll: number;
   startSize: Vec3;
   endSize: Vec3;
   visible: boolean;
   isCut?: boolean;
+}
+
+/**
+ * Interpolates from startRad to endRad along the shortest angular arc [-PI, PI] at eased progress u.
+ */
+export function lerpAngleShortest(
+  startRad: number,
+  endRad: number,
+  u: number
+): number {
+  return startRad + u * shortestAngleDiff(endRad, startRad);
 }
 
 /**
