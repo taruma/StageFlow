@@ -54,6 +54,59 @@ describe('shotBreakdownUtils — Pure Directorial HUD Helpers', () => {
       expect(res.color).toBe('#e11d48');
     });
 
+    it('resolves dot-notation entity sub-anchors with clean badge label and color', () => {
+      const chest = resolveShotTargetInfo('ruby.chest', mockEntities);
+      expect(chest.isEntity).toBe(true);
+      expect(chest.label).toBe('Ruby (Hero) · chest');
+      expect(chest.color).toBe('#e11d48');
+
+      const typo = resolveShotTargetInfo('ruby.typo', mockEntities);
+      expect(typo.isEntity).toBe(true);
+      expect(typo.label).toBe('Ruby (Hero)');
+      expect(typo.color).toBe('#e11d48');
+
+      const arr = resolveShotTargetInfo(['ruby.eyes', 'evan.shoulder_l'], mockEntities);
+      expect(arr.isEntity).toBe(true);
+      expect(arr.label).toBe('Ruby (Hero) · eyes + Evan (Courier) · shoulder_l');
+      expect(arr.color).toBe('#e11d48');
+    });
+
+    it('supports dotted entity IDs, whitespace-trimmed labels, and unmatched array isEntity (#19)', () => {
+      const dottedEntities: SceneEntityDef[] = [
+        ...mockEntities,
+        {
+          id: 'dr.smith',
+          label: '  Dr. Smith  ',
+          kind: 'character',
+          position: { x: -1, y: 0, z: 0 },
+          rotationYRad: 0,
+          height: 1.8,
+          radius: 0.35,
+          color: '#10b981',
+        },
+      ];
+
+      const dotted = resolveShotTargetInfo('dr.smith.chest', dottedEntities);
+      expect(dotted.isEntity).toBe(true);
+      expect(dotted.label).toBe('Dr. Smith · chest');
+      expect(dotted.color).toBe('#10b981');
+
+      const trimmedLabel = resolveShotTargetInfo('Dr. Smith.head', dottedEntities);
+      expect(trimmedLabel.isEntity).toBe(true);
+      expect(trimmedLabel.label).toBe('Dr. Smith · head');
+      expect(trimmedLabel.color).toBe('#10b981');
+
+      const unmatchedArr = resolveShotTargetInfo(['center', 'stage'], dottedEntities);
+      expect(unmatchedArr.isEntity).toBe(false);
+      expect(unmatchedArr.label).toBe('center + stage');
+      expect(unmatchedArr.color).toBeUndefined();
+
+      const mixedArr = resolveShotTargetInfo(['ruby', 'center'], dottedEntities);
+      expect(mixedArr.isEntity).toBe(true);
+      expect(mixedArr.label).toBe('Ruby (Hero) + center');
+      expect(mixedArr.color).toBe('#e11d48');
+    });
+
     it('falls back to raw string when entity identifier is not found', () => {
       const res = resolveShotTargetInfo('doorway', mockEntities);
       expect(res.isEntity).toBe(false);

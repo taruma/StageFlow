@@ -5,6 +5,7 @@
  */
 
 import type { SceneEntityDef, TargetAnchor, Vec3 } from '../core/types';
+import { matchEntityTargetKey } from '../core/cameraTargetResolver';
 
 export interface ResolvedTargetInfo {
   label: string;
@@ -21,6 +22,30 @@ export function cleanShotLabel(rawLabel: string): string {
   return rawLabel.replace(/^Shot\s*\d+\s*[·:–-]\s*/i, '').trim() || rawLabel;
 }
 
+function formatEntityTargetEntry(
+  rawId: string,
+  entities: SceneEntityDef[]
+): ResolvedTargetInfo {
+  const trimmed = rawId.trim();
+  const match = matchEntityTargetKey(
+    trimmed,
+    entities,
+    (e) => e.id,
+    (e) => e.label
+  );
+  if (match) {
+    const baseName = (match.item.label || match.item.id).trim();
+    return {
+      label: match.recognizedPart
+        ? `${baseName} · ${match.recognizedPart}`
+        : baseName,
+      color: match.item.color,
+      isEntity: true,
+    };
+  }
+  return { label: trimmed, isEntity: false };
+}
+
 /**
  * Resolves a shot's Look-At target into a display label and optional entity theme color.
  * Supports entity identifiers, multiple entity arrays, raw 3D vectors, and fallback base targets.
@@ -31,35 +56,26 @@ export function resolveShotTargetInfo(
   baseTarget?: Vec3
 ): ResolvedTargetInfo {
   if (typeof target === 'string') {
-    const trimmed = target.trim();
-    const match = entities.find(
-      (e) => e.id.toLowerCase() === trimmed.toLowerCase()
-    );
-    if (match) {
-      return {
-        label: match.label || match.id,
-        color: match.color,
-        isEntity: true,
-      };
-    }
-    return { label: trimmed, isEntity: false };
+    return formatEntityTargetEntry(target, entities);
   }
 
   if (Array.isArray(target) && target.length > 0) {
+    let firstColor: string | undefined;
+    let matchedCount = 0;
     const names = target.map((id) => {
-      const match = entities.find(
-        (e) => e.id.toLowerCase() === String(id).toLowerCase().trim()
-      );
-      return match ? match.label || match.id : String(id).trim();
+      const entry = formatEntityTargetEntry(String(id), entities);
+      if (entry.isEntity) {
+        matchedCount++;
+        if (!firstColor) {
+          firstColor = entry.color;
+        }
+      }
+      return entry.label;
     });
-    // Use first matched entity color if available
-    const firstMatched = entities.find(
-      (e) => e.id.toLowerCase() === String(target[0]).toLowerCase().trim()
-    );
     return {
       label: names.join(' + '),
-      color: firstMatched?.color,
-      isEntity: true,
+      color: firstColor,
+      isEntity: matchedCount > 0,
     };
   }
 

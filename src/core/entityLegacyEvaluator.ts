@@ -21,12 +21,13 @@ import {
   computeLookAtYawRad,
 } from './sphericalMath';
 import {
+  type EntityLookAtPose,
   type EntityPoseSnapshot,
   buildGroundTrailPoints,
   getEntityBaseSize,
   lerpAngleShortest,
+  relaxLookAtPoses,
   resolveCueStartEndSize,
-  resolveLookAtPoint,
 } from './entityKinematicUtils';
 
 /**
@@ -74,9 +75,10 @@ export function evaluateLegacyEntitiesAtTime(
     const startMap = new Map<string, EntityPoseSnapshot>();
     const endMap = new Map<string, EntityPoseSnapshot>();
 
-    // First pass: determine start and end positions for this shot
+    // First pass: determine start and end positions, sizes, and tilt for this shot
     const endPositions = new Map<string, Vec3>();
     const endSizes = new Map<string, Vec3>();
+    const endPoses = new Map<string, EntityLookAtPose>();
     for (const def of score.entities) {
       const prev = runningPoses.get(def.id)!;
       const override = shot.entities[def.id];
@@ -103,6 +105,13 @@ export function evaluateLegacyEntitiesAtTime(
 
       const endPitch = override?.pitchRad ?? prev.pitchRad;
       const endRoll = override?.rollRad ?? prev.rollRad;
+      const baselineEndRot =
+        override?.rotationYRad !== undefined
+          ? override.rotationYRad
+          : !override?.cut &&
+            Math.hypot(endPos.x - startPos.x, endPos.z - startPos.z) > 0.05
+          ? computeLookAtYawRad(startPos, endPos)
+          : prev.rotationYRad;
 
       startMap.set(def.id, {
         position: startPos,
@@ -114,35 +123,38 @@ export function evaluateLegacyEntitiesAtTime(
       });
       endPositions.set(def.id, endPos);
       endSizes.set(def.id, endSize);
+      endPoses.set(def.id, {
+        position: endPos,
+        rotationYRad: baselineEndRot,
+        pitchRad: endPitch,
+        rollRad: endRoll,
+        size: endSize,
+      });
     }
 
-    // Second pass: resolve end rotations (including lookAt) & pitch/roll
+    // Second pass: resolve end rotations (order-independent Jacobi relaxation) & pitch/roll
+    const resolvedEndLookAts = relaxLookAtPoses(
+      score.entities,
+      endPositions,
+      endPoses,
+      (id) => {
+        const ov = shot.entities[id];
+        return ov?.rotationYRad === undefined ? ov?.lookAt : undefined;
+      }
+    );
+
     for (const def of score.entities) {
       const startSnap = startMap.get(def.id)!;
       const override = shot.entities[def.id];
       const endPos = endPositions.get(def.id)!;
 
-      let endRot = startSnap.rotationYRad;
-      if (override?.rotationYRad !== undefined) {
-        endRot = override.rotationYRad;
-      } else if (override?.lookAt) {
-        const targetPt = resolveLookAtPoint(
-          override.lookAt,
-          endPositions,
-          score.entities
-        );
-        if (targetPt) {
-          endRot = computeLookAtYawRad(endPos, targetPt);
-        }
-      } else if (
-        !override?.cut &&
-        Math.hypot(
-          endPos.x - startSnap.position.x,
-          endPos.z - startSnap.position.z
-        ) > 0.05
+      let endRot = endPoses.get(def.id)!.rotationYRad;
+      if (
+        override?.rotationYRad === undefined &&
+        override?.lookAt &&
+        !resolvedEndLookAts.has(def.id)
       ) {
-        // Automatically face along walking direction if moving without explicit rotation
-        endRot = computeLookAtYawRad(startSnap.position, endPos);
+        endRot = startSnap.rotationYRad;
       }
 
       const endSnap: EntityPoseSnapshot = {
@@ -256,13 +268,16 @@ export function evaluateLegacyEntitiesAtTime(
     }
   }
 
-  // Second pass: resolve live facing angles (including dynamic lookAt) & floor trails
+  // Pre-build live poses across all entities so lookAt sub-anchors see live yaw/pitch/roll/size
+  const livePoses = new Map<string, EntityLookAtPose>();
+  const preLookAtStates = new Map<
+    string,
+    { rotY: number; pitchRad: number; rollRad: number; size: Vec3 }
+  >();
   for (const def of score.entities) {
     const item = rawStates.get(def.id)!;
     const pos = livePositions.get(def.id)!;
-    const override = activeShot?.entities[def.id];
-
-    let rotY = lerpAngleShortest(
+    const rotY = lerpAngleShortest(
       item.startSnap.rotationYRad,
       item.endSnap.rotationYRad,
       item.u
@@ -277,25 +292,6 @@ export function evaluateLegacyEntitiesAtTime(
       item.endSnap.rollRad,
       item.u
     );
-
-    if (override?.lookAt) {
-      const lookTarget = resolveLookAtPoint(
-        override.lookAt,
-        livePositions,
-        score.entities
-      );
-      if (lookTarget) {
-        rotY = computeLookAtYawRad(pos, lookTarget);
-      }
-    }
-
-    const trailPoints = override?.cut
-      ? []
-      : buildGroundTrailPoints(
-          item.startSnap.position,
-          item.endSnap.position
-        );
-
     const size: Vec3 = {
       x:
         item.startSnap.size.x +
@@ -307,6 +303,37 @@ export function evaluateLegacyEntitiesAtTime(
         item.startSnap.size.z +
         item.u * (item.endSnap.size.z - item.startSnap.size.z),
     };
+    preLookAtStates.set(def.id, { rotY, pitchRad, rollRad, size });
+    livePoses.set(def.id, {
+      position: pos,
+      rotationYRad: rotY,
+      pitchRad,
+      rollRad,
+      size,
+    });
+  }
+
+  // Second pass: resolve live facing angles (order-independent Jacobi lookAt relaxation) & floor trails
+  relaxLookAtPoses(score.entities, livePositions, livePoses, (id) => {
+    const ov = activeShot?.entities[id];
+    return ov?.rotationYRad === undefined ? ov?.lookAt : undefined;
+  });
+
+  for (const def of score.entities) {
+    const item = rawStates.get(def.id)!;
+    const pos = livePositions.get(def.id)!;
+    const override = activeShot?.entities[def.id];
+    const pre = preLookAtStates.get(def.id)!;
+
+    const rotY = livePoses.get(def.id)!.rotationYRad;
+    const { pitchRad, rollRad, size } = pre;
+
+    const trailPoints = override?.cut
+      ? []
+      : buildGroundTrailPoints(
+          item.startSnap.position,
+          item.endSnap.position
+        );
 
     const state: EvaluatedEntityState = {
       id: def.id,

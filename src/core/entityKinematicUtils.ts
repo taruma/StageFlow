@@ -12,7 +12,19 @@ import type {
   Vec3,
 } from './types';
 import { ENTITY_DEFAULTS } from './constants';
-import { shortestAngleDiff } from './sphericalMath';
+import { computeLookAtYawRad, shortestAngleDiff } from './sphericalMath';
+import {
+  computeRotatedSubAnchorPoint,
+  matchEntityTargetKey,
+} from './cameraTargetResolver';
+
+export interface EntityLookAtPose {
+  position?: Vec3;
+  rotationYRad: number;
+  pitchRad?: number;
+  rollRad?: number;
+  size?: Vec3;
+}
 
 export interface EntityPoseSnapshot {
   position: Vec3;
@@ -374,12 +386,16 @@ export function resolveCueStartEndSize(
 }
 
 /**
- * Resolves a lookAt target (entity ID, multi-entity array, entity label, "center", or explicit Vec3) into world coordinates.
+ * Resolves a lookAt target (entity ID/sub-anchor, multi-entity array, entity label,
+ * "center", or explicit Vec3) into 3D world coordinates.
+ * When a sub-anchor (e.g. "actor.shoulder_l") or tilted target entity is referenced
+ * alongside `currentPoses`, applies full intrinsic YXZ rotation to the local offset.
  */
 export function resolveLookAtPoint(
   lookAt: TargetAnchor | undefined,
   currentPositions: Map<string, Vec3>,
-  entities?: SceneEntityDef[]
+  entities?: SceneEntityDef[],
+  currentPoses?: Map<string, EntityLookAtPose>
 ): Vec3 | null {
   if (!lookAt) return null;
   if (Array.isArray(lookAt)) {
@@ -389,7 +405,7 @@ export function resolveLookAtPoint(
     let sumZ = 0;
     let count = 0;
     for (const key of lookAt) {
-      const pt = resolveLookAtPoint(key, currentPositions, entities);
+      const pt = resolveLookAtPoint(key, currentPositions, entities, currentPoses);
       if (pt) {
         sumX += pt.x;
         sumY += pt.y;
@@ -406,18 +422,104 @@ export function resolveLookAtPoint(
   if (trimmed === 'center' || trimmed === 'origin' || trimmed === 'stage') {
     return { x: 0, y: 0, z: 0 };
   }
-  for (const [id, pos] of currentPositions.entries()) {
-    if (id.toLowerCase() === trimmed) {
-      return pos;
+
+  // Match against declared SceneEntityDef entries first (supports IDs, labels, and <id>.<part>)
+  if (entities && entities.length > 0) {
+    const matched = matchEntityTargetKey(
+      lookAt,
+      entities,
+      (e) => e.id,
+      (e) => e.label
+    );
+    if (matched) {
+      const def = matched.item;
+      const pos = currentPositions.get(def.id) ?? currentPoses?.get(def.id)?.position ?? def.position;
+      const pose = currentPoses?.get(def.id);
+      const yaw = pose?.rotationYRad ?? def.rotationYRad;
+      const pitch = pose?.pitchRad ?? def.pitchRad ?? 0;
+      const roll = pose?.rollRad ?? def.rollRad ?? 0;
+      const isTilted = Math.abs(pitch) >= 1e-8 || Math.abs(roll) >= 1e-8;
+
+      if (!matched.recognizedPart && !isTilted) {
+        return pos;
+      }
+
+      const width = pose?.size?.x ?? def.width ?? def.radius * 2;
+      const height = pose?.size?.y ?? def.height;
+      return computeRotatedSubAnchorPoint(
+        pos,
+        def.kind,
+        width,
+        height,
+        yaw,
+        pitch,
+        roll,
+        matched.recognizedPart
+      );
     }
   }
-  if (entities) {
-    const matched = entities.find((e) => e.label.toLowerCase() === trimmed);
-    if (matched) {
-      return currentPositions.get(matched.id) ?? matched.position;
-    }
+
+  // Fallback: match against currentPositions keys directly (e.g. ad-hoc position maps)
+  const posMatched = matchEntityTargetKey(
+    lookAt,
+    currentPositions.keys(),
+    (id) => id
+  );
+  if (posMatched) {
+    return currentPositions.get(posMatched.item) ?? null;
   }
   return null;
+}
+
+/**
+ * Resolves entity `look_at` yaws in an order-independent Jacobi relaxation loop.
+ * Reads from `poseMap` without mutating it during a sweep, then commits all new yaws
+ * simultaneously up to `maxIterations` or until `maxDeltaYaw < 1e-7`.
+ * Returns the set of entity IDs whose `look_at` target resolved cleanly.
+ */
+export function relaxLookAtPoses(
+  entities: SceneEntityDef[],
+  posMap: Map<string, Vec3>,
+  poseMap: Map<string, EntityLookAtPose>,
+  getLookAt: (entityId: string) => TargetAnchor | undefined,
+  maxIterations = 8
+): Set<string> {
+  const resolvedIds = new Set<string>();
+  for (let iter = 0; iter < maxIterations; iter++) {
+    const nextRots = new Map<string, number>();
+    let maxDeltaYaw = 0;
+
+    for (const def of entities) {
+      const lookAt = getLookAt(def.id);
+      if (!lookAt) continue;
+      const pos = posMap.get(def.id);
+      const pose = poseMap.get(def.id);
+      if (!pos || !pose) continue;
+
+      const targetPt = resolveLookAtPoint(lookAt, posMap, entities, poseMap);
+      if (!targetPt) continue;
+
+      resolvedIds.add(def.id);
+      const nextYaw = computeLookAtYawRad(pos, targetPt);
+      const delta = Math.abs(shortestAngleDiff(nextYaw, pose.rotationYRad));
+      if (delta > maxDeltaYaw) {
+        maxDeltaYaw = delta;
+      }
+      nextRots.set(def.id, nextYaw);
+    }
+
+    if (nextRots.size === 0) break;
+
+    for (const [id, yaw] of nextRots) {
+      const pose = poseMap.get(id);
+      if (pose) {
+        pose.rotationYRad = yaw;
+      }
+    }
+
+    if (maxDeltaYaw < 1e-7) break;
+  }
+  return resolvedIds;
 }
 
 /**

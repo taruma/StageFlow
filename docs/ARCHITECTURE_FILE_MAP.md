@@ -78,7 +78,7 @@ stageflow/
 │   │   ├── entityBlockingEvaluator.ts # Tier 1: Decoupled root blocking: timeline kinematics
 │   │   ├── entityLegacyEvaluator.ts # Tier 2: Legacy per-shot shots[].entities kinematics
 │   │   ├── entityKinematicUtils.ts  # 3D dimension parsing, OBB footprint math, lerpAngleShortest, look_at target & trail generation
-│   │   ├── cameraTargetResolver.ts  # Multi-subject 3D centroid resolution, target anchors, offsets & roll/offset flow
+│   │   ├── cameraTargetResolver.ts  # Multi-subject 3D centroid resolution, dot-notation sub-anchors, offsets & roll/offset flow
 │   │   ├── cameraRigEvaluator.ts    # Physical camera rig mounts (tripod, track, spline_track) & inverse look-at kinematics
 │   │   ├── shotPoseEvaluator.ts     # Single-shot pose evaluation, Catmull-Rom splines & 3D path sampling
 │   │   ├── trajectoryChain.ts       # Forward pose chaining (P_0 -> P_k) & multi-shot timeline tracks
@@ -159,6 +159,7 @@ stageflow/
 │   │   │   ├── ScoreLibraryCard.tsx # Cinematic choreography score card with color tags & telemetry
 │   │   │   ├── ScoreInspectorPane.tsx # Rich master-detail choreography inspector & action bar
 │   │   │   ├── ScoreStageMinimap.tsx # Pure 2D vector SVG top-down stage schematic preview
+│   │   │   ├── scoreMinimapUtils.ts  # Pure Layer 5 minimap target projection, offset & layout math
 │   │   │   └── MobileScoreLibraryModal.tsx # Full-screen touch-optimized mobile score switcher (<768px)
 │   │   ├── transport/               # Modular directorial transport bar submodules
 │   │   │   ├── DirectorialTimelineTrack.tsx # Scrubber track, shot ticks, hover tooltip & emerald loop brackets
@@ -209,6 +210,7 @@ stageflow/
         ├── scoreUrlLoader.test.ts
         ├── telemetryYamlFormatter.test.ts
         ├── shotBreakdownUtils.test.ts
+        ├── scoreMinimapUtils.test.ts
         ├── guideUtils.test.ts
         ├── guideSnippets.test.ts
         ├── storage.test.ts

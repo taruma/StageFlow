@@ -133,6 +133,18 @@ When a camera `target` or `from` references an entity by `id` or `label` (in eit
   This formulation enables dynamic two-shot framing, group conversation tracking at 60fps, and single-to-two-shot glides without hardcoded coordinates. Unknown entity IDs in the array are gracefully omitted; if all IDs fail to resolve, the anchor falls back to the default stage target. Centroid averaging applies symmetrically to `target`, `from`, `focus` (orthogonal focus plane projection), and entity `look_at`.
 - **Target Offset Displacement**: Adding `target_offset: [dx, dy, dz]` shifts the resolved anchor in world space:
   $$\vec{T}_{\text{effective}} = \vec{A} + (\text{dx},\; \text{dy},\; \text{dz})$$
+- **Dot-Notation Entity Sub-Anchors (`<entityKey>.<part>`)**:
+  Any string inside `target`, `from`, `focus`, `focus_start`/`focus_end`, multi-entity centroid arrays (`["alice.eyes", "bob.chest"]`), or entity `look_at` may append a body-space sub-anchor suffix. The resolver checks exact entity `id`/`label` matches first (protecting dotted IDs like `"dr.smith"`), then splits on the final `.` (`lastIndexOf('.')`). Recognized suffixes evaluate in entity-local space against live dimensions $(w_i(t), h_i(t))$ before intrinsic `YXZ` rotation:
+  $$\vec{A}_i(t; k) = \vec{p}_i(t) + R_y(\psi_i)\, R_x(\theta_i)\, R_z(\phi_i) \begin{pmatrix} \alpha_x(k)\, w_i(t) \\ \alpha_y(k)\, h_i(t) \\ 0 \end{pmatrix}$$
+  | Sub-Anchor Suffix (`k`) | $\alpha_x(k)$ (`width`) | $\alpha_y(k)$ (`height`) | Meaning |
+  | :--- | :---: | :---: | :--- |
+  | `.head`, `.eyes`, `.eye` | $0$ | $0.90$ | Eye-line / head center (matches bare character) |
+  | `.shoulder`, `.chest` | $0$ | $0.75$ | Upper torso / sternum framing |
+  | `.shoulder_l` / `.shoulder_r` | $+0.40$ / $-0.40$ | $0.77$ | Anatomical left (`+X`) / right (`-X`) shoulder OTS anchor |
+  | `.waist`, `.center` | $0$ | $0.50$ | Center of volume / waist midpoint |
+  | `.feet`, `.base` | $0$ | $0.05$ | Ground contact / shoe-level framing |
+  | `.top` | $0$ | $1.00$ | Crown / top surface |
+  *(Unrecognized suffixes fall back gracefully to the entity's default intrinsic anchor ratio.)*
 
 ### 4.2 Entity Orientation (`rotation`, `pitch`, `roll` & `look_at`)
 - **Horizontal Yaw (`rotation` / `yaw`)**: $\psi_{\text{entity}} = 0^\circ$ faces $+Z$ (downstage). $+90^\circ$ faces $+X$ (stage right). $-90^\circ$ faces $-X$ (stage left). $\pm 180^\circ$ faces $-Z$ (upstage).
@@ -303,7 +315,7 @@ StageFlow is a **stateless functional evaluator** (`Frame_t = f(t, score)`). Eff
 | | `fromPosition`, `position` | `Vec3 \| undefined` world positions in $\text{m}$ (when `cut: true`, `startPos = position`) |
 | | `fromWidth`, `fromHeight`, `fromDepth` | `number \| undefined` start dimensions in $\text{m}$ for animated transitions |
 | | `width`, `height`, `depth` | `number \| undefined` destination dimensions in $\text{m}$ |
-| | `rotationYRad`, `pitchRad`, `rollRad`, `lookAt` | Optional facing yaw, X-axis pitch, and Z-axis roll in radians; anchor identifier or world `Vec3` |
+| | `rotationYRad`, `pitchRad`, `rollRad`, `lookAt` | Optional facing yaw, X-axis pitch, and Z-axis roll in radians; gaze target (`TargetAnchor`: `string \| string[] \| Vec3`) |
 | | `easing`, `highlighted`, `visible`, `note` | `CameraEasing` (default `'smooth'`), `boolean`, `boolean`, `string \| undefined` |
 | **`EntityCueOverride`** | `position`, `fromPosition`, `cut` | Optional per-shot entity movement overrides and instant cut flag |
 | | `fromWidth`, `fromHeight`, `fromDepth` | `number \| undefined` start dimensions in $\text{m}$ for per-shot transitions |

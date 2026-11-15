@@ -513,10 +513,38 @@ StageFlow uses a unified spherical camera model across both the Illustrative Sta
 ### 4.2 Aiming & Anchors (`target`, `from`, `target_offset`)
 
 A camera look-at anchor $\vec{T}$ resolves in one of four ways:
-1. **Entity Identifier or Label**: Automatically binds to the entity's intrinsic anchor (eye-level `0.90h` for characters; center-volume `0.50h` for props/markers). As the entity moves across the stage, the camera dynamically tracks their position.
-2. **Multi-Entity Centroid Array (`["actor_a", "actor_b"]`)**: Computes the exact 3D world-space midpoint (centroid) across two or more active entities for dynamic two-shots and group framing.
+1. **Entity Identifier, Label, or Dot-Notation Sub-Anchor (`"actor"`, `"actor.chest"`)**: Automatically binds to the entity's intrinsic anchor (eye-level `0.90h` for characters; center-volume `0.50h` for props/markers) or a named body-space sub-anchor rotated with the entity's `yaw`, `pitch`, and `roll`. As the entity moves, crouches, or tilts across the stage, the camera dynamically tracks that body part.
+2. **Multi-Entity Centroid Array (`["actor_a", "actor_b"]` or `["actor_a.eyes", "actor_b.chest"]`)**: Computes the exact 3D world-space midpoint (centroid) across two or more active entity anchors for dynamic two-shots and group framing.
 3. **Stage Presets (`"center"`, `"origin"`, `"stage"`)**: Resolves to the stage center chest level: `[0.0, 1.0, 0.0]`.
 4. **Explicit 3D Vector**: Authored as `[x, y, z]` or `{x, y, z}` in world meters.
+
+#### Dot-Notation Entity Sub-Anchors (`<entity>.<part>`)
+Append a sub-anchor suffix to any entity `id` or `label` inside `target`, `from`, `focus`, `focus_start`/`focus_end`, multi-entity arrays, or entity `look_at`. Sub-anchors evaluate in entity-local space against live `width` and `height` **before** applying `yaw`, `pitch`, and `roll`:
+
+| Suffix | Local Offset `(x, y, z)` | Common Framing Use |
+| :--- | :--- | :--- |
+| **`.head` / `.eyes` / `.eye`** | `(0, 0.90 * h, 0)` | Tight eye-line framing (matches bare character default) |
+| **`.shoulder` / `.chest`** | `(0, 0.75 * h, 0)` | Medium close-up / sternum framing (even when prone) |
+| **`.shoulder_l` / `.shoulder_r`** | `(±0.40 * w, 0.77 * h, 0)` | Anatomical left (`+X`) / right (`-X`) over-the-shoulder framing |
+| **`.waist` / `.center`** | `(0, 0.50 * h, 0)` | Cowboy / medium-wide center of mass |
+| **`.feet` / `.base`** | `(0, 0.05 * h, 0)` | Shoe-level / ground-contact inserts |
+| **`.top`** | `(0, 1.00 * h, 0)` | Crown or top surface of a prop/character |
+
+*Exact IDs/labels containing dots (e.g. `"dr.smith"`) are matched first; unrecognized suffixes gracefully fall back to the entity's default anchor.*
+
+```yaml
+  - id: "ots-chest-focus"
+    start: 0.0
+    end: 4.0
+    stage_camera:
+      target: ["detective.shoulder_l", "witness.chest"]
+      distance: 2.2
+      pitch: 4
+      yaw: 155
+      lens: 50mm
+      focus: "witness.eyes"
+      dof: "shallow"
+```
 
 #### World Target Offsets (`target_offset`)
 The `target_offset: [dx, dy, dz]` vector displaces the resolved look-at anchor in world space:

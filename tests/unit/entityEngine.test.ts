@@ -1000,5 +1000,296 @@ shots:
         expect(heroB.rollRad).toBeCloseTo(heroA.rollRad!, 6);
       }
     });
+
+    it('resolves dot-notation sub-anchors in resolveLookAtPoint and blocking/legacy look_at (#19)', () => {
+      const currentPositions = new Map([
+        ['hero', { x: 0, y: 0, z: 0 }],
+      ]);
+      const currentPoses = new Map([
+        ['hero', { rotationYRad: 0, pitchRad: degToRad(90), rollRad: 0, size: { x: 1.0, y: 2.0, z: 0.5 } }],
+      ]);
+      const entities = [
+        {
+          id: 'hero',
+          label: 'Hero',
+          kind: 'character' as const,
+          position: { x: 0, y: 0, z: 0 },
+          rotationYRad: 0,
+          width: 1.0,
+          height: 2.0,
+          radius: 0.5,
+          color: '#38bdf8',
+        },
+      ];
+
+      // Prone hero (pitch=90, h=2.0): .head is at (0, 0, +1.8), .feet at (0, 0, +0.1)
+      const headPt = resolveLookAtPoint('hero.head', currentPositions, entities, currentPoses)!;
+      expect(headPt.x).toBeCloseTo(0, 4);
+      expect(headPt.y).toBeCloseTo(0, 4);
+      expect(headPt.z).toBeCloseTo(1.8, 4);
+
+      const feetPt = resolveLookAtPoint('hero.feet', currentPositions, entities, currentPoses)!;
+      expect(feetPt.z).toBeCloseTo(0.1, 4);
+
+      // Upright hero facing +Z: .shoulder_l is anatomical left (+X = +0.40 * width = +0.40m)
+      const uprightPoses = new Map([
+        ['hero', { rotationYRad: 0, pitchRad: 0, rollRad: 0, size: { x: 1.0, y: 2.0, z: 0.5 } }],
+      ]);
+      const leftShoulder = resolveLookAtPoint('hero.shoulder_l', currentPositions, entities, uprightPoses)!;
+      expect(leftShoulder.x).toBeCloseTo(0.4, 4);
+      expect(leftShoulder.y).toBeCloseTo(1.54, 4);
+      expect(leftShoulder.z).toBeCloseTo(0, 4);
+
+      const rightShoulder = resolveLookAtPoint('hero.shoulder_r', currentPositions, entities, uprightPoses)!;
+      expect(rightShoulder.x).toBeCloseTo(-0.4, 4);
+
+      // End-to-end blocking look_at toward prone hero.head vs hero.feet
+      const blockingYaml = `
+version: "1.0"
+id: "look-at-sub-anchor"
+title: "Look-At Sub-Anchor"
+duration: 4.0
+entities:
+  - id: "prone_hero"
+    kind: "character"
+    position: [0, 0.18, 0]
+    height: 2.0
+    rotation: 0
+    pitch: 90
+  - id: "medic"
+    kind: "character"
+    position: [3, 0, 0]
+blocking:
+  - id: "look-at-head"
+    entity: "medic"
+    start: 0
+    end: 4
+    look_at: "prone_hero.head"
+shots:
+  - id: "s1"
+    start: 0
+    end: 4
+    stage_camera: { target: "prone_hero.chest" }
+`;
+      const parsed = parseStageScore(blockingYaml);
+      expect(parsed.error).toBeNull();
+      const medic = evaluateEntitiesAtTime(2.0, parsed.score!).entitiesById.get('medic')!;
+      // Medic at [3, 0, 0] looking at prone_hero.head [0, 0.18, 1.8] -> dx = -3, dz = +1.8
+      const expectedYaw = Math.atan2(-3, 1.8);
+      expect(medic.rotationYRad).toBeCloseTo(expectedYaw, 4);
+
+      // Upright "hero.typo" must match bare "hero" identically in resolveLookAtPoint
+      const barePt = resolveLookAtPoint('hero', currentPositions, entities, uprightPoses);
+      const typoPt = resolveLookAtPoint('hero.typo', currentPositions, entities, uprightPoses);
+      expect(typoPt).toEqual(barePt);
+    });
+
+    it('resolves Tier 2 legacy shots[].entities.<id>.look_at with dot-notation sub-anchors (#19)', () => {
+      const legacyYaml = `
+version: "1.0"
+id: "legacy-look-at-sub-anchor"
+title: "Legacy Look-At Sub-Anchor"
+duration: 4.0
+entities:
+  - id: "prone_hero"
+    kind: "character"
+    position: [0, 0.18, 0]
+    width: 0.6
+    height: 2.0
+    rotation: 0
+    pitch: 90
+  - id: "medic"
+    kind: "character"
+    position: [3, 0, 0]
+    rotation: 0
+shots:
+  - id: "s1"
+    start: 0
+    end: 4
+    entities:
+      medic:
+        look_at: "prone_hero.head"
+`;
+      const parsed = parseStageScore(legacyYaml);
+      expect(parsed.error).toBeNull();
+      // Medic at [3, 0, 0] looking at prone_hero.head [0, 0.18, 1.8] -> dx = -3, dz = +1.8
+      const expectedYaw = Math.atan2(-3, 1.8);
+      for (const t of [0.0, 2.0, 3.999, 4.0]) {
+        const medic = evaluateEntitiesAtTime(t, parsed.score!).entitiesById.get('medic')!;
+        expect(medic.rotationYRad).toBeCloseTo(expectedYaw, 4);
+      }
+    });
+
+    it('evaluates mutual and chained sub-anchor look_at identically regardless of entity order in blocking and legacy (#19)', () => {
+      const buildScoreYaml = (reverseEntities: boolean, mode: 'blocking' | 'legacy') => {
+        const entA = `
+  - id: "alice"
+    kind: "character"
+    position: [0, 0, 0]
+    width: 1.0
+    height: 1.8
+    rotation: 0`;
+        const entB = `
+  - id: "bob"
+    kind: "character"
+    position: [3, 0, 1]
+    width: 1.0
+    height: 1.8
+    rotation: 0`;
+        const entitiesBlock = reverseEntities ? `${entB}\n${entA}` : `${entA}\n${entB}`;
+        if (mode === 'blocking') {
+          return `
+version: "1.0"
+id: "mutual-blocking-${reverseEntities}"
+title: "Mutual Blocking"
+duration: 4.0
+entities:${entitiesBlock}
+blocking:
+  - id: "c-alice"
+    entity: "alice"
+    start: 0
+    end: 4
+    look_at: "bob.shoulder_l"
+  - id: "c-bob"
+    entity: "bob"
+    start: 0
+    end: 4
+    look_at: "alice.shoulder_l"
+shots:
+  - id: "s1"
+    start: 0
+    end: 4
+`;
+        }
+        return `
+version: "1.0"
+id: "mutual-legacy-${reverseEntities}"
+title: "Mutual Legacy"
+duration: 4.0
+entities:${entitiesBlock}
+shots:
+  - id: "s1"
+    start: 0
+    end: 4
+    entities:
+      alice:
+        look_at: "bob.shoulder_l"
+      bob:
+        look_at: "alice.shoulder_l"
+`;
+      };
+
+      for (const mode of ['blocking', 'legacy'] as const) {
+        const scoreFwd = parseStageScore(buildScoreYaml(false, mode)).score!;
+        const scoreRev = parseStageScore(buildScoreYaml(true, mode)).score!;
+
+        for (const t of [0.5, 2.0, 3.999, 4.0]) {
+          const fwd = evaluateEntitiesAtTime(t, scoreFwd).entitiesById;
+          const rev = evaluateEntitiesAtTime(t, scoreRev).entitiesById;
+
+          const aliceFwd = fwd.get('alice')!;
+          const bobFwd = fwd.get('bob')!;
+          const aliceRev = rev.get('alice')!;
+          const bobRev = rev.get('bob')!;
+
+          expect(aliceFwd.rotationYRad).toBeCloseTo(aliceRev.rotationYRad, 6);
+          expect(bobFwd.rotationYRad).toBeCloseTo(bobRev.rotationYRad, 6);
+
+          // Verify mutual fixed-point convergence: Alice faces Bob's rotated shoulder_l
+          const bobShoulderL = {
+            x: bobFwd.position.x + 0.4 * Math.cos(bobFwd.rotationYRad),
+            y: 0.77 * 1.8,
+            z: bobFwd.position.z - 0.4 * Math.sin(bobFwd.rotationYRad),
+          };
+          expect(aliceFwd.rotationYRad).toBeCloseTo(
+            Math.atan2(bobShoulderL.x - aliceFwd.position.x, bobShoulderL.z - aliceFwd.position.z),
+            5
+          );
+        }
+      }
+
+      // Chained look_at: A -> B.shoulder_l while B -> center (must be order-independent in both modes)
+      const buildChainedYaml = (reverseEntities: boolean, mode: 'blocking' | 'legacy') => {
+        const entA = `
+  - id: "a"
+    kind: "character"
+    position: [-2, 0, 2]
+    width: 1.0
+    height: 1.8
+    rotation: 0`;
+        const entB = `
+  - id: "b"
+    kind: "character"
+    position: [2, 0, 2]
+    width: 1.0
+    height: 1.8
+    rotation: 0`;
+        const entitiesBlock = reverseEntities ? `${entB}\n${entA}` : `${entA}\n${entB}`;
+        if (mode === 'blocking') {
+          return `
+version: "1.0"
+id: "chain-blocking-${reverseEntities}"
+title: "Chained Blocking"
+duration: 4.0
+entities:${entitiesBlock}
+blocking:
+  - id: "ca"
+    entity: "a"
+    start: 0
+    end: 4
+    look_at: "b.shoulder_l"
+  - id: "cb"
+    entity: "b"
+    start: 0
+    end: 4
+    look_at: "center"
+shots:
+  - id: "s1"
+    start: 0
+    end: 4
+`;
+        }
+        return `
+version: "1.0"
+id: "chain-legacy-${reverseEntities}"
+title: "Chained Legacy"
+duration: 4.0
+entities:${entitiesBlock}
+shots:
+  - id: "s1"
+    start: 0
+    end: 4
+    entities:
+      a:
+        look_at: "b.shoulder_l"
+      b:
+        look_at: "center"
+`;
+      };
+
+      for (const mode of ['blocking', 'legacy'] as const) {
+        const scoreFwd = parseStageScore(buildChainedYaml(false, mode)).score!;
+        const scoreRev = parseStageScore(buildChainedYaml(true, mode)).score!;
+        for (const t of [1.0, 3.999, 4.0]) {
+          const fwd = evaluateEntitiesAtTime(t, scoreFwd).entitiesById;
+          const rev = evaluateEntitiesAtTime(t, scoreRev).entitiesById;
+          expect(fwd.get('a')!.rotationYRad).toBeCloseTo(rev.get('a')!.rotationYRad, 6);
+          expect(fwd.get('b')!.rotationYRad).toBeCloseTo(rev.get('b')!.rotationYRad, 6);
+
+          // B faces center (0,0,0) from [2,0,2] -> yaw = atan2(-2, -2) = -3*PI/4
+          const bYaw = fwd.get('b')!.rotationYRad;
+          expect(bYaw).toBeCloseTo(Math.atan2(-2, -2), 5);
+          // A looks at B's shoulder_l rotated by bYaw
+          const bShoulderL = {
+            x: 2 + 0.4 * Math.cos(bYaw),
+            z: 2 - 0.4 * Math.sin(bYaw),
+          };
+          expect(fwd.get('a')!.rotationYRad).toBeCloseTo(
+            Math.atan2(bShoulderL.x - -2, bShoulderL.z - 2),
+            5
+          );
+        }
+      }
+    });
   });
 });
