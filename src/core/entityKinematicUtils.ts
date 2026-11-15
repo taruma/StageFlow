@@ -12,9 +12,9 @@ import type {
   Vec3,
 } from './types';
 import { ENTITY_DEFAULTS } from './constants';
-import { rotateVec3YXZ, shortestAngleDiff } from './sphericalMath';
+import { computeLookAtYawRad, shortestAngleDiff } from './sphericalMath';
 import {
-  getEntitySubAnchorLocalOffset,
+  computeRotatedSubAnchorPoint,
   matchEntityTargetKey,
 } from './cameraTargetResolver';
 
@@ -440,24 +440,22 @@ export function resolveLookAtPoint(
       const roll = pose?.rollRad ?? def.rollRad ?? 0;
       const isTilted = Math.abs(pitch) >= 1e-8 || Math.abs(roll) >= 1e-8;
 
-      if (!matched.part && !isTilted) {
+      if (!matched.recognizedPart && !isTilted) {
         return pos;
       }
 
       const width = pose?.size?.x ?? def.width ?? def.radius * 2;
       const height = pose?.size?.y ?? def.height;
-      const localOffset = getEntitySubAnchorLocalOffset(
+      return computeRotatedSubAnchorPoint(
+        pos,
         def.kind,
         width,
         height,
-        matched.part
+        yaw,
+        pitch,
+        roll,
+        matched.recognizedPart
       );
-      const rotated = rotateVec3YXZ(localOffset, yaw, pitch, roll);
-      return {
-        x: pos.x + rotated.x,
-        y: pos.y + rotated.y,
-        z: pos.z + rotated.z,
-      };
     }
   }
 
@@ -471,6 +469,57 @@ export function resolveLookAtPoint(
     return currentPositions.get(posMatched.item) ?? null;
   }
   return null;
+}
+
+/**
+ * Resolves entity `look_at` yaws in an order-independent Jacobi relaxation loop.
+ * Reads from `poseMap` without mutating it during a sweep, then commits all new yaws
+ * simultaneously up to `maxIterations` or until `maxDeltaYaw < 1e-7`.
+ * Returns the set of entity IDs whose `look_at` target resolved cleanly.
+ */
+export function relaxLookAtPoses(
+  entities: SceneEntityDef[],
+  posMap: Map<string, Vec3>,
+  poseMap: Map<string, EntityLookAtPose>,
+  getLookAt: (entityId: string) => TargetAnchor | undefined,
+  maxIterations = 8
+): Set<string> {
+  const resolvedIds = new Set<string>();
+  for (let iter = 0; iter < maxIterations; iter++) {
+    const nextRots = new Map<string, number>();
+    let maxDeltaYaw = 0;
+
+    for (const def of entities) {
+      const lookAt = getLookAt(def.id);
+      if (!lookAt) continue;
+      const pos = posMap.get(def.id);
+      const pose = poseMap.get(def.id);
+      if (!pos || !pose) continue;
+
+      const targetPt = resolveLookAtPoint(lookAt, posMap, entities, poseMap);
+      if (!targetPt) continue;
+
+      resolvedIds.add(def.id);
+      const nextYaw = computeLookAtYawRad(pos, targetPt);
+      const delta = Math.abs(shortestAngleDiff(nextYaw, pose.rotationYRad));
+      if (delta > maxDeltaYaw) {
+        maxDeltaYaw = delta;
+      }
+      nextRots.set(def.id, nextYaw);
+    }
+
+    if (nextRots.size === 0) break;
+
+    for (const [id, yaw] of nextRots) {
+      const pose = poseMap.get(id);
+      if (pose) {
+        pose.rotationYRad = yaw;
+      }
+    }
+
+    if (maxDeltaYaw < 1e-7) break;
+  }
+  return resolvedIds;
 }
 
 /**

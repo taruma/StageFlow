@@ -1660,5 +1660,46 @@ shots:
       expect(obsTarget.y).toBeCloseTo(0.55, 4);
       expect(obsTarget.z).toBeCloseTo(0.0, 4);
     });
+
+    it('applies target_offset on baseline stage.stage_camera for sub-anchors, arrays, and unmatched strings (#19)', () => {
+      const yaml = `
+version: "1.0"
+id: "baseline-offset-sub-anchor"
+title: "Baseline Offset Sub-Anchor"
+stage:
+  stage_camera:
+    target: "hero_a.chest"
+    target_offset: [0.3, 0.2, -0.4]
+  observer_camera:
+    target: "nonexistent_target"
+    target_offset: [1.0, 0.5, -1.0]
+entities:
+  - id: "hero_a"
+    kind: "character"
+    position: [2.0, 0.0, 1.0]
+    width: 0.6
+    height: 2.0
+    rotation: 0
+shots:
+  - id: "s1"
+    start: 0
+    end: 2
+`;
+      const { score, error } = parseStageScore(yaml);
+      expect(error).toBeNull();
+      expect(score).not.toBeNull();
+
+      // hero_a.chest = [2.0, 1.5, 1.0] + offset [0.3, 0.2, -0.4] = [2.3, 1.7, 0.6]
+      const stageTarget = score!.stage.defaultStageCameraPose.target;
+      expect(stageTarget.x).toBeCloseTo(2.3, 4);
+      expect(stageTarget.y).toBeCloseTo(1.7, 4);
+      expect(stageTarget.z).toBeCloseTo(0.6, 4);
+
+      // Unmatched observer target falls back to DEFAULT_OBSERVER_POSE.target [0, 1.0, 0] + offset [1.0, 0.5, -1.0]
+      const obsTarget = score!.stage.defaultObserverPose.target;
+      expect(obsTarget.x).toBeCloseTo(1.0, 4);
+      expect(obsTarget.y).toBeCloseTo(1.5, 4);
+      expect(obsTarget.z).toBeCloseTo(-1.0, 4);
+    });
   });
 });

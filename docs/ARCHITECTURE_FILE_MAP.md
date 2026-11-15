@@ -159,6 +159,7 @@ stageflow/
 │   │   │   ├── ScoreLibraryCard.tsx # Cinematic choreography score card with color tags & telemetry
 │   │   │   ├── ScoreInspectorPane.tsx # Rich master-detail choreography inspector & action bar
 │   │   │   ├── ScoreStageMinimap.tsx # Pure 2D vector SVG top-down stage schematic preview
+│   │   │   ├── scoreMinimapUtils.ts  # Pure Layer 5 minimap target projection, offset & layout math
 │   │   │   └── MobileScoreLibraryModal.tsx # Full-screen touch-optimized mobile score switcher (<768px)
 │   │   ├── transport/               # Modular directorial transport bar submodules
 │   │   │   ├── DirectorialTimelineTrack.tsx # Scrubber track, shot ticks, hover tooltip & emerald loop brackets
@@ -209,6 +210,7 @@ stageflow/
         ├── scoreUrlLoader.test.ts
         ├── telemetryYamlFormatter.test.ts
         ├── shotBreakdownUtils.test.ts
+        ├── scoreMinimapUtils.test.ts
         ├── guideUtils.test.ts
         ├── guideSnippets.test.ts
         ├── storage.test.ts

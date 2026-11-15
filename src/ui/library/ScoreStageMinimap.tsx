@@ -6,64 +6,13 @@
  */
 
 import React, { useMemo } from 'react';
-import type { SceneEntityDef, StageScore, TargetAnchor } from '../../core/types';
-import {
-  getEntityDefLookAnchor,
-  matchEntityTargetKey,
-} from '../../core/cameraTargetResolver';
+import type { StageScore } from '../../core/types';
 import { computeOrientedBoundingBox } from '../../core/entityKinematicUtils';
+import { computeMinimapLayout } from './scoreMinimapUtils';
 
 export interface ScoreStageMinimapProps {
   score: StageScore;
   className?: string;
-}
-
-interface Point2D {
-  x: number;
-  z: number;
-}
-
-function resolveMinimapTargetXZ(
-  target: TargetAnchor | undefined,
-  rawEntities: SceneEntityDef[]
-): Point2D {
-  if (typeof target === 'string') {
-    const matched = matchEntityTargetKey(
-      target,
-      rawEntities,
-      (e) => e.id,
-      (e) => e.label
-    );
-    if (matched) {
-      const anchor = getEntityDefLookAnchor(matched.item, matched.part);
-      return { x: anchor.x, z: anchor.z };
-    }
-    return { x: 0, z: 0 };
-  }
-  if (Array.isArray(target)) {
-    let sumX = 0;
-    let sumZ = 0;
-    let count = 0;
-    for (const item of target) {
-      const matched = matchEntityTargetKey(
-        String(item),
-        rawEntities,
-        (e) => e.id,
-        (e) => e.label
-      );
-      if (matched) {
-        const anchor = getEntityDefLookAnchor(matched.item, matched.part);
-        sumX += anchor.x;
-        sumZ += anchor.z;
-        count++;
-      }
-    }
-    return count > 0 ? { x: sumX / count, z: sumZ / count } : { x: 0, z: 0 };
-  }
-  if (target && typeof target === 'object') {
-    return { x: target.x ?? 0, z: target.z ?? 0 };
-  }
-  return { x: 0, z: 0 };
 }
 
 export const ScoreStageMinimap: React.FC<ScoreStageMinimapProps> = ({
@@ -71,143 +20,7 @@ export const ScoreStageMinimap: React.FC<ScoreStageMinimapProps> = ({
   className = '',
 }) => {
   const { viewBox, entities, cameraPos, cameraTarget, cameraConePath, cameraTrackPath } =
-    useMemo(() => {
-      const allPoints: Point2D[] = [{ x: 0, z: 0 }];
-      const rawEntities = score?.entities ?? [];
-
-      // 1. Collect entity starting positions
-      const entityList = rawEntities.map((ent) => {
-        const x = ent.position?.x ?? 0;
-        const z = ent.position?.z ?? 0;
-        const width = ent.width ?? ent.radius * 2;
-        const depth = ent.depth ?? ent.radius * 2;
-        const halfSpan = Math.max(width, depth) * 0.5;
-        allPoints.push({ x: x - halfSpan, z: z - halfSpan });
-        allPoints.push({ x: x + halfSpan, z: z + halfSpan });
-        return {
-          id: ent.id,
-          label: ent.label || ent.id,
-          x,
-          z,
-          width,
-          depth,
-          shape: ent.shape,
-          rotationYRad: ent.rotationYRad ?? 0,
-          color: ent.color || '#38bdf8',
-          kind: ent.kind,
-        };
-      });
-
-      // 2. Resolve first shot camera pose
-      const firstShot = score?.shots?.[0];
-      let camX = 0;
-      let camZ = 5;
-      let targetX = 0;
-      let targetZ = 0;
-
-      if (firstShot?.stageCamera) {
-        const sc = firstShot.stageCamera;
-        const resolved = resolveMinimapTargetXZ(sc.target, rawEntities);
-        targetX = resolved.x;
-        targetZ = resolved.z;
-
-        allPoints.push({ x: targetX, z: targetZ });
-
-        const dist = Math.max(1.5, sc.distance ?? 5.0);
-        const pitch = sc.pitchRad ?? 0.25;
-        const yaw = sc.yawRad ?? 0;
-        const cosPitch = Math.cos(pitch);
-
-        camX = targetX + dist * cosPitch * Math.sin(yaw);
-        camZ = targetZ + dist * cosPitch * Math.cos(yaw);
-        allPoints.push({ x: camX, z: camZ });
-      }
-
-      // Collect camera positions from all shots to compute trajectory
-      const camPoints: Point2D[] = [];
-      if (firstShot?.stageCamera) {
-        camPoints.push({ x: camX, z: camZ });
-      }
-
-      (score?.shots ?? []).slice(1).forEach((shot) => {
-        if (!shot.stageCamera) return;
-        const sc = shot.stageCamera;
-        const resolved = resolveMinimapTargetXZ(sc.target, rawEntities);
-        const tX = resolved.x;
-        const tZ = resolved.z;
-        const dist = Math.max(1.5, sc.distance ?? 5.0);
-        const pitch = sc.pitchRad ?? 0.25;
-        const yaw = sc.yawRad ?? 0;
-        const cosPitch = Math.cos(pitch);
-        const cX = tX + dist * cosPitch * Math.sin(yaw);
-        const cZ = tZ + dist * cosPitch * Math.cos(yaw);
-        camPoints.push({ x: cX, z: cZ });
-        allPoints.push({ x: cX, z: cZ });
-      });
-
-      // 3. Compute dynamic bounding box
-      let minX = Infinity;
-      let maxX = -Infinity;
-      let minZ = Infinity;
-      let maxZ = -Infinity;
-
-      allPoints.forEach((p) => {
-        if (p.x < minX) minX = p.x;
-        if (p.x > maxX) maxX = p.x;
-        if (p.z < minZ) minZ = p.z;
-        if (p.z > maxZ) maxZ = p.z;
-      });
-
-      // Ensure minimum symmetric stage span of at least 10m x 10m
-      const spanX = Math.max(10, (maxX - minX) * 1.35);
-      const spanZ = Math.max(10, (maxZ - minZ) * 1.35);
-      const span = Math.max(spanX, spanZ);
-
-      const centerX = (minX + maxX) / 2;
-      const centerZ = (minZ + maxZ) / 2;
-
-      const half = span / 2;
-      const boxMinX = Number((centerX - half).toFixed(2));
-      const boxMinZ = Number((centerZ - half).toFixed(2));
-      const boxSize = Number(span.toFixed(2));
-
-      // 4. Construct camera viewing frustum cone
-      const dirX = targetX - camX;
-      const dirZ = targetZ - camZ;
-      const len = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
-      const ndx = dirX / len;
-      const ndz = dirZ / len;
-
-      // Perpendicular vector for frustum aperture
-      const px = -ndz;
-      const pz = ndx;
-      const coneDist = Math.min(len * 0.85, 4.5);
-      const coneWidth = coneDist * 0.45;
-
-      const pLeftX = camX + ndx * coneDist + px * coneWidth;
-      const pLeftZ = camZ + ndz * coneDist + pz * coneWidth;
-      const pRightX = camX + ndx * coneDist - px * coneWidth;
-      const pRightZ = camZ + ndz * coneDist - pz * coneWidth;
-
-      const conePath = `M ${camX.toFixed(2)} ${camZ.toFixed(2)} L ${pLeftX.toFixed(2)} ${pLeftZ.toFixed(2)} L ${pRightX.toFixed(2)} ${pRightZ.toFixed(2)} Z`;
-
-      // 5. Construct camera trajectory path if multiple shots exist
-      let trackPath = '';
-      if (camPoints.length > 1) {
-        trackPath = camPoints.reduce((acc, pt, idx) => {
-          return `${acc} ${idx === 0 ? 'M' : 'L'} ${pt.x.toFixed(2)} ${pt.z.toFixed(2)}`;
-        }, '');
-      }
-
-      return {
-        viewBox: `${boxMinX} ${boxMinZ} ${boxSize} ${boxSize}`,
-        entities: entityList,
-        cameraPos: { x: camX, z: camZ },
-        cameraTarget: { x: targetX, z: targetZ },
-        cameraConePath: conePath,
-        cameraTrackPath: trackPath,
-      };
-    }, [score]);
+    useMemo(() => computeMinimapLayout(score), [score]);
 
   return (
     <div

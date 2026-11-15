@@ -10,13 +10,12 @@ import type {
   SceneEntityDef,
   SphericalPose,
   StageCameraCueSpec,
-  Vec3,
 } from './types';
 import { BLUEPRINT_PALETTE } from './constants';
 import { clampSphericalPose } from './sphericalMath';
 import {
   getEntityDefLookAnchor,
-  matchEntityTargetKey,
+  resolveTargetPoint3DWithAdapter,
 } from './cameraTargetResolver';
 import { parseCameraRigSpec } from './cameraRigEvaluator';
 import {
@@ -33,6 +32,15 @@ import {
   parseVec3,
 } from './scorePrimitives';
 
+function isStringTargetAnchor(rawTarget: unknown): rawTarget is string | string[] {
+  return (
+    typeof rawTarget === 'string' ||
+    (Array.isArray(rawTarget) &&
+      rawTarget.length > 0 &&
+      rawTarget.every((item) => typeof item === 'string'))
+  );
+}
+
 export function parseBaseSphericalPose(
   raw: unknown,
   fallback: SphericalPose
@@ -46,7 +54,7 @@ export function parseBaseSphericalPose(
     : { ...fallback.target };
   const offset = parseOptionalVec3(obj.target_offset ?? obj.targetOffset);
   const target =
-    offset && typeof obj.target !== 'string'
+    offset && !isStringTargetAnchor(obj.target)
       ? {
           x: rawTarget.x + offset.x,
           y: rawTarget.y + offset.y,
@@ -77,23 +85,6 @@ export function parseBaseSphericalPose(
   });
 }
 
-function resolveSingleDefTarget(
-  rawKey: string,
-  entities: SceneEntityDef[]
-): Vec3 | undefined {
-  const clean = rawKey.trim().toLowerCase();
-  if (clean === 'center' || clean === 'origin' || clean === 'stage') {
-    return { x: 0, y: 1.0, z: 0 };
-  }
-  const matched = matchEntityTargetKey(
-    rawKey,
-    entities,
-    (e) => e.id,
-    (e) => e.label
-  );
-  return matched ? getEntityDefLookAnchor(matched.item, matched.part) : undefined;
-}
-
 export function resolveStageCamEntityTarget(
   rawCam: unknown,
   pose: SphericalPose,
@@ -101,42 +92,22 @@ export function resolveStageCamEntityTarget(
 ): void {
   if (!rawCam || typeof rawCam !== 'object') return;
   const camObj = rawCam as Record<string, unknown>;
+  if (!isStringTargetAnchor(camObj.target)) return;
+
   const offset = parseOptionalVec3(
     camObj.target_offset ?? camObj.targetOffset
   );
-
-  if (
-    Array.isArray(camObj.target) &&
-    camObj.target.length > 0 &&
-    camObj.target.every((item) => typeof item === 'string')
-  ) {
-    const anchors: Vec3[] = [];
-    for (const item of camObj.target) {
-      const anchor = resolveSingleDefTarget(String(item), entities);
-      if (anchor) {
-        anchors.push(anchor);
-      }
-    }
-    if (anchors.length > 0) {
-      const count = anchors.length;
-      pose.target = {
-        x: anchors.reduce((sum, a) => sum + a.x, 0) / count + (offset?.x ?? 0),
-        y: anchors.reduce((sum, a) => sum + a.y, 0) / count + (offset?.y ?? 0),
-        z: anchors.reduce((sum, a) => sum + a.z, 0) / count + (offset?.z ?? 0),
-      };
-    }
-    return;
-  }
-
-  if (typeof camObj.target !== 'string') return;
-  const anchor = resolveSingleDefTarget(camObj.target, entities);
-  if (anchor) {
-    pose.target = {
-      x: anchor.x + (offset?.x ?? 0),
-      y: anchor.y + (offset?.y ?? 0),
-      z: anchor.z + (offset?.z ?? 0),
-    };
-  }
+  pose.target = resolveTargetPoint3DWithAdapter(
+    camObj.target,
+    {
+      items: entities,
+      getId: (e) => e.id,
+      getLabel: (e) => e.label,
+      getAnchor: getEntityDefLookAnchor,
+    },
+    pose.target,
+    offset
+  );
 }
 
 export function parseCameraCueSpec(

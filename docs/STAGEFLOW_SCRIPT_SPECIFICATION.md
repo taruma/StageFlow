@@ -315,7 +315,7 @@ StageFlow is a **stateless functional evaluator** (`Frame_t = f(t, score)`). Eff
 | | `fromPosition`, `position` | `Vec3 \| undefined` world positions in $\text{m}$ (when `cut: true`, `startPos = position`) |
 | | `fromWidth`, `fromHeight`, `fromDepth` | `number \| undefined` start dimensions in $\text{m}$ for animated transitions |
 | | `width`, `height`, `depth` | `number \| undefined` destination dimensions in $\text{m}$ |
-| | `rotationYRad`, `pitchRad`, `rollRad`, `lookAt` | Optional facing yaw, X-axis pitch, and Z-axis roll in radians; anchor identifier or world `Vec3` |
+| | `rotationYRad`, `pitchRad`, `rollRad`, `lookAt` | Optional facing yaw, X-axis pitch, and Z-axis roll in radians; gaze target (`TargetAnchor`: `string \| string[] \| Vec3`) |
 | | `easing`, `highlighted`, `visible`, `note` | `CameraEasing` (default `'smooth'`), `boolean`, `boolean`, `string \| undefined` |
 | **`EntityCueOverride`** | `position`, `fromPosition`, `cut` | Optional per-shot entity movement overrides and instant cut flag |
 | | `fromWidth`, `fromHeight`, `fromDepth` | `number \| undefined` start dimensions in $\text{m}$ for per-shot transitions |

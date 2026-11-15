@@ -2450,5 +2450,87 @@ shots:
       const f10 = computeStageFrame(10.0, score!);
       expect(f10.stageCamera.transform.target.y).toBeCloseTo(0.9, 4);
     });
+
+    it('resolves target_offset + sub-anchor, label-based sub-anchors, observer_shots, and spline waypoint sub-anchors (#19)', () => {
+      const yaml = `
+version: "1.0"
+id: "sub-anchor-advanced"
+title: "Sub-Anchor Advanced Coverage"
+duration: 8.0
+entities:
+  - id: "doc"
+    label: "  Dr. Smith  "
+    kind: "character"
+    position: [1.0, 0.0, 0.0]
+    width: 0.60
+    height: 2.00
+    rotation: 0
+  - id: "crate"
+    label: "Crate"
+    kind: "prop"
+    position: [-1.0, 0.0, -2.0]
+    width: 1.00
+    height: 1.20
+observer_shots:
+  - id: "obs-1"
+    start: 0
+    end: 8
+    camera:
+      target: "Dr. Smith.shoulder_l"
+      distance: 6.0
+      pitch: 20
+      yaw: 0
+shots:
+  - id: "s1-label-offset"
+    start: 0
+    end: 4
+    stage_camera:
+      target: "Dr. Smith.chest"
+      target_offset: [0.25, 0.15, -0.5]
+      distance: 4.0
+      pitch: 0
+      yaw: 0
+  - id: "s2-spline-sub-anchors"
+    start: 4
+    end: 8
+    stage_camera:
+      maneuver: "spline"
+      easing: "linear"
+      waypoints:
+        - target: "Dr. Smith.chest"
+          distance: 4.0
+          pitch: 0
+          yaw: 0
+        - target: "crate.top"
+          distance: 4.0
+          pitch: 0
+          yaw: 0
+`;
+      const { score, error } = parseStageScore(yaml);
+      expect(error).toBeNull();
+      expect(score).not.toBeNull();
+
+      // Shot 1 (t=2): "Dr. Smith.chest" = (1.0, 1.5, 0.0) + target_offset (0.25, 0.15, -0.5)
+      const f2 = computeStageFrame(2.0, score!);
+      expect(f2.stageCamera.transform.target.x).toBeCloseTo(1.25, 4);
+      expect(f2.stageCamera.transform.target.y).toBeCloseTo(1.65, 4);
+      expect(f2.stageCamera.transform.target.z).toBeCloseTo(-0.5, 4);
+
+      // observer_shots: "Dr. Smith.shoulder_l" = (1.0 + 0.40 * 0.60, 0.77 * 2.00, 0.0) = (1.24, 1.54, 0.0)
+      expect(f2.observerCamera.transform.target.x).toBeCloseTo(1.24, 4);
+      expect(f2.observerCamera.transform.target.y).toBeCloseTo(1.54, 4);
+      expect(f2.observerCamera.transform.target.z).toBeCloseTo(0.0, 4);
+
+      // Shot 2 spline start (t=4): "Dr. Smith.chest" = (1.0, 1.5, 0.0); end (t=8): "crate.top" = (-1.0, 1.2, -2.0)
+      const f4 = computeStageFrame(4.0, score!);
+      expect(f4.stageCamera.transform.target.x).toBeCloseTo(1.0, 4);
+      expect(f4.stageCamera.transform.target.y).toBeCloseTo(1.5, 4);
+      expect(f4.stageCamera.transform.target.z).toBeCloseTo(0.0, 4);
+
+      const f8 = computeStageFrame(8.0, score!);
+      expect(f8.stageCamera.transform.target.x).toBeCloseTo(-1.0, 4);
+      expect(f8.stageCamera.transform.target.y).toBeCloseTo(1.2, 4);
+      expect(f8.stageCamera.transform.target.z).toBeCloseTo(-2.0, 4);
+    });
   });
 });

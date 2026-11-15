@@ -18,6 +18,7 @@ import { evaluateCameraEasing } from './maneuvers';
 import {
   cloneVec3,
   computeLookAtYawRad,
+  shortestAngleDiff,
 } from './sphericalMath';
 import {
   type ChainedBlockingCueEntry,
@@ -25,6 +26,7 @@ import {
   buildGroundTrailPoints,
   getEntityBaseSize,
   lerpAngleShortest,
+  relaxLookAtPoses,
   resolveCueStartEndSize,
   resolveLookAtPoint,
 } from './entityKinematicUtils';
@@ -186,41 +188,73 @@ export function evaluateBlockingEntitiesAtTime(
     return { posMap, poseMap, activeMap, lastFinishedMap };
   };
 
-  // Pass 2: Build forward-chained facing rotations (including C0 look_at handoff)
-  for (const def of score.entities) {
-    const chain = chainsByEntity.get(def.id) ?? [];
-    let prevRot = def.rotationYRad;
+  // Pass 2: Build forward-chained facing rotations (order-independent Jacobi relaxation)
+  const MAX_LOOK_AT_ITERS = 8;
+  for (let iter = 0; iter < MAX_LOOK_AT_ITERS; iter++) {
+    const nextChains = new Map<
+      string,
+      Array<{ entry: ChainedBlockingCueEntry; startRot: number; endRot: number }>
+    >();
+    let maxDeltaYaw = 0;
 
-    for (const entry of chain) {
-      entry.startRot = prevRot;
-      let endRot = entry.startRot;
+    for (const def of score.entities) {
+      const chain = chainsByEntity.get(def.id) ?? [];
+      let prevRot = def.rotationYRad;
+      const updates: Array<{
+        entry: ChainedBlockingCueEntry;
+        startRot: number;
+        endRot: number;
+      }> = [];
 
-      if (entry.cue.rotationYRad !== undefined) {
-        endRot = entry.cue.rotationYRad;
-      } else if (entry.cue.lookAt) {
-        const sampleTime = Math.max(entry.cue.startSec, entry.cue.endSec - 1e-6);
-        const snapAtEnd = evaluateSnapshotAt(sampleTime);
-        const targetPt = resolveLookAtPoint(
-          entry.cue.lookAt,
-          snapAtEnd.posMap,
-          score.entities,
-          snapAtEnd.poseMap
-        );
-        if (targetPt) {
-          endRot = computeLookAtYawRad(entry.endPos, targetPt);
+      for (const entry of chain) {
+        const startRot = prevRot;
+        let endRot = startRot;
+
+        if (entry.cue.rotationYRad !== undefined) {
+          endRot = entry.cue.rotationYRad;
+        } else if (entry.cue.lookAt) {
+          const sampleTime = Math.max(entry.cue.startSec, entry.cue.endSec - 1e-6);
+          const snapAtEnd = evaluateSnapshotAt(sampleTime);
+          const targetPt = resolveLookAtPoint(
+            entry.cue.lookAt,
+            snapAtEnd.posMap,
+            score.entities,
+            snapAtEnd.poseMap
+          );
+          if (targetPt) {
+            endRot = computeLookAtYawRad(entry.endPos, targetPt);
+          }
+        } else if (
+          !entry.isCut &&
+          Math.hypot(
+            entry.endPos.x - entry.startPos.x,
+            entry.endPos.z - entry.startPos.z
+          ) > 0.05
+        ) {
+          endRot = computeLookAtYawRad(entry.startPos, entry.endPos);
         }
-      } else if (
-        !entry.isCut &&
-        Math.hypot(
-          entry.endPos.x - entry.startPos.x,
-          entry.endPos.z - entry.startPos.z
-        ) > 0.05
-      ) {
-        endRot = computeLookAtYawRad(entry.startPos, entry.endPos);
+
+        const startDelta = Math.abs(shortestAngleDiff(startRot, entry.startRot));
+        const endDelta = Math.abs(shortestAngleDiff(endRot, entry.endRot));
+        if (startDelta > maxDeltaYaw) maxDeltaYaw = startDelta;
+        if (endDelta > maxDeltaYaw) maxDeltaYaw = endDelta;
+
+        updates.push({ entry, startRot, endRot });
+        prevRot = endRot;
       }
 
-      entry.endRot = endRot;
-      prevRot = endRot;
+      nextChains.set(def.id, updates);
+    }
+
+    for (const updates of nextChains.values()) {
+      for (const { entry, startRot, endRot } of updates) {
+        entry.startRot = startRot;
+        entry.endRot = endRot;
+      }
+    }
+
+    if (maxDeltaYaw < 1e-7) {
+      break;
     }
   }
 
@@ -232,6 +266,18 @@ export function evaluateBlockingEntitiesAtTime(
     .find((s) => elapsedSec >= s.startSec && elapsedSec < s.endSec);
 
   const liveSnapshot = evaluateSnapshotAt(elapsedSec);
+  relaxLookAtPoses(
+    score.entities,
+    liveSnapshot.posMap,
+    liveSnapshot.poseMap,
+    (id) => {
+      const active = liveSnapshot.activeMap.get(id);
+      return active && active.cue.rotationYRad === undefined
+        ? active.cue.lookAt
+        : undefined;
+    }
+  );
+
   const entitiesById = new Map<string, EvaluatedEntityState>();
   const entitiesList: EvaluatedEntityState[] = [];
 
@@ -242,7 +288,7 @@ export function evaluateBlockingEntitiesAtTime(
     const lastFinished = liveSnapshot.lastFinishedMap.get(def.id);
     const shotOv = activeShot?.entities[def.id];
 
-    let rotY = pose.rotationYRad;
+    const rotY = pose.rotationYRad;
     const pitchRad = pose.pitchRad ?? 0;
     const rollRad = pose.rollRad ?? 0;
     const size: Vec3 = pose.size ?? getEntityBaseSize(def);
@@ -253,19 +299,6 @@ export function evaluateBlockingEntitiesAtTime(
     let cueId: string | null = 'preroll';
 
     if (active) {
-      if (active.cue.lookAt) {
-        const lookTarget = resolveLookAtPoint(
-          active.cue.lookAt,
-          liveSnapshot.posMap,
-          score.entities,
-          liveSnapshot.poseMap
-        );
-        if (lookTarget) {
-          rotY = computeLookAtYawRad(pos, lookTarget);
-          pose.rotationYRad = rotY;
-        }
-      }
-
       visible = active.visible;
       highlighted = Boolean(active.cue.highlighted ?? shotOv?.highlighted);
       note = active.cue.note ?? shotOv?.note;

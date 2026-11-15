@@ -81,7 +81,7 @@ flowchart TD
   - `85mm`: Intimate portraits, compressed space, shallow depth of field.
 - **Orthogonal Focus Tracking**:
   - Use `focus: "<entity_id>"` or `focus: ["actor_a", "actor_b"]` so the engine projects $(\vec{P}_{\text{focus}} - \vec{E}) \cdot \hat{F}$ orthogonally onto the optical axis, keeping the subject pin-sharp even off-axis.
-  - Set thin-lens DoF via `dof: shallow` ($f/2.0$), `medium` ($f/4.0$), or `deep` ($f/8.0$), or explicit `aperture: 2.8`.
+  - Set thin-lens DoF via `dof: shallow` ($f/2.8$), `medium` ($f/5.6$), or `deep` ($\infty$), or explicit `aperture: 2.8`.
 - **Aiming & Anchors**:
   - `target: "<id>"` or `"<id>.<part>"`: Follows an entity or body-space sub-anchor (`.head`/`.eyes`, `.chest`/`.shoulder`, `.shoulder_l`/`.shoulder_r`, `.waist`/`.center`, `.feet`/`.base`, `.top`), rotating cleanly with `yaw`/`pitch`/`roll`.
   - `target: ["actor_a", "actor_b"]` (or `["actor_a.eyes", "actor_b.chest"]`): Dynamic two-shot centroid tracking midpoint.

@@ -144,7 +144,7 @@ export function matchEntityTargetKey<T>(
   const findExact = (key: string): T | undefined =>
     itemList.find((item) => {
       if (getId(item).toLowerCase() === key) return true;
-      const lbl = getLabel?.(item);
+      const lbl = getLabel?.(item)?.trim();
       return lbl ? lbl.toLowerCase() === key : false;
     });
 
@@ -210,6 +210,29 @@ export function getEntitySubAnchorLocalOffset(
 }
 
 /**
+ * Computes a world-space entity sub-anchor point from position, live dimensions,
+ * intrinsic YXZ orientation, and optional sub-anchor part name.
+ */
+export function computeRotatedSubAnchorPoint(
+  position: Vec3,
+  kind: EntityKind,
+  width: number,
+  height: number,
+  yawRad: number,
+  pitchRad: number,
+  rollRad: number,
+  part?: string
+): Vec3 {
+  const localOffset = getEntitySubAnchorLocalOffset(kind, width, height, part);
+  const rotated = rotateVec3YXZ(localOffset, yawRad, pitchRad, rollRad);
+  return {
+    x: position.x + rotated.x,
+    y: position.y + rotated.y,
+    z: position.z + rotated.z,
+  };
+}
+
+/**
  * Evaluates the 3D world-space look-at anchor point of a live evaluated entity
  * (or optional sub-anchor part) rotated in intrinsic YXZ order.
  */
@@ -219,23 +242,16 @@ export function getEntityLookAnchor(
 ): Vec3 {
   const effectiveWidth = ent.size?.x ?? ent.def.width ?? ent.def.radius * 2;
   const effectiveHeight = ent.size?.y ?? ent.def.height;
-  const localOffset = getEntitySubAnchorLocalOffset(
+  return computeRotatedSubAnchorPoint(
+    ent.position,
     ent.def.kind,
     effectiveWidth,
     effectiveHeight,
-    part
-  );
-  const rotated = rotateVec3YXZ(
-    localOffset,
     ent.rotationYRad,
     ent.pitchRad ?? 0,
-    ent.rollRad ?? 0
+    ent.rollRad ?? 0,
+    part
   );
-  return {
-    x: ent.position.x + rotated.x,
-    y: ent.position.y + rotated.y,
-    z: ent.position.z + rotated.z,
-  };
 }
 
 /**
@@ -247,40 +263,92 @@ export function getEntityDefLookAnchor(
   part?: string
 ): Vec3 {
   const baseWidth = def.width ?? def.radius * 2;
-  const localOffset = getEntitySubAnchorLocalOffset(
+  return computeRotatedSubAnchorPoint(
+    def.position,
     def.kind,
     baseWidth,
     def.height,
-    part
-  );
-  const rotated = rotateVec3YXZ(
-    localOffset,
     def.rotationYRad,
     def.pitchRad ?? 0,
-    def.rollRad ?? 0
+    def.rollRad ?? 0,
+    part
   );
-  return {
-    x: def.position.x + rotated.x,
-    y: def.position.y + rotated.y,
-    z: def.position.z + rotated.z,
-  };
 }
 
-function resolveSingleTargetString(
+export interface EntityTargetAdapter<T> {
+  items: Iterable<T>;
+  getId: (item: T) => string;
+  getLabel?: (item: T) => string | undefined;
+  getAnchor: (item: T, part?: string) => Vec3;
+  presetY?: number;
+}
+
+function resolveSingleTargetString<T>(
   rawKey: string,
-  entitiesById: Map<string, EvaluatedEntityState>
+  adapter: EntityTargetAdapter<T>
 ): Vec3 | undefined {
   const clean = rawKey.trim().toLowerCase();
   if (clean === 'center' || clean === 'origin' || clean === 'stage') {
-    return { x: 0, y: 1.0, z: 0 };
+    return { x: 0, y: adapter.presetY ?? 1.0, z: 0 };
   }
   const matched = matchEntityTargetKey(
     rawKey,
-    entitiesById.values(),
-    (ent) => ent.id,
-    (ent) => ent.def.label
+    adapter.items,
+    adapter.getId,
+    adapter.getLabel
   );
-  return matched ? getEntityLookAnchor(matched.item, matched.part) : undefined;
+  return matched ? adapter.getAnchor(matched.item, matched.part) : undefined;
+}
+
+/**
+ * Shared generic target anchor resolver supporting stage presets ('center'/'origin'/'stage'),
+ * entity IDs/labels/sub-anchors, multi-entity centroid arrays, Vec3 literals, and metric offsets.
+ */
+export function resolveTargetPoint3DWithAdapter<T>(
+  targetKey: TargetAnchor | undefined,
+  adapter: EntityTargetAdapter<T>,
+  fallbackTarget: Vec3,
+  offset?: Vec3
+): Vec3 {
+  let base: Vec3 | undefined;
+
+  if (!targetKey) {
+    base = { ...fallbackTarget };
+  } else if (Array.isArray(targetKey)) {
+    const itemList = Array.isArray(adapter.items)
+      ? adapter.items
+      : Array.from(adapter.items);
+    const listAdapter = { ...adapter, items: itemList };
+    const anchors: Vec3[] = [];
+    for (const key of targetKey) {
+      const resolved = resolveSingleTargetString(key, listAdapter);
+      if (resolved) {
+        anchors.push(resolved);
+      }
+    }
+    base =
+      anchors.length > 0
+        ? {
+            x: anchors.reduce((sum, a) => sum + a.x, 0) / anchors.length,
+            y: anchors.reduce((sum, a) => sum + a.y, 0) / anchors.length,
+            z: anchors.reduce((sum, a) => sum + a.z, 0) / anchors.length,
+          }
+        : { ...fallbackTarget };
+  } else if (typeof targetKey === 'object') {
+    base = { ...targetKey };
+  } else {
+    base = resolveSingleTargetString(targetKey, adapter);
+  }
+
+  const resolved = base ?? { ...fallbackTarget };
+  if (!offset) {
+    return resolved;
+  }
+  return {
+    x: resolved.x + offset.x,
+    y: resolved.y + offset.y,
+    z: resolved.z + offset.z,
+  };
 }
 
 /**
@@ -293,42 +361,15 @@ export function resolveTargetPoint3D(
   fallbackTarget: Vec3,
   offset?: Vec3
 ): Vec3 {
-  let base: Vec3 | undefined;
-
-  if (!targetKey) {
-    base = { ...fallbackTarget };
-  } else if (Array.isArray(targetKey)) {
-    // Multi-entity array: compute pure 3D centroid midpoint
-    const anchors: Vec3[] = [];
-    for (const key of targetKey) {
-      const resolved = resolveSingleTargetString(key, entitiesById);
-      if (resolved) {
-        anchors.push(resolved);
-      }
-    }
-    if (anchors.length > 0) {
-      const count = anchors.length;
-      base = {
-        x: anchors.reduce((sum, a) => sum + a.x, 0) / count,
-        y: anchors.reduce((sum, a) => sum + a.y, 0) / count,
-        z: anchors.reduce((sum, a) => sum + a.z, 0) / count,
-      };
-    } else {
-      base = { ...fallbackTarget };
-    }
-  } else if (typeof targetKey === 'object') {
-    base = { ...targetKey };
-  } else {
-    base = resolveSingleTargetString(targetKey, entitiesById);
-  }
-
-  const resolved = base ?? { ...fallbackTarget };
-  if (!offset) {
-    return resolved;
-  }
-  return {
-    x: resolved.x + offset.x,
-    y: resolved.y + offset.y,
-    z: resolved.z + offset.z,
-  };
+  return resolveTargetPoint3DWithAdapter(
+    targetKey,
+    {
+      items: entitiesById.values(),
+      getId: (ent) => ent.id,
+      getLabel: (ent) => ent.def.label,
+      getAnchor: getEntityLookAnchor,
+    },
+    fallbackTarget,
+    offset
+  );
 }
