@@ -13,7 +13,7 @@
 <p align="center">
   <a href="https://github.com/taruma/stageflow/releases"><img src="https://img.shields.io/badge/version-1.1.2-blue.svg?style=flat-square" alt="Version 1.1.2" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-yellow.svg?style=flat-square" alt="License MIT" /></a>
-  <a href="https://github.com/taruma/stageflow"><img src="https://img.shields.io/badge/tests-279%20passed-brightgreen.svg?style=flat-square" alt="Vitest 279 Passed" /></a>
+  <a href="https://github.com/taruma/stageflow"><img src="https://img.shields.io/badge/tests-283%20passed-brightgreen.svg?style=flat-square" alt="Vitest 283 Passed" /></a>
   <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.8-blue.svg?style=flat-square" alt="TypeScript 5.8" /></a>
   <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-19-61dafb.svg?style=flat-square" alt="React 19" /></a>
   <a href="https://threejs.org/"><img src="https://img.shields.io/badge/Three.js-r175-black.svg?style=flat-square" alt="Three.js r175" /></a>

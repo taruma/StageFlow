@@ -5,6 +5,7 @@
  */
 
 import type { SceneEntityDef, TargetAnchor, Vec3 } from '../core/types';
+import { matchEntityTargetKey } from '../core/cameraTargetResolver';
 
 export interface ResolvedTargetInfo {
   label: string;
@@ -32,13 +33,19 @@ export function resolveShotTargetInfo(
 ): ResolvedTargetInfo {
   if (typeof target === 'string') {
     const trimmed = target.trim();
-    const match = entities.find(
-      (e) => e.id.toLowerCase() === trimmed.toLowerCase()
+    const match = matchEntityTargetKey(
+      trimmed,
+      entities,
+      (e) => e.id,
+      (e) => e.label
     );
     if (match) {
+      const baseName = match.item.label || match.item.id;
       return {
-        label: match.label || match.id,
-        color: match.color,
+        label: match.recognizedPart
+          ? `${baseName} · ${match.recognizedPart}`
+          : baseName,
+        color: match.item.color,
         isEntity: true,
       };
     }
@@ -46,19 +53,28 @@ export function resolveShotTargetInfo(
   }
 
   if (Array.isArray(target) && target.length > 0) {
+    let firstColor: string | undefined;
     const names = target.map((id) => {
-      const match = entities.find(
-        (e) => e.id.toLowerCase() === String(id).toLowerCase().trim()
+      const match = matchEntityTargetKey(
+        String(id),
+        entities,
+        (e) => e.id,
+        (e) => e.label
       );
-      return match ? match.label || match.id : String(id).trim();
+      if (match) {
+        if (!firstColor) {
+          firstColor = match.item.color;
+        }
+        const baseName = match.item.label || match.item.id;
+        return match.recognizedPart
+          ? `${baseName} · ${match.recognizedPart}`
+          : baseName;
+      }
+      return String(id).trim();
     });
-    // Use first matched entity color if available
-    const firstMatched = entities.find(
-      (e) => e.id.toLowerCase() === String(target[0]).toLowerCase().trim()
-    );
     return {
       label: names.join(' + '),
-      color: firstMatched?.color,
+      color: firstColor,
       isEntity: true,
     };
   }

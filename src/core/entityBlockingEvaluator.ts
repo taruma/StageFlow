@@ -21,6 +21,7 @@ import {
 } from './sphericalMath';
 import {
   type ChainedBlockingCueEntry,
+  type EntityLookAtPose,
   buildGroundTrailPoints,
   getEntityBaseSize,
   lerpAngleShortest,
@@ -41,7 +42,7 @@ export function evaluateBlockingEntitiesAtTime(
   const blockingCues = score.blocking ?? [];
   const chainsByEntity = new Map<string, ChainedBlockingCueEntry[]>();
 
-  // Pass 1: Build forward-chained 3D world position & visibility tracks per entity
+  // Pass 1: Build forward-chained 3D world position, size, tilt, and baseline rotation tracks per entity
   for (const def of score.entities) {
     const entityCues = blockingCues
       .filter((c) => c.entityId.toLowerCase() === def.id.toLowerCase())
@@ -49,6 +50,9 @@ export function evaluateBlockingEntitiesAtTime(
 
     let prevPos: Vec3 = cloneVec3(def.position);
     let prevSize: Vec3 = getEntityBaseSize(def);
+    let prevRot = def.rotationYRad;
+    let prevPitch = def.pitchRad ?? 0;
+    let prevRoll = def.rollRad ?? 0;
     let prevVis: boolean = true;
     const entries: ChainedBlockingCueEntry[] = [];
 
@@ -73,16 +77,31 @@ export function evaluateBlockingEntitiesAtTime(
       );
       const visible: boolean = cue.visible ?? prevVis;
 
+      const endPitch = cue.pitchRad ?? prevPitch;
+      const endRoll = cue.rollRad ?? prevRoll;
+      const startPitch = isCut ? endPitch : prevPitch;
+      const startRoll = isCut ? endRoll : prevRoll;
+
+      let endRot = prevRot;
+      if (cue.rotationYRad !== undefined) {
+        endRot = cue.rotationYRad;
+      } else if (
+        !isCut &&
+        Math.hypot(endPos.x - startPos.x, endPos.z - startPos.z) > 0.05
+      ) {
+        endRot = computeLookAtYawRad(startPos, endPos);
+      }
+
       entries.push({
         cue,
         startPos,
         endPos,
-        startRot: def.rotationYRad,
-        endRot: def.rotationYRad,
-        startPitch: def.pitchRad ?? 0,
-        endPitch: def.pitchRad ?? 0,
-        startRoll: def.rollRad ?? 0,
-        endRoll: def.rollRad ?? 0,
+        startRot: prevRot,
+        endRot,
+        startPitch,
+        endPitch,
+        startRoll,
+        endRoll,
         startSize,
         endSize,
         visible,
@@ -91,15 +110,22 @@ export function evaluateBlockingEntitiesAtTime(
 
       prevPos = cloneVec3(endPos);
       prevSize = cloneVec3(endSize);
+      prevRot = endRot;
+      prevPitch = endPitch;
+      prevRoll = endRoll;
       prevVis = visible;
     }
 
     chainsByEntity.set(def.id, entries);
   }
 
-  // Helper to evaluate all entity positions at any arbitrary timestamp t
-  const evaluatePositionsAt = (t: number): Map<string, Vec3> => {
+  // Helper to evaluate all entity positions & pose snapshots at any arbitrary timestamp t
+  const evaluateSnapshotAt = (t: number) => {
     const posMap = new Map<string, Vec3>();
+    const poseMap = new Map<string, EntityLookAtPose>();
+    const activeMap = new Map<string, ChainedBlockingCueEntry>();
+    const lastFinishedMap = new Map<string, ChainedBlockingCueEntry>();
+
     for (const def of score.entities) {
       const chain = chainsByEntity.get(def.id) ?? [];
       const active = chain
@@ -115,26 +141,55 @@ export function evaluateBlockingEntitiesAtTime(
         const dur = Math.max(0.016, active.cue.endSec - active.cue.startSec);
         const tau = Math.min(1, Math.max(0, (t - active.cue.startSec) / dur));
         const u = evaluateCameraEasing(active.cue.easing, tau);
-        posMap.set(def.id, {
+        const position: Vec3 = {
           x: active.startPos.x + u * (active.endPos.x - active.startPos.x),
           y: active.startPos.y + u * (active.endPos.y - active.startPos.y),
           z: active.startPos.z + u * (active.endPos.z - active.startPos.z),
+        };
+        const size: Vec3 = {
+          x: active.startSize.x + u * (active.endSize.x - active.startSize.x),
+          y: active.startSize.y + u * (active.endSize.y - active.startSize.y),
+          z: active.startSize.z + u * (active.endSize.z - active.startSize.z),
+        };
+        posMap.set(def.id, position);
+        poseMap.set(def.id, {
+          position,
+          rotationYRad: lerpAngleShortest(active.startRot, active.endRot, u),
+          pitchRad: lerpAngleShortest(active.startPitch, active.endPitch, u),
+          rollRad: lerpAngleShortest(active.startRoll, active.endRoll, u),
+          size,
         });
+        activeMap.set(def.id, active);
       } else if (lastFinished) {
-        posMap.set(def.id, cloneVec3(lastFinished.endPos));
+        const position = cloneVec3(lastFinished.endPos);
+        posMap.set(def.id, position);
+        poseMap.set(def.id, {
+          position,
+          rotationYRad: lastFinished.endRot,
+          pitchRad: lastFinished.endPitch,
+          rollRad: lastFinished.endRoll,
+          size: cloneVec3(lastFinished.endSize),
+        });
+        lastFinishedMap.set(def.id, lastFinished);
       } else {
-        posMap.set(def.id, cloneVec3(def.position));
+        const position = cloneVec3(def.position);
+        posMap.set(def.id, position);
+        poseMap.set(def.id, {
+          position,
+          rotationYRad: def.rotationYRad,
+          pitchRad: def.pitchRad ?? 0,
+          rollRad: def.rollRad ?? 0,
+          size: getEntityBaseSize(def),
+        });
       }
     }
-    return posMap;
+    return { posMap, poseMap, activeMap, lastFinishedMap };
   };
 
-  // Pass 2: Build forward-chained facing rotations & pitch/roll (including C0 look_at handoff)
+  // Pass 2: Build forward-chained facing rotations (including C0 look_at handoff)
   for (const def of score.entities) {
     const chain = chainsByEntity.get(def.id) ?? [];
     let prevRot = def.rotationYRad;
-    let prevPitch = def.pitchRad ?? 0;
-    let prevRoll = def.rollRad ?? 0;
 
     for (const entry of chain) {
       entry.startRot = prevRot;
@@ -144,11 +199,12 @@ export function evaluateBlockingEntitiesAtTime(
         endRot = entry.cue.rotationYRad;
       } else if (entry.cue.lookAt) {
         const sampleTime = Math.max(entry.cue.startSec, entry.cue.endSec - 1e-6);
-        const posAtEnd = evaluatePositionsAt(sampleTime);
+        const snapAtEnd = evaluateSnapshotAt(sampleTime);
         const targetPt = resolveLookAtPoint(
           entry.cue.lookAt,
-          posAtEnd,
-          score.entities
+          snapAtEnd.posMap,
+          score.entities,
+          snapAtEnd.poseMap
         );
         if (targetPt) {
           endRot = computeLookAtYawRad(entry.endPos, targetPt);
@@ -165,15 +221,6 @@ export function evaluateBlockingEntitiesAtTime(
 
       entry.endRot = endRot;
       prevRot = endRot;
-
-      const endPitch = entry.cue.pitchRad ?? prevPitch;
-      const endRoll = entry.cue.rollRad ?? prevRoll;
-      entry.startPitch = entry.isCut ? endPitch : prevPitch;
-      entry.endPitch = endPitch;
-      entry.startRoll = entry.isCut ? endRoll : prevRoll;
-      entry.endRoll = endRoll;
-      prevPitch = endPitch;
-      prevRoll = endRoll;
     }
   }
 
@@ -184,28 +231,21 @@ export function evaluateBlockingEntitiesAtTime(
     .reverse()
     .find((s) => elapsedSec >= s.startSec && elapsedSec < s.endSec);
 
-  const livePositions = evaluatePositionsAt(elapsedSec);
+  const liveSnapshot = evaluateSnapshotAt(elapsedSec);
   const entitiesById = new Map<string, EvaluatedEntityState>();
   const entitiesList: EvaluatedEntityState[] = [];
 
   for (const def of score.entities) {
-    const chain = chainsByEntity.get(def.id) ?? [];
-    const pos = livePositions.get(def.id)!;
+    const pos = liveSnapshot.posMap.get(def.id)!;
+    const pose = liveSnapshot.poseMap.get(def.id)!;
+    const active = liveSnapshot.activeMap.get(def.id);
+    const lastFinished = liveSnapshot.lastFinishedMap.get(def.id);
     const shotOv = activeShot?.entities[def.id];
 
-    const active = chain
-      .slice()
-      .reverse()
-      .find((e) => elapsedSec >= e.cue.startSec && elapsedSec < e.cue.endSec);
-    const lastFinished = chain
-      .slice()
-      .reverse()
-      .find((e) => elapsedSec >= e.cue.endSec);
-
-    let rotY = def.rotationYRad;
-    let pitchRad = def.pitchRad ?? 0;
-    let rollRad = def.rollRad ?? 0;
-    let size: Vec3 = getEntityBaseSize(def);
+    let rotY = pose.rotationYRad;
+    const pitchRad = pose.pitchRad ?? 0;
+    const rollRad = pose.rollRad ?? 0;
+    const size: Vec3 = pose.size ?? getEntityBaseSize(def);
     let visible = shotOv?.visible ?? true;
     let highlighted = Boolean(shotOv?.highlighted);
     let note = shotOv?.note;
@@ -213,31 +253,16 @@ export function evaluateBlockingEntitiesAtTime(
     let cueId: string | null = 'preroll';
 
     if (active) {
-      const dur = Math.max(0.016, active.cue.endSec - active.cue.startSec);
-      const tau = Math.min(
-        1,
-        Math.max(0, (elapsedSec - active.cue.startSec) / dur)
-      );
-      const u = evaluateCameraEasing(active.cue.easing, tau);
-
-      rotY = lerpAngleShortest(active.startRot, active.endRot, u);
-      pitchRad = lerpAngleShortest(active.startPitch, active.endPitch, u);
-      rollRad = lerpAngleShortest(active.startRoll, active.endRoll, u);
-
-      size = {
-        x: active.startSize.x + u * (active.endSize.x - active.startSize.x),
-        y: active.startSize.y + u * (active.endSize.y - active.startSize.y),
-        z: active.startSize.z + u * (active.endSize.z - active.startSize.z),
-      };
-
       if (active.cue.lookAt) {
         const lookTarget = resolveLookAtPoint(
           active.cue.lookAt,
-          livePositions,
-          score.entities
+          liveSnapshot.posMap,
+          score.entities,
+          liveSnapshot.poseMap
         );
         if (lookTarget) {
           rotY = computeLookAtYawRad(pos, lookTarget);
+          pose.rotationYRad = rotY;
         }
       }
 
@@ -249,10 +274,6 @@ export function evaluateBlockingEntitiesAtTime(
         : buildGroundTrailPoints(active.startPos, active.endPos);
       cueId = active.cue.id;
     } else if (lastFinished) {
-      rotY = lastFinished.endRot;
-      pitchRad = lastFinished.endPitch;
-      rollRad = lastFinished.endRoll;
-      size = cloneVec3(lastFinished.endSize);
       visible = lastFinished.visible;
       cueId = `hold:${lastFinished.cue.id}`;
     }

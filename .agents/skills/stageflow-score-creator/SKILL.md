@@ -83,10 +83,10 @@ flowchart TD
   - Use `focus: "<entity_id>"` or `focus: ["actor_a", "actor_b"]` so the engine projects $(\vec{P}_{\text{focus}} - \vec{E}) \cdot \hat{F}$ orthogonally onto the optical axis, keeping the subject pin-sharp even off-axis.
   - Set thin-lens DoF via `dof: shallow` ($f/2.0$), `medium` ($f/4.0$), or `deep` ($f/8.0$), or explicit `aperture: 2.8`.
 - **Aiming & Anchors**:
-  - `target: "<id>"`: Follows an entity.
-  - `target: ["actor_a", "actor_b"]`: Dynamic two-shot centroid tracking midpoint.
-  - `from: "<id>"`: Smooth look-at pan/transition from one subject to another.
-  - `target_offset: [x, y, z]`: Metric framing adjustments (e.g. `[0, 1.4, 0]` for head height).
+  - `target: "<id>"` or `"<id>.<part>"`: Follows an entity or body-space sub-anchor (`.head`/`.eyes`, `.chest`/`.shoulder`, `.shoulder_l`/`.shoulder_r`, `.waist`/`.center`, `.feet`/`.base`, `.top`), rotating cleanly with `yaw`/`pitch`/`roll`.
+  - `target: ["actor_a", "actor_b"]` (or `["actor_a.eyes", "actor_b.chest"]`): Dynamic two-shot centroid tracking midpoint.
+  - `from: "<id>"`: Smooth look-at pan/transition from one subject (or sub-anchor) to another.
+  - `target_offset: [x, y, z]`: World-space metric framing adjustments (e.g. `[0, 0.25, 0]` for headroom).
 - **Maneuvers & Continuous Kinematics**:
   - `static`: Stationary locked camera.
   - `pan`, `tilt`, `push`, `pull`, `truck`, `pedestal`: Linear single-axis moves.

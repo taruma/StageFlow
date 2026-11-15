@@ -21,6 +21,7 @@ import {
   computeLookAtYawRad,
 } from './sphericalMath';
 import {
+  type EntityLookAtPose,
   type EntityPoseSnapshot,
   buildGroundTrailPoints,
   getEntityBaseSize,
@@ -74,9 +75,10 @@ export function evaluateLegacyEntitiesAtTime(
     const startMap = new Map<string, EntityPoseSnapshot>();
     const endMap = new Map<string, EntityPoseSnapshot>();
 
-    // First pass: determine start and end positions for this shot
+    // First pass: determine start and end positions, sizes, and tilt for this shot
     const endPositions = new Map<string, Vec3>();
     const endSizes = new Map<string, Vec3>();
+    const endPoses = new Map<string, EntityLookAtPose>();
     for (const def of score.entities) {
       const prev = runningPoses.get(def.id)!;
       const override = shot.entities[def.id];
@@ -103,6 +105,13 @@ export function evaluateLegacyEntitiesAtTime(
 
       const endPitch = override?.pitchRad ?? prev.pitchRad;
       const endRoll = override?.rollRad ?? prev.rollRad;
+      const baselineEndRot =
+        override?.rotationYRad !== undefined
+          ? override.rotationYRad
+          : !override?.cut &&
+            Math.hypot(endPos.x - startPos.x, endPos.z - startPos.z) > 0.05
+          ? computeLookAtYawRad(startPos, endPos)
+          : prev.rotationYRad;
 
       startMap.set(def.id, {
         position: startPos,
@@ -114,6 +123,13 @@ export function evaluateLegacyEntitiesAtTime(
       });
       endPositions.set(def.id, endPos);
       endSizes.set(def.id, endSize);
+      endPoses.set(def.id, {
+        position: endPos,
+        rotationYRad: baselineEndRot,
+        pitchRad: endPitch,
+        rollRad: endRoll,
+        size: endSize,
+      });
     }
 
     // Second pass: resolve end rotations (including lookAt) & pitch/roll
@@ -129,10 +145,15 @@ export function evaluateLegacyEntitiesAtTime(
         const targetPt = resolveLookAtPoint(
           override.lookAt,
           endPositions,
-          score.entities
+          score.entities,
+          endPoses
         );
         if (targetPt) {
           endRot = computeLookAtYawRad(endPos, targetPt);
+          const endPose = endPoses.get(def.id);
+          if (endPose) {
+            endPose.rotationYRad = endRot;
+          }
         }
       } else if (
         !override?.cut &&
@@ -256,13 +277,16 @@ export function evaluateLegacyEntitiesAtTime(
     }
   }
 
-  // Second pass: resolve live facing angles (including dynamic lookAt) & floor trails
+  // Pre-build live poses across all entities so lookAt sub-anchors see live yaw/pitch/roll/size
+  const livePoses = new Map<string, EntityLookAtPose>();
+  const preLookAtStates = new Map<
+    string,
+    { rotY: number; pitchRad: number; rollRad: number; size: Vec3 }
+  >();
   for (const def of score.entities) {
     const item = rawStates.get(def.id)!;
     const pos = livePositions.get(def.id)!;
-    const override = activeShot?.entities[def.id];
-
-    let rotY = lerpAngleShortest(
+    const rotY = lerpAngleShortest(
       item.startSnap.rotationYRad,
       item.endSnap.rotationYRad,
       item.u
@@ -277,25 +301,6 @@ export function evaluateLegacyEntitiesAtTime(
       item.endSnap.rollRad,
       item.u
     );
-
-    if (override?.lookAt) {
-      const lookTarget = resolveLookAtPoint(
-        override.lookAt,
-        livePositions,
-        score.entities
-      );
-      if (lookTarget) {
-        rotY = computeLookAtYawRad(pos, lookTarget);
-      }
-    }
-
-    const trailPoints = override?.cut
-      ? []
-      : buildGroundTrailPoints(
-          item.startSnap.position,
-          item.endSnap.position
-        );
-
     const size: Vec3 = {
       x:
         item.startSnap.size.x +
@@ -307,6 +312,48 @@ export function evaluateLegacyEntitiesAtTime(
         item.startSnap.size.z +
         item.u * (item.endSnap.size.z - item.startSnap.size.z),
     };
+    preLookAtStates.set(def.id, { rotY, pitchRad, rollRad, size });
+    livePoses.set(def.id, {
+      position: pos,
+      rotationYRad: rotY,
+      pitchRad,
+      rollRad,
+      size,
+    });
+  }
+
+  // Second pass: resolve live facing angles (including dynamic lookAt) & floor trails
+  for (const def of score.entities) {
+    const item = rawStates.get(def.id)!;
+    const pos = livePositions.get(def.id)!;
+    const override = activeShot?.entities[def.id];
+    const pre = preLookAtStates.get(def.id)!;
+
+    let rotY = pre.rotY;
+    const { pitchRad, rollRad, size } = pre;
+
+    if (override?.lookAt) {
+      const lookTarget = resolveLookAtPoint(
+        override.lookAt,
+        livePositions,
+        score.entities,
+        livePoses
+      );
+      if (lookTarget) {
+        rotY = computeLookAtYawRad(pos, lookTarget);
+        const livePose = livePoses.get(def.id);
+        if (livePose) {
+          livePose.rotationYRad = rotY;
+        }
+      }
+    }
+
+    const trailPoints = override?.cut
+      ? []
+      : buildGroundTrailPoints(
+          item.startSnap.position,
+          item.endSnap.position
+        );
 
     const state: EvaluatedEntityState = {
       id: def.id,

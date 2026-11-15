@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Dot-Notation Entity Target Sub-Anchors (GH Issue #19)
+
+- **Pure Sub-Anchor Resolver & Disambiguation (`src/core/cameraTargetResolver.ts`, `src/core/cameraCueParser.ts`)**:
+  - Added `ENTITY_SUB_ANCHORS` vocabulary (`.head`/`.eyes`/`.eye`, `.shoulder`/`.chest`, `.shoulder_l`/`.shoulder_r`, `.waist`/`.center`, `.feet`/`.base`, `.top`), `matchEntityTargetKey` (exact-match-first disambiguation protecting dotted IDs like `"dr.smith"`, then final-dot split supporting underscore IDs and labels), `getEntitySubAnchorLocalOffset`, and `getEntityDefLookAnchor`.
+  - Updated `getEntityLookAnchor` and `resolveTargetPoint3D` to rotate entity-local sub-anchor offsets `(±0.40 * liveWidth, yRatio * liveHeight, 0)` in intrinsic `YXZ` order (`rotateVec3YXZ`) across `target`, `from`, `focus`, `focus_start`/`focus_end`, spline waypoints, camera rigs, and multi-entity centroid arrays (`["alice.eyes", "bob.chest"]`), falling back gracefully to default anchors on unrecognized suffixes.
+  - Unified `resolveStageCamEntityTarget` in `src/core/cameraCueParser.ts` onto `matchEntityTargetKey` and `getEntityDefLookAnchor` so baseline `stage.stage_camera` and `stage.observer_camera` resolve dot-notation targets identically to shot cues.
+- **Pose-Aware Entity `look_at` Resolution (`src/core/entityKinematicUtils.ts`, `src/core/entityBlockingEvaluator.ts`, `src/core/entityLegacyEvaluator.ts`)**:
+  - Extended `resolveLookAtPoint` with optional `EntityLookAtPose` context so `blocking[].look_at` and `shots[].entities.<id>.look_at` resolve rotated 3D sub-anchors (e.g., `look_at: "prone_hero.head"` or `"hero.shoulder_l"`) while preserving exact upright bare-entity backward compatibility.
+- **Layer 5 HUD & 2D Minimap Support (`src/ui/shotBreakdownUtils.ts`, `src/ui/library/ScoreStageMinimap.tsx`)**:
+  - Updated `resolveShotTargetInfo` to resolve `<entityKey>.<part>` targets cleanly (`"Ruby (Hero) · chest"`, omitting unrecognized suffixes) with preserved entity color badges across single and array targets.
+  - Updated `ScoreStageMinimap.tsx` with shared `resolveMinimapTargetXZ` via `matchEntityTargetKey` and `getEntityDefLookAnchor` so library previews plot dot-notation targets accurately.
+- **Unit Tests & Living Documentation (`tests/unit/`, `docs/*.md`, `.agents/skills/`)**:
+  - Added unit tests in `frameEngine.test.ts`, `entityEngine.test.ts`, `scoreParser.test.ts`, `shotBreakdownUtils.test.ts`, and updated `guideSnippets.test.ts` (`31` blocks).
+  - Updated `STAGEFLOW_SCRIPT_SPECIFICATION.md`, `CORE_MATH_AND_SCORE_SPECIFICATIONS.md`, `YAML_AUTHORING_GUIDE.md`, `ARCHITECTURE_FILE_MAP.md`, `stageflow-score-creator/SKILL.md`, and `stageflow-score-debugger/SKILL.md`.
+
 #### Entity Pitch & Roll Rotations — 3D Mesh Tilt (GH Issue #18)
 
 - **Layer 1 Core Types, Pure `YXZ` Math & Kinematic Helpers (`src/core/types.ts`, `src/core/sphericalMath.ts`, `src/core/entityKinematicUtils.ts`)**:

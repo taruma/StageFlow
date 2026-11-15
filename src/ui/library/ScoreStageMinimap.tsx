@@ -6,7 +6,11 @@
  */
 
 import React, { useMemo } from 'react';
-import type { StageScore } from '../../core/types';
+import type { SceneEntityDef, StageScore, TargetAnchor } from '../../core/types';
+import {
+  getEntityDefLookAnchor,
+  matchEntityTargetKey,
+} from '../../core/cameraTargetResolver';
 import { computeOrientedBoundingBox } from '../../core/entityKinematicUtils';
 
 export interface ScoreStageMinimapProps {
@@ -19,6 +23,49 @@ interface Point2D {
   z: number;
 }
 
+function resolveMinimapTargetXZ(
+  target: TargetAnchor | undefined,
+  rawEntities: SceneEntityDef[]
+): Point2D {
+  if (typeof target === 'string') {
+    const matched = matchEntityTargetKey(
+      target,
+      rawEntities,
+      (e) => e.id,
+      (e) => e.label
+    );
+    if (matched) {
+      const anchor = getEntityDefLookAnchor(matched.item, matched.part);
+      return { x: anchor.x, z: anchor.z };
+    }
+    return { x: 0, z: 0 };
+  }
+  if (Array.isArray(target)) {
+    let sumX = 0;
+    let sumZ = 0;
+    let count = 0;
+    for (const item of target) {
+      const matched = matchEntityTargetKey(
+        String(item),
+        rawEntities,
+        (e) => e.id,
+        (e) => e.label
+      );
+      if (matched) {
+        const anchor = getEntityDefLookAnchor(matched.item, matched.part);
+        sumX += anchor.x;
+        sumZ += anchor.z;
+        count++;
+      }
+    }
+    return count > 0 ? { x: sumX / count, z: sumZ / count } : { x: 0, z: 0 };
+  }
+  if (target && typeof target === 'object') {
+    return { x: target.x ?? 0, z: target.z ?? 0 };
+  }
+  return { x: 0, z: 0 };
+}
+
 export const ScoreStageMinimap: React.FC<ScoreStageMinimapProps> = ({
   score,
   className = '',
@@ -26,9 +73,10 @@ export const ScoreStageMinimap: React.FC<ScoreStageMinimapProps> = ({
   const { viewBox, entities, cameraPos, cameraTarget, cameraConePath, cameraTrackPath } =
     useMemo(() => {
       const allPoints: Point2D[] = [{ x: 0, z: 0 }];
+      const rawEntities = score?.entities ?? [];
 
       // 1. Collect entity starting positions
-      const entityList = (score?.entities ?? []).map((ent) => {
+      const entityList = rawEntities.map((ent) => {
         const x = ent.position?.x ?? 0;
         const z = ent.position?.z ?? 0;
         const width = ent.width ?? ent.radius * 2;
@@ -59,33 +107,9 @@ export const ScoreStageMinimap: React.FC<ScoreStageMinimapProps> = ({
 
       if (firstShot?.stageCamera) {
         const sc = firstShot.stageCamera;
-        // Resolve target coordinates
-        if (typeof sc.target === 'string') {
-          const matched = entityList.find((e) => e.id === sc.target);
-          if (matched) {
-            targetX = matched.x;
-            targetZ = matched.z;
-          }
-        } else if (Array.isArray(sc.target)) {
-          let sumX = 0;
-          let sumZ = 0;
-          let count = 0;
-          for (const item of sc.target) {
-            const matched = entityList.find((e) => e.id === item);
-            if (matched) {
-              sumX += matched.x;
-              sumZ += matched.z;
-              count++;
-            }
-          }
-          if (count > 0) {
-            targetX = sumX / count;
-            targetZ = sumZ / count;
-          }
-        } else if (sc.target && typeof sc.target === 'object') {
-          targetX = sc.target.x ?? 0;
-          targetZ = sc.target.z ?? 0;
-        }
+        const resolved = resolveMinimapTargetXZ(sc.target, rawEntities);
+        targetX = resolved.x;
+        targetZ = resolved.z;
 
         allPoints.push({ x: targetX, z: targetZ });
 
@@ -108,34 +132,9 @@ export const ScoreStageMinimap: React.FC<ScoreStageMinimapProps> = ({
       (score?.shots ?? []).slice(1).forEach((shot) => {
         if (!shot.stageCamera) return;
         const sc = shot.stageCamera;
-        let tX = 0;
-        let tZ = 0;
-        if (typeof sc.target === 'string') {
-          const matched = entityList.find((e) => e.id === sc.target);
-          if (matched) {
-            tX = matched.x;
-            tZ = matched.z;
-          }
-        } else if (Array.isArray(sc.target)) {
-          let sumX = 0;
-          let sumZ = 0;
-          let count = 0;
-          for (const item of sc.target) {
-            const matched = entityList.find((e) => e.id === item);
-            if (matched) {
-              sumX += matched.x;
-              sumZ += matched.z;
-              count++;
-            }
-          }
-          if (count > 0) {
-            tX = sumX / count;
-            tZ = sumZ / count;
-          }
-        } else if (sc.target && typeof sc.target === 'object') {
-          tX = sc.target.x ?? 0;
-          tZ = sc.target.z ?? 0;
-        }
+        const resolved = resolveMinimapTargetXZ(sc.target, rawEntities);
+        const tX = resolved.x;
+        const tZ = resolved.z;
         const dist = Math.max(1.5, sc.distance ?? 5.0);
         const pitch = sc.pitchRad ?? 0.25;
         const yaw = sc.yawRad ?? 0;

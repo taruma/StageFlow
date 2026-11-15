@@ -1000,5 +1000,83 @@ shots:
         expect(heroB.rollRad).toBeCloseTo(heroA.rollRad!, 6);
       }
     });
+
+    it('resolves dot-notation sub-anchors in resolveLookAtPoint and blocking/legacy look_at (#19)', () => {
+      const currentPositions = new Map([
+        ['hero', { x: 0, y: 0, z: 0 }],
+      ]);
+      const currentPoses = new Map([
+        ['hero', { rotationYRad: 0, pitchRad: degToRad(90), rollRad: 0, size: { x: 1.0, y: 2.0, z: 0.5 } }],
+      ]);
+      const entities = [
+        {
+          id: 'hero',
+          label: 'Hero',
+          kind: 'character' as const,
+          position: { x: 0, y: 0, z: 0 },
+          rotationYRad: 0,
+          width: 1.0,
+          height: 2.0,
+          radius: 0.5,
+          color: '#38bdf8',
+        },
+      ];
+
+      // Prone hero (pitch=90, h=2.0): .head is at (0, 0, +1.8), .feet at (0, 0, +0.1)
+      const headPt = resolveLookAtPoint('hero.head', currentPositions, entities, currentPoses)!;
+      expect(headPt.x).toBeCloseTo(0, 4);
+      expect(headPt.y).toBeCloseTo(0, 4);
+      expect(headPt.z).toBeCloseTo(1.8, 4);
+
+      const feetPt = resolveLookAtPoint('hero.feet', currentPositions, entities, currentPoses)!;
+      expect(feetPt.z).toBeCloseTo(0.1, 4);
+
+      // Upright hero facing +Z: .shoulder_l is anatomical left (+X = +0.40 * width = +0.40m)
+      const uprightPoses = new Map([
+        ['hero', { rotationYRad: 0, pitchRad: 0, rollRad: 0, size: { x: 1.0, y: 2.0, z: 0.5 } }],
+      ]);
+      const leftShoulder = resolveLookAtPoint('hero.shoulder_l', currentPositions, entities, uprightPoses)!;
+      expect(leftShoulder.x).toBeCloseTo(0.4, 4);
+      expect(leftShoulder.y).toBeCloseTo(1.54, 4);
+      expect(leftShoulder.z).toBeCloseTo(0, 4);
+
+      const rightShoulder = resolveLookAtPoint('hero.shoulder_r', currentPositions, entities, uprightPoses)!;
+      expect(rightShoulder.x).toBeCloseTo(-0.4, 4);
+
+      // End-to-end blocking look_at toward prone hero.head vs hero.feet
+      const blockingYaml = `
+version: "1.0"
+id: "look-at-sub-anchor"
+title: "Look-At Sub-Anchor"
+duration: 4.0
+entities:
+  - id: "prone_hero"
+    kind: "character"
+    position: [0, 0.18, 0]
+    height: 2.0
+    rotation: 0
+    pitch: 90
+  - id: "medic"
+    kind: "character"
+    position: [3, 0, 0]
+blocking:
+  - id: "look-at-head"
+    entity: "medic"
+    start: 0
+    end: 4
+    look_at: "prone_hero.head"
+shots:
+  - id: "s1"
+    start: 0
+    end: 4
+    stage_camera: { target: "prone_hero.chest" }
+`;
+      const parsed = parseStageScore(blockingYaml);
+      expect(parsed.error).toBeNull();
+      const medic = evaluateEntitiesAtTime(2.0, parsed.score!).entitiesById.get('medic')!;
+      // Medic at [3, 0, 0] looking at prone_hero.head [0, 0.18, 1.8] -> dx = -3, dz = +1.8
+      const expectedYaw = Math.atan2(-3, 1.8);
+      expect(medic.rotationYRad).toBeCloseTo(expectedYaw, 4);
+    });
   });
 });

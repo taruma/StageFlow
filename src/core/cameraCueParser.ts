@@ -12,8 +12,12 @@ import type {
   StageCameraCueSpec,
   Vec3,
 } from './types';
-import { BLUEPRINT_PALETTE, ENTITY_DEFAULTS } from './constants';
-import { clampSphericalPose, rotateVec3YXZ } from './sphericalMath';
+import { BLUEPRINT_PALETTE } from './constants';
+import { clampSphericalPose } from './sphericalMath';
+import {
+  getEntityDefLookAnchor,
+  matchEntityTargetKey,
+} from './cameraTargetResolver';
 import { parseCameraRigSpec } from './cameraRigEvaluator';
 import {
   normalizeCameraEasing,
@@ -73,22 +77,21 @@ export function parseBaseSphericalPose(
   });
 }
 
-function getEntityDefLookAnchor(ent: SceneEntityDef): Vec3 {
-  const anchorRatio =
-    ent.kind === 'character'
-      ? ENTITY_DEFAULTS.CHARACTER_LOOK_ANCHOR_RATIO
-      : 0.5;
-  const rotated = rotateVec3YXZ(
-    { x: 0, y: ent.height * anchorRatio, z: 0 },
-    ent.rotationYRad,
-    ent.pitchRad ?? 0,
-    ent.rollRad ?? 0
+function resolveSingleDefTarget(
+  rawKey: string,
+  entities: SceneEntityDef[]
+): Vec3 | undefined {
+  const clean = rawKey.trim().toLowerCase();
+  if (clean === 'center' || clean === 'origin' || clean === 'stage') {
+    return { x: 0, y: 1.0, z: 0 };
+  }
+  const matched = matchEntityTargetKey(
+    rawKey,
+    entities,
+    (e) => e.id,
+    (e) => e.label
   );
-  return {
-    x: ent.position.x + rotated.x,
-    y: ent.position.y + rotated.y,
-    z: ent.position.z + rotated.z,
-  };
+  return matched ? getEntityDefLookAnchor(matched.item, matched.part) : undefined;
 }
 
 export function resolveStageCamEntityTarget(
@@ -102,19 +105,16 @@ export function resolveStageCamEntityTarget(
     camObj.target_offset ?? camObj.targetOffset
   );
 
-  if (Array.isArray(camObj.target) && camObj.target.length > 0 && camObj.target.every((item) => typeof item === 'string')) {
+  if (
+    Array.isArray(camObj.target) &&
+    camObj.target.length > 0 &&
+    camObj.target.every((item) => typeof item === 'string')
+  ) {
     const anchors: Vec3[] = [];
     for (const item of camObj.target) {
-      const clean = String(item).trim().toLowerCase();
-      if (clean === 'center' || clean === 'origin' || clean === 'stage') {
-        anchors.push({ x: 0, y: 1.0, z: 0 });
-      } else {
-        const matched = entities.find(
-          (e) => e.id.toLowerCase() === clean || e.label.toLowerCase() === clean
-        );
-        if (matched) {
-          anchors.push(getEntityDefLookAnchor(matched));
-        }
+      const anchor = resolveSingleDefTarget(String(item), entities);
+      if (anchor) {
+        anchors.push(anchor);
       }
     }
     if (anchors.length > 0) {
@@ -129,23 +129,8 @@ export function resolveStageCamEntityTarget(
   }
 
   if (typeof camObj.target !== 'string') return;
-  const tgtName = camObj.target.trim().toLowerCase();
-
-  if (tgtName === 'center' || tgtName === 'origin' || tgtName === 'stage') {
-    pose.target = {
-      x: offset?.x ?? 0,
-      y: 1.0 + (offset?.y ?? 0),
-      z: offset?.z ?? 0,
-    };
-    return;
-  }
-
-  const matched = entities.find(
-    (e) =>
-      e.id.toLowerCase() === tgtName || e.label.toLowerCase() === tgtName
-  );
-  if (matched) {
-    const anchor = getEntityDefLookAnchor(matched);
+  const anchor = resolveSingleDefTarget(camObj.target, entities);
+  if (anchor) {
     pose.target = {
       x: anchor.x + (offset?.x ?? 0),
       y: anchor.y + (offset?.y ?? 0),

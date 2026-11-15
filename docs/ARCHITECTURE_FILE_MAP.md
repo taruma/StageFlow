@@ -78,7 +78,7 @@ stageflow/
 │   │   ├── entityBlockingEvaluator.ts # Tier 1: Decoupled root blocking: timeline kinematics
 │   │   ├── entityLegacyEvaluator.ts # Tier 2: Legacy per-shot shots[].entities kinematics
 │   │   ├── entityKinematicUtils.ts  # 3D dimension parsing, OBB footprint math, lerpAngleShortest, look_at target & trail generation
-│   │   ├── cameraTargetResolver.ts  # Multi-subject 3D centroid resolution, target anchors, offsets & roll/offset flow
+│   │   ├── cameraTargetResolver.ts  # Multi-subject 3D centroid resolution, dot-notation sub-anchors, offsets & roll/offset flow
 │   │   ├── cameraRigEvaluator.ts    # Physical camera rig mounts (tripod, track, spline_track) & inverse look-at kinematics
 │   │   ├── shotPoseEvaluator.ts     # Single-shot pose evaluation, Catmull-Rom splines & 3D path sampling
 │   │   ├── trajectoryChain.ts       # Forward pose chaining (P_0 -> P_k) & multi-shot timeline tracks

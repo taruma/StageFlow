@@ -54,6 +54,23 @@ describe('shotBreakdownUtils — Pure Directorial HUD Helpers', () => {
       expect(res.color).toBe('#e11d48');
     });
 
+    it('resolves dot-notation entity sub-anchors with clean badge label and color', () => {
+      const chest = resolveShotTargetInfo('ruby.chest', mockEntities);
+      expect(chest.isEntity).toBe(true);
+      expect(chest.label).toBe('Ruby (Hero) · chest');
+      expect(chest.color).toBe('#e11d48');
+
+      const typo = resolveShotTargetInfo('ruby.typo', mockEntities);
+      expect(typo.isEntity).toBe(true);
+      expect(typo.label).toBe('Ruby (Hero)');
+      expect(typo.color).toBe('#e11d48');
+
+      const arr = resolveShotTargetInfo(['ruby.eyes', 'evan.shoulder_l'], mockEntities);
+      expect(arr.isEntity).toBe(true);
+      expect(arr.label).toBe('Ruby (Hero) · eyes + Evan (Courier) · shoulder_l');
+      expect(arr.color).toBe('#e11d48');
+    });
+
     it('falls back to raw string when entity identifier is not found', () => {
       const res = resolveShotTargetInfo('doorway', mockEntities);
       expect(res.isEntity).toBe(false);
