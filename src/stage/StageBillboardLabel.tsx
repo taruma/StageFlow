@@ -17,6 +17,7 @@ import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import {
   computeBillboardLodMetrics,
+  getBillboardSizeTier,
   getBillboardZIndexRange,
   type BillboardLabelKind,
 } from './labelLodMath';
@@ -48,7 +49,9 @@ export const StageBillboardLabel: React.FC<StageBillboardLabelProps> = React.mem
     const groupRef = useRef<THREE.Group>(null);
     const pillRef = useRef<HTMLDivElement>(null);
     const dotRef = useRef<HTMLDivElement>(null);
-    const camera = useThree((s) => s.camera);
+    const getThree = useThree((s) => s.get);
+    const sizeTier = useThree((s) => getBillboardSizeTier(s.size.width));
+    const isCompact = sizeTier === 'compact';
 
     const lastStyleCacheRef = useRef<{
       pillEl: HTMLDivElement | null;
@@ -61,15 +64,23 @@ export const StageBillboardLabel: React.FC<StageBillboardLabelProps> = React.mem
       dotTransform: string;
     } | null>(null);
 
-    const syncDomStyles = (cam: THREE.Camera) => {
+    const syncDomStyles = (
+      cam: THREE.Camera,
+      canvasSize: { width: number; height: number }
+    ) => {
       if (!groupRef.current) return;
       groupRef.current.getWorldPosition(_tempVec);
       const dist = cam.position.distanceTo(_tempVec);
+      const fovDeg =
+        'fov' in cam && typeof cam.fov === 'number' ? cam.fov : undefined;
+      const aspectRatio =
+        canvasSize.width / Math.max(1, canvasSize.height);
       const metrics = computeBillboardLodMetrics(
         dist,
         kind,
         highlighted,
-        ghosted
+        ghosted,
+        { fovDeg, aspectRatio }
       );
 
       const nextPillHidden = !metrics.showPill || metrics.pillOpacity <= 0.001;
@@ -140,16 +151,17 @@ export const StageBillboardLabel: React.FC<StageBillboardLabelProps> = React.mem
     // Synchronous layout effect ensures frame-0 / scrubbed poses style DOM before paint
     useLayoutEffect(() => {
       if (visible) {
-        syncDomStyles(camera);
+        const { camera, size } = getThree();
+        syncDomStyles(camera, size);
       } else {
         lastStyleCacheRef.current = null;
       }
     });
 
     // 60fps/144fps imperative DOM mutation loop (0 React re-renders)
-    useFrame(({ camera: activeCam }) => {
+    useFrame(({ camera: activeCam, size: canvasSize }) => {
       if (visible) {
-        syncDomStyles(activeCam);
+        syncDomStyles(activeCam, canvasSize);
       }
     });
 
@@ -175,12 +187,16 @@ export const StageBillboardLabel: React.FC<StageBillboardLabelProps> = React.mem
                 borderColor: highlighted ? accentBorderColor : undefined,
                 boxShadow: highlighted ? accentShadow : undefined,
               }}
-              className={`px-3.5 py-1.5 rounded-full bg-slate-950/90 backdrop-blur-md flex items-center gap-2 whitespace-nowrap shadow-2xl border transition-colors duration-200 ${
+              className={`${
+                isCompact ? 'px-2 py-0.5 gap-1.5' : 'px-3 py-1 gap-1.5'
+              } rounded-full bg-slate-950/90 backdrop-blur-md flex items-center whitespace-nowrap shadow-2xl border transition-colors duration-200 ${
                 highlighted ? '' : 'border-slate-700/80'
               }`}
             >
               <span
-                className="w-2.5 h-2.5 rounded-full shrink-0 transition-shadow duration-200"
+                className={`${
+                  isCompact ? 'w-1.5 h-1.5' : 'w-2 h-2'
+                } rounded-full shrink-0 transition-shadow duration-200`}
                 style={{
                   backgroundColor: accentColor,
                   boxShadow: highlighted
@@ -189,7 +205,9 @@ export const StageBillboardLabel: React.FC<StageBillboardLabelProps> = React.mem
                 }}
               />
               <span
-                className={`text-sm font-mono tracking-tight ${
+                className={`${
+                  isCompact ? 'text-[11px]' : 'text-[13px]'
+                } font-mono tracking-tight ${
                   highlighted
                     ? 'font-bold text-white'
                     : 'font-semibold text-slate-100'
@@ -199,7 +217,9 @@ export const StageBillboardLabel: React.FC<StageBillboardLabelProps> = React.mem
               </span>
               {sublabel && (
                 <span
-                  className={`text-xs font-mono pl-0.5 ${
+                  className={`${
+                    isCompact ? 'text-[10px]' : 'text-[11px]'
+                  } font-mono pl-0.5 ${
                     highlighted ? 'text-slate-300' : 'text-slate-400'
                   }`}
                 >
@@ -218,7 +238,9 @@ export const StageBillboardLabel: React.FC<StageBillboardLabelProps> = React.mem
                   ? `0 0 14px ${accentColor}, 0 0 4px #ffffff`
                   : `0 0 10px ${accentColor}, 0 2px 6px rgba(0, 0, 0, 0.65)`,
               }}
-              className="absolute w-2.5 h-2.5 rounded-full border border-white/50 shrink-0 pointer-events-none"
+              className={`absolute ${
+                isCompact ? 'w-2 h-2' : 'w-2.5 h-2.5'
+              } rounded-full border border-white/50 shrink-0 pointer-events-none`}
             />
           </div>
         </Html>

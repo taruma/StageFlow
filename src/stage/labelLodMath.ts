@@ -11,6 +11,12 @@
 import type { EntityKind } from '../core/types';
 
 export type BillboardLabelKind = EntityKind | 'camera';
+export type BillboardSizeTier = 'compact' | 'standard';
+
+export interface BillboardLodOptions {
+  fovDeg?: number;
+  aspectRatio?: number;
+}
 
 export interface BillboardBaseOpacity {
   pillOpacity: number;
@@ -30,14 +36,52 @@ export interface BillboardLodMetrics {
 // Distance thresholds (meters)
 export const PROXIMITY_CULL_M = 1.2;
 export const REF_DISTANCE_M = 12.0;
-export const MIN_PERSPECTIVE_SCALE = 0.72;
-export const MAX_PERSPECTIVE_SCALE = 1.55;
+export const MIN_PERSPECTIVE_SCALE = 0.75;
+export const MAX_PERSPECTIVE_SCALE = 1.08;
+
+export const COMPACT_CANVAS_WIDTH_PX = 768;
+// Reference horizontal half-tan for 35mm full-frame baseline (36mm / (2 * 35mm))
+export const REF_HALF_HORIZ_TAN = 36.0 / (2.0 * 35.0);
 
 export const ENTITY_COLLAPSE_START_M = 24.0;
 export const ENTITY_COLLAPSE_END_M = 28.0;
 
 export const CAMERA_COLLAPSE_START_M = 52.0;
 export const CAMERA_COLLAPSE_END_M = 60.0;
+
+/**
+ * Classifies the 3D canvas into 'compact' (< 768px, aligned with unified CompactDioramaHeader)
+ * or 'standard' (>= 768px) for crisp responsive billboard typography.
+ */
+export function getBillboardSizeTier(viewportWidth = 1280): BillboardSizeTier {
+  return viewportWidth < COMPACT_CANVAS_WIDTH_PX ? 'compact' : 'standard';
+}
+
+/**
+ * Normalizes physical 3D distance against horizontal angular coverage (aspect * tan(fovY / 2))
+ * relative to StageFlow's 35mm full-frame baseline so telephoto zoom keeps labels readable
+ * while adaptive narrow-pane FOV widening preserves consistent LOD behavior.
+ */
+export function computeEffectiveLodDistanceM(
+  distM: number,
+  fovDeg?: number,
+  aspectRatio?: number
+): number {
+  if (
+    fovDeg === undefined ||
+    aspectRatio === undefined ||
+    !Number.isFinite(fovDeg) ||
+    !Number.isFinite(aspectRatio) ||
+    fovDeg <= 0 ||
+    aspectRatio <= 0.1
+  ) {
+    return distM;
+  }
+  const clampedFov = Math.max(5, Math.min(165, fovDeg));
+  const halfFovRad = (clampedFov * Math.PI) / 360;
+  const currentHalfHorizTan = aspectRatio * Math.tan(halfFovRad);
+  return distM * (currentHalfHorizTan / REF_HALF_HORIZ_TAN);
+}
 
 /**
  * Returns calibrated zIndexRange pairs for Drei <Html center zIndexRange={...}>.
@@ -110,9 +154,10 @@ export function computeBillboardLodMetrics(
   distM: number,
   kind: BillboardLabelKind = 'character',
   highlighted = false,
-  ghosted = false
+  ghosted = false,
+  options?: BillboardLodOptions
 ): BillboardLodMetrics {
-  // 1. Proximity Culling (< 1.2m)
+  // 1. Proximity Culling (< 1.2m physical distance)
   if (distM < PROXIMITY_CULL_M) {
     return {
       culled: true,
@@ -125,8 +170,13 @@ export function computeBillboardLodMetrics(
     };
   }
 
-  // 2. Clamped perspective scaling for full pill
-  const safeDist = Math.max(distM, 1.0);
+  // 2. FOV-normalized effective distance & clamped perspective scaling for full pill
+  const effectiveDistM = computeEffectiveLodDistanceM(
+    distM,
+    options?.fovDeg,
+    options?.aspectRatio
+  );
+  const safeDist = Math.max(effectiveDistM, 1.0);
   const rawPillScale = Math.sqrt(REF_DISTANCE_M / safeDist);
   const pillScale = Math.min(
     Math.max(rawPillScale, MIN_PERSPECTIVE_SCALE),
@@ -142,7 +192,7 @@ export function computeBillboardLodMetrics(
 
   const baseOpacity = getBillboardBaseOpacity(kind, highlighted, ghosted);
 
-  if (distM <= collapseStart) {
+  if (effectiveDistM <= collapseStart) {
     // Pure full pill badge
     return {
       culled: false,
@@ -155,7 +205,7 @@ export function computeBillboardLodMetrics(
     };
   }
 
-  if (distM >= collapseEnd) {
+  if (effectiveDistM >= collapseEnd) {
     // Pure collapsed glowing accent dot
     // Dot scales slightly with distance to remain a crisp 8-10px beacon
     const dotScale = Math.min(Math.max(Math.sqrt(20.0 / safeDist), 0.75), 1.2);
@@ -171,7 +221,7 @@ export function computeBillboardLodMetrics(
   }
 
   // Linear cross-fade band between collapseStart and collapseEnd
-  const t = (distM - collapseStart) / (collapseEnd - collapseStart);
+  const t = (effectiveDistM - collapseStart) / (collapseEnd - collapseStart);
   const dotScale = Math.min(Math.max(Math.sqrt(20.0 / safeDist), 0.75), 1.2);
 
   return {

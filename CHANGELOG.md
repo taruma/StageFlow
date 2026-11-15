@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-11-15
+
+### Changed
+
+- **Version Bump & Release Preparation (`package.json`, `package-lock.json`, `src/ui/AppInfoModal.tsx`, `README.md`, `AGENTS.md`, `docs/releases/v1.1.2.md`, `docs/ARCHITECTURE_FILE_MAP.md`)**:
+  - Bumped application version from `1.1.1` to `1.1.2` across package manifest, lockfile, and `AppInfoModal.tsx` (`APP_VERSION`).
+  - Authored GitHub release notes in `docs/releases/v1.1.2.md` and indexed them in `docs/ARCHITECTURE_FILE_MAP.md`.
+  - Updated `README.md` version (`1.1.2`) and Vitest (`265 passed`) badges and test counts, and synced `AGENTS.md` Tier 2 test count (`265 tests`).
+
+### Fixed
+
+#### Responsive & FOV-Normalized 3D Billboard Label Sizing (GH Issue #16)
+
+- **Pure Horizontal-FOV Normalization & Tighter Perspective Scale Bounds (`src/stage/labelLodMath.ts`)**:
+  - Tightened `MAX_PERSPECTIVE_SCALE` from `1.55` to `1.08` and raised `MIN_PERSPECTIVE_SCALE` from `0.72` to `0.75` to eliminate close-range label bloat on desktop and mobile while retaining subtle depth cueing.
+  - Added `COMPACT_CANVAS_WIDTH_PX = 768`, `BillboardSizeTier` (`'compact' | 'standard'`), and `getBillboardSizeTier(viewportWidth)` aligned with `isNarrowDiorama` (`< 768px` unified `CompactDioramaHeader` breakpoint).
+  - Added `computeEffectiveLodDistanceM(distM, fovDeg, aspectRatio)` anchored to StageFlow's `35mm` full-frame horizontal baseline (`REF_HALF_HORIZ_TAN`), and extended `computeBillboardLodMetrics(..., options?)` to evaluate scaling and collapse bands using effective angular distance while keeping physical proximity culling (`< 1.2m`) on raw `distM`.
+- **Unified-Breakpoint CSS Sizing & 60fps FOV Sync (`src/stage/StageBillboardLabel.tsx`)**:
+  - Subscribed to `getBillboardSizeTier(s.size.width)` (re-rendering only across the `768px` threshold) to switch cleanly between `standard` (`px-3 py-1`, `text-[13px]`/`text-[11px]`) and `compact` (`px-2 py-0.5`, `text-[11px]`/`text-[10px]`) pill typography while preserving all label and sublabel text intact.
+  - Passed live `PerspectiveCamera.fov` and `canvasSize` aspect ratio inside `useLayoutEffect` and `useFrame` (`syncDomStyles`) with zero Tier-1 React re-renders.
+- **Unit Tests & Specification Sync (`tests/unit/billboardLabelLod.test.ts`, `docs/DIORAMA_3D_AND_UI_SPECIFICATIONS.md`)**:
+  - Added unit tests covering `[0.75, 1.08]` bounds, `< 768px` `compact`/`standard` tier switching, telephoto (`85mm`) vs. wide (`24mm`) FOV normalization, adaptive narrow-pane FOV invariance, and physical proximity culling; synchronized Layer 4 specification docs.
+
 ## [1.1.1] - 2026-11-14
 
 ### Changed
