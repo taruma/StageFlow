@@ -14,6 +14,7 @@ import { useFrame } from '@react-three/fiber';
 import { Line, Edges } from '@react-three/drei';
 import * as THREE from 'three';
 import { ENTITY_DEFAULTS } from '../core/constants';
+import { rotateVec3YXZ } from '../core/sphericalMath';
 import type { Vec3 } from '../core/types';
 import { resolveGatedState } from './stageSyncGate';
 
@@ -170,7 +171,17 @@ const DirectionalMannequinComponent: React.FC<DirectionalMannequinProps> = ({
       footprintRef.current.scale.set(sx, 1, sz);
     }
     if (labelGroupRef.current) {
-      labelGroupRef.current.position.set(0, liveH + 0.28, 0);
+      const tiltedTop = rotateVec3YXZ(
+        { x: 0, y: liveH, z: 0 },
+        0,
+        entity.pitchRad ?? 0,
+        entity.rollRad ?? 0
+      );
+      labelGroupRef.current.position.set(
+        tiltedTop.x,
+        Math.max(0, tiltedTop.y) + 0.28,
+        tiltedTop.z
+      );
     }
   };
 

@@ -13,7 +13,7 @@ import type {
   Vec3,
 } from './types';
 import { BLUEPRINT_PALETTE, ENTITY_DEFAULTS } from './constants';
-import { clampSphericalPose } from './sphericalMath';
+import { clampSphericalPose, rotateVec3YXZ } from './sphericalMath';
 import { parseCameraRigSpec } from './cameraRigEvaluator';
 import {
   normalizeCameraEasing,
@@ -73,6 +73,24 @@ export function parseBaseSphericalPose(
   });
 }
 
+function getEntityDefLookAnchor(ent: SceneEntityDef): Vec3 {
+  const anchorRatio =
+    ent.kind === 'character'
+      ? ENTITY_DEFAULTS.CHARACTER_LOOK_ANCHOR_RATIO
+      : 0.5;
+  const rotated = rotateVec3YXZ(
+    { x: 0, y: ent.height * anchorRatio, z: 0 },
+    ent.rotationYRad,
+    ent.pitchRad ?? 0,
+    ent.rollRad ?? 0
+  );
+  return {
+    x: ent.position.x + rotated.x,
+    y: ent.position.y + rotated.y,
+    z: ent.position.z + rotated.z,
+  };
+}
+
 export function resolveStageCamEntityTarget(
   rawCam: unknown,
   pose: SphericalPose,
@@ -95,13 +113,7 @@ export function resolveStageCamEntityTarget(
           (e) => e.id.toLowerCase() === clean || e.label.toLowerCase() === clean
         );
         if (matched) {
-          const anchorRatio =
-            matched.kind === 'character' ? ENTITY_DEFAULTS.CHARACTER_LOOK_ANCHOR_RATIO : 0.5;
-          anchors.push({
-            x: matched.position.x,
-            y: matched.position.y + matched.height * anchorRatio,
-            z: matched.position.z,
-          });
+          anchors.push(getEntityDefLookAnchor(matched));
         }
       }
     }
@@ -133,14 +145,11 @@ export function resolveStageCamEntityTarget(
       e.id.toLowerCase() === tgtName || e.label.toLowerCase() === tgtName
   );
   if (matched) {
-    const anchorRatio =
-      matched.kind === 'character'
-        ? ENTITY_DEFAULTS.CHARACTER_LOOK_ANCHOR_RATIO
-        : 0.5;
+    const anchor = getEntityDefLookAnchor(matched);
     pose.target = {
-      x: matched.position.x + (offset?.x ?? 0),
-      y: matched.position.y + matched.height * anchorRatio + (offset?.y ?? 0),
-      z: matched.position.z + (offset?.z ?? 0),
+      x: anchor.x + (offset?.x ?? 0),
+      y: anchor.y + (offset?.y ?? 0),
+      z: anchor.z + (offset?.z ?? 0),
     };
   }
 }

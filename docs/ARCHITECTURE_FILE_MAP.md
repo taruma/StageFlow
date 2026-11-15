@@ -71,13 +71,13 @@ stageflow/
 │   │   ├── opticsMath.ts            # Focal length (mm) <-> Vertical FOV (deg), Rectangular Gate & Thin-Lens DoF math
 │   │   ├── exportMath.ts            # Pure even-dimension H.264 bounds, bitrate, time-range & MP4 filename helpers
 │   │   ├── exportScrubberMath.ts    # Pure dual-handle export scrubber quantization & drag clamping math
-│   │   ├── sphericalMath.ts         # Degrees <-> Radians, Spherical <-> Cartesian, shortestAngleDiff
+│   │   ├── sphericalMath.ts         # Degrees <-> Radians, Spherical <-> Cartesian, shortestAngleDiff, rotateVec3YXZ
 │   │   ├── maneuvers.ts             # 9 easing curves & 11 3D camera trajectory maneuvers
 │   │   ├── dofEvaluator.ts          # Stateless focus distance, rack-focus interpolation & thin-lens DoF evaluator
 │   │   ├── entityEngine.ts          # Facade: evaluateEntitiesAtTime dispatcher (<50 lines)
 │   │   ├── entityBlockingEvaluator.ts # Tier 1: Decoupled root blocking: timeline kinematics
 │   │   ├── entityLegacyEvaluator.ts # Tier 2: Legacy per-shot shots[].entities kinematics
-│   │   ├── entityKinematicUtils.ts  # 3D dimension parsing, OBB footprint math, look_at target & trail generation
+│   │   ├── entityKinematicUtils.ts  # 3D dimension parsing, OBB footprint math, lerpAngleShortest, look_at target & trail generation
 │   │   ├── cameraTargetResolver.ts  # Multi-subject 3D centroid resolution, target anchors, offsets & roll/offset flow
 │   │   ├── cameraRigEvaluator.ts    # Physical camera rig mounts (tripod, track, spline_track) & inverse look-at kinematics
 │   │   ├── shotPoseEvaluator.ts     # Single-shot pose evaluation, Catmull-Rom splines & 3D path sampling

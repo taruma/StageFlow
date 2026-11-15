@@ -2250,5 +2250,86 @@ blocking:
       expect(frameEnd.stageCamera.dof.focusTargetPoint?.y).toBeCloseTo(0.90, 3);
       expect(frameEnd.stageCamera.dof.focusDistanceM).toBeCloseTo(5.0, 3);
     });
+
+    it('tracks a tilted entity rotated getEntityLookAnchor in stageCamera.transform.target and dof.focusDistanceM', () => {
+      const tiltTrackYaml = `
+version: "1.0"
+id: "tilt-anchor-dof-tracking"
+title: "Tilted Entity Look-At and DoF Focus Tracking"
+duration: 8.0
+entities:
+  - id: "actor"
+    label: "Actor"
+    kind: "character"
+    position: [0, 0.18, 0]
+    rotation: 0
+    pitch: 90
+    height: 1.80
+blocking:
+  - id: "wake-up"
+    entity: "actor"
+    start: 0
+    end: 4
+    position: [0, 0, 0]
+    pitch: 0
+    easing: "linear"
+  - id: "fall-prone"
+    entity: "actor"
+    start: 4
+    end: 8
+    position: [0, 0.18, 0]
+    pitch: 90
+    easing: "linear"
+shots:
+  - id: "s1-target-actor"
+    shot: 1
+    start: 0
+    end: 4
+    stage_camera:
+      target: "actor"
+      focus: "actor"
+      dof: "shallow"
+      distance: 5.0
+      pitch: 0
+      yaw: 0
+      lens: 50mm
+  - id: "s2-focus-actor"
+    shot: 2
+    start: 4
+    end: 8
+    stage_camera:
+      target: [0, 1.0, 0]
+      focus: "actor"
+      dof: "shallow"
+      distance: 5.0
+      pitch: 0
+      yaw: 0
+      lens: 50mm
+`;
+      const { score, error } = parseStageScore(tiltTrackYaml);
+      expect(error).toBeNull();
+      expect(score).not.toBeNull();
+
+      // At t = 0s: actor is prone toward +Z (pitch=90, y=0.18, eye offset=1.62) -> anchor at [0, 0.18, 1.62]
+      const f0 = computeStageFrame(0.0, score!);
+      expect(f0.stageCamera.transform.target.x).toBeCloseTo(0, 4);
+      expect(f0.stageCamera.transform.target.y).toBeCloseTo(0.18, 4);
+      expect(f0.stageCamera.transform.target.z).toBeCloseTo(1.62, 4);
+      expect(f0.stageCamera.dof.focusTargetPoint?.z).toBeCloseTo(1.62, 4);
+
+      // At t = 4s (Shot 2 start): actor is upright at [0, 0, 0] -> anchor at [0, 1.62, 0];
+      // camera eye at [0, 1.0, 5.0] looking along -Z -> orthogonal focusDistanceM = 5.0m
+      const f4 = computeStageFrame(4.0, score!);
+      expect(f4.stageCamera.dof.focusTargetPoint?.y).toBeCloseTo(1.62, 4);
+      expect(f4.stageCamera.dof.focusTargetPoint?.z).toBeCloseTo(0, 4);
+      expect(f4.stageCamera.dof.focusDistanceM).toBeCloseTo(5.0, 3);
+
+      // At t = 8s (Shot 2 end): actor returns prone (pitch=90, y=0.18) -> anchor at [0, 0.18, 1.62];
+      // orthogonal projection onto -Z sightline from eye [0, 1.0, 5.0] = 5.0 - 1.62 = 3.38m
+      const f8 = computeStageFrame(8.0, score!);
+      expect(f8.stageCamera.dof.focusTargetPoint?.y).toBeCloseTo(0.18, 4);
+      expect(f8.stageCamera.dof.focusTargetPoint?.z).toBeCloseTo(1.62, 4);
+      expect(f8.stageCamera.dof.focusDistanceM).toBeCloseTo(3.38, 3);
+    });
   });
 });

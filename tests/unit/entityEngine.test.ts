@@ -9,7 +9,8 @@ import {
 } from '../../src/core/entityEngine';
 import { computeOrientedBoundingBox } from '../../src/core/entityKinematicUtils';
 import { getEntityLookAnchor } from '../../src/core/cameraTargetResolver';
-import { degToRad, shortestAngleDiff } from '../../src/core/sphericalMath';
+import { parseStageScore } from '../../src/core/scoreParser';
+import { degToRad, rotateVec3YXZ, shortestAngleDiff } from '../../src/core/sphericalMath';
 
 describe('Entity Kinematic Utilities (entityKinematicUtils)', () => {
   it('resolves lookAt targets properly for string IDs, labels, center, and Vec3', () => {
@@ -667,6 +668,337 @@ describe('Entity Engine Facade & Dispatching (entityEngine)', () => {
       expect(proneX.x).toBeCloseTo(1.575, 4);
       expect(proneX.y).toBeCloseTo(0.18, 4);
       expect(proneX.z).toBeCloseTo(0, 4);
+
+      // Supine facing +Z (yaw = 0, pitch = -90deg): head extends -1.575m along -Z
+      const supineZ = getEntityLookAnchor({
+        id: 'hero',
+        def,
+        position: { x: 0, y: 0.2, z: 0 },
+        rotationYRad: 0,
+        pitchRad: degToRad(-90),
+        rollRad: 0,
+        highlighted: false,
+        visible: true,
+        trailPoints: [],
+      });
+      expect(supineZ.x).toBeCloseTo(0, 4);
+      expect(supineZ.y).toBeCloseTo(0.2, 4);
+      expect(supineZ.z).toBeCloseTo(-1.575, 4);
+
+      // Pure roll = +90deg around +Z: head leans toward -X
+      const rolled = getEntityLookAnchor({
+        id: 'hero',
+        def,
+        position: { x: 1, y: 0, z: 2 },
+        rotationYRad: 0,
+        pitchRad: 0,
+        rollRad: degToRad(90),
+        highlighted: false,
+        visible: true,
+        trailPoints: [],
+      });
+      expect(rolled.x).toBeCloseTo(1 - 1.575, 4);
+      expect(rolled.y).toBeCloseTo(0, 4);
+      expect(rolled.z).toBeCloseTo(2, 4);
+
+      // Combined yaw + pitch + roll with crouched live size.y = 1.0m (0.9 * 1.0 = 0.9m)
+      const combinedYaw = degToRad(35);
+      const combinedPitch = degToRad(-40);
+      const combinedRoll = degToRad(25);
+      const expectedRot = rotateVec3YXZ(
+        { x: 0, y: 0.9, z: 0 },
+        combinedYaw,
+        combinedPitch,
+        combinedRoll
+      );
+      const crouchedTilted = getEntityLookAnchor({
+        id: 'hero',
+        def,
+        position: { x: -1, y: 0.5, z: 3 },
+        rotationYRad: combinedYaw,
+        pitchRad: combinedPitch,
+        rollRad: combinedRoll,
+        size: { x: 0.52, y: 1.0, z: 0.52 },
+        highlighted: false,
+        visible: true,
+        trailPoints: [],
+      });
+      expect(crouchedTilted.x).toBeCloseTo(-1 + expectedRot.x, 6);
+      expect(crouchedTilted.y).toBeCloseTo(0.5 + expectedRot.y, 6);
+      expect(crouchedTilted.z).toBeCloseTo(3 + expectedRot.z, 6);
+
+      // Prop (0.5 * height) & Marker (0.5 * height) tilted anchors
+      const propAnchor = getEntityLookAnchor({
+        id: 'crate',
+        def: { ...def, id: 'crate', kind: 'prop', height: 1.2 },
+        position: { x: 2, y: 0, z: -1 },
+        rotationYRad: degToRad(90),
+        pitchRad: degToRad(90),
+        rollRad: 0,
+        highlighted: false,
+        visible: true,
+        trailPoints: [],
+      });
+      expect(propAnchor.x).toBeCloseTo(2.6, 4);
+      expect(propAnchor.y).toBeCloseTo(0, 4);
+      expect(propAnchor.z).toBeCloseTo(-1, 4);
+
+      const markerAnchor = getEntityLookAnchor({
+        id: 'spike',
+        def: { ...def, id: 'spike', kind: 'marker', height: 0.4 },
+        position: { x: -2, y: 0, z: 1 },
+        rotationYRad: 0,
+        pitchRad: 0,
+        rollRad: degToRad(-90),
+        highlighted: false,
+        visible: true,
+        trailPoints: [],
+      });
+      expect(markerAnchor.x).toBeCloseTo(-1.8, 4);
+      expect(markerAnchor.y).toBeCloseTo(0, 4);
+      expect(markerAnchor.z).toBeCloseTo(1, 4);
+    });
+
+    it('chains partial single-axis pitch/roll across 3+ cues, pre-cue/gap/post holds, explicit 0, and negative +-180 wrap', () => {
+      const chainScore: StageScore = {
+        ...baseScore,
+        durationSec: 12,
+        entities: [
+          {
+            id: 'hero',
+            label: 'Hero',
+            kind: 'character',
+            position: { x: 0, y: 0, z: 0 },
+            rotationYRad: 0,
+            pitchRad: degToRad(15),
+            rollRad: degToRad(-170),
+            height: 1.75,
+            radius: 0.26,
+            color: '#38bdf8',
+          },
+        ],
+        blocking: [
+          // Cue 1 (2..4s): pitch -> 45, roll omitted (holds -170)
+          {
+            id: 'c1',
+            entityId: 'hero',
+            startSec: 2,
+            endSec: 4,
+            pitchRad: degToRad(45),
+            easing: 'linear',
+          },
+          // Gap (4..6s): holds pitch=45, roll=-170
+          // Cue 2 (6..8s): roll -> +170 (negative wrap -170 -> -180 -> -190), pitch omitted (preserves 45)
+          {
+            id: 'c2',
+            entityId: 'hero',
+            startSec: 6,
+            endSec: 8,
+            rollRad: degToRad(170),
+            easing: 'linear',
+          },
+          // Cue 3 (8..10s): explicit pitch=0 resets to upright, roll omitted (preserves +170)
+          {
+            id: 'c3',
+            entityId: 'hero',
+            startSec: 8,
+            endSec: 10,
+            pitchRad: 0,
+            easing: 'linear',
+          },
+        ],
+      };
+
+      // Pre-cue (t = 1s): holds baseline pitch=15, roll=-170
+      const atPre = evaluateBlockingEntitiesAtTime(1, chainScore).entitiesById.get('hero')!;
+      expect(atPre.pitchRad).toBeCloseTo(degToRad(15), 4);
+      expect(atPre.rollRad).toBeCloseTo(degToRad(-170), 4);
+
+      // Mid Cue 1 (t = 3s): pitch=30, roll stays -170
+      const atC1Mid = evaluateBlockingEntitiesAtTime(3, chainScore).entitiesById.get('hero')!;
+      expect(atC1Mid.pitchRad).toBeCloseTo(degToRad(30), 4);
+      expect(atC1Mid.rollRad).toBeCloseTo(degToRad(-170), 4);
+
+      // Uncued gap (t = 5s): holds pitch=45, roll=-170
+      const atGap = evaluateBlockingEntitiesAtTime(5, chainScore).entitiesById.get('hero')!;
+      expect(atGap.pitchRad).toBeCloseTo(degToRad(45), 4);
+      expect(atGap.rollRad).toBeCloseTo(degToRad(-170), 4);
+
+      // Mid Cue 2 (t = 7s): pitch preserved at 45, roll wraps -170 -> -180 (-10deg step)
+      const atC2Mid = evaluateBlockingEntitiesAtTime(7, chainScore).entitiesById.get('hero')!;
+      expect(atC2Mid.pitchRad).toBeCloseTo(degToRad(45), 4);
+      expect(atC2Mid.rollRad).toBeCloseTo(degToRad(-180), 4);
+
+      // Mid Cue 3 (t = 9s): explicit pitch=0 interpolates 45 -> 22.5, roll preserved at +170
+      const atC3Mid = evaluateBlockingEntitiesAtTime(9, chainScore).entitiesById.get('hero')!;
+      expect(atC3Mid.pitchRad).toBeCloseTo(degToRad(22.5), 4);
+      expect(shortestAngleDiff(atC3Mid.rollRad!, degToRad(170))).toBeCloseTo(0, 4);
+
+      // Post-last-cue (t = 12s): holds pitch=0, roll=+170
+      const atPost = evaluateBlockingEntitiesAtTime(12, chainScore).entitiesById.get('hero')!;
+      expect(atPost.pitchRad).toBeCloseTo(0, 4);
+      expect(shortestAngleDiff(atPost.rollRad!, degToRad(170))).toBeCloseTo(0, 4);
+    });
+
+    it('chains partial single-axis pitch/roll across 3+ legacy shots with pre/gap/post holds and negative wrap', () => {
+      const legacyChainScore: StageScore = {
+        ...baseScore,
+        durationSec: 10,
+        entities: [
+          {
+            id: 'hero',
+            label: 'Hero',
+            kind: 'character',
+            position: { x: 0, y: 0, z: 0 },
+            rotationYRad: 0,
+            pitchRad: degToRad(20),
+            rollRad: degToRad(-170),
+            height: 1.75,
+            radius: 0.26,
+            color: '#38bdf8',
+          },
+        ],
+        shots: [
+          {
+            id: 's1',
+            shotNumber: 1,
+            label: 'S1',
+            description: '',
+            startSec: 1,
+            endSec: 3,
+            entities: {
+              hero: { pitchRad: degToRad(60), easing: 'linear', highlighted: false, visible: true },
+            },
+          },
+          // Gap 3..4s
+          {
+            id: 's2',
+            shotNumber: 2,
+            label: 'S2',
+            description: '',
+            startSec: 4,
+            endSec: 6,
+            entities: {
+              hero: { rollRad: degToRad(170), easing: 'linear', highlighted: false, visible: true },
+            },
+          },
+          {
+            id: 's3',
+            shotNumber: 3,
+            label: 'S3',
+            description: '',
+            startSec: 6,
+            endSec: 8,
+            entities: {
+              hero: { pitchRad: 0, easing: 'linear', highlighted: false, visible: true },
+            },
+          },
+        ],
+      };
+
+      const atPre = evaluateLegacyEntitiesAtTime(0.5, legacyChainScore).entitiesById.get('hero')!;
+      expect(atPre.pitchRad).toBeCloseTo(degToRad(20), 4);
+      expect(atPre.rollRad).toBeCloseTo(degToRad(-170), 4);
+
+      const atGap = evaluateLegacyEntitiesAtTime(3.5, legacyChainScore).entitiesById.get('hero')!;
+      expect(atGap.pitchRad).toBeCloseTo(degToRad(60), 4);
+      expect(atGap.rollRad).toBeCloseTo(degToRad(-170), 4);
+
+      const atS2Mid = evaluateLegacyEntitiesAtTime(5, legacyChainScore).entitiesById.get('hero')!;
+      expect(atS2Mid.pitchRad).toBeCloseTo(degToRad(60), 4);
+      expect(atS2Mid.rollRad).toBeCloseTo(degToRad(-180), 4);
+
+      const atPost = evaluateLegacyEntitiesAtTime(9, legacyChainScore).entitiesById.get('hero')!;
+      expect(atPost.pitchRad).toBeCloseTo(0, 4);
+      expect(shortestAngleDiff(atPost.rollRad!, degToRad(170))).toBeCloseTo(0, 4);
+    });
+
+    it('produces identical pitch/roll kinematics between blocking Format A and Format B YAML', () => {
+      const formatAYaml = `
+version: "1.0"
+id: "format-a"
+title: "Format A"
+duration: 6.0
+entities:
+  - id: "hero"
+    kind: "character"
+    position: [0, 0, 0]
+    pitch: 90
+    roll: -10
+blocking:
+  - id: "beat-1"
+    entity: "hero"
+    start: 0
+    end: 4
+    position: [2, 0, 0]
+    pitch: 0
+    roll: 25
+    look_at: [5, 0, 0]
+    easing: "linear"
+  - id: "beat-2"
+    entity: "hero"
+    start: 4
+    end: 6
+    cut: true
+    pitch: -45
+    roll: 0
+shots:
+  - id: "s1"
+    shot: 1
+    start: 0
+    end: 6
+    stage_camera: { target: "hero" }
+`;
+      const formatBYaml = `
+version: "1.0"
+id: "format-b"
+title: "Format B"
+duration: 6.0
+entities:
+  - id: "hero"
+    kind: "character"
+    position: [0, 0, 0]
+    pitch: 90
+    roll: -10
+blocking:
+  - id: "beat-1"
+    start: 0
+    end: 4
+    easing: "linear"
+    entities:
+      hero:
+        position: [2, 0, 0]
+        pitch: 0
+        roll: 25
+        look_at: [5, 0, 0]
+  - id: "beat-2"
+    start: 4
+    end: 6
+    cut: true
+    entities:
+      hero:
+        pitch: -45
+        roll: 0
+shots:
+  - id: "s1"
+    shot: 1
+    start: 0
+    end: 6
+    stage_camera: { target: "hero" }
+`;
+      const parsedA = parseStageScore(formatAYaml);
+      const parsedB = parseStageScore(formatBYaml);
+      expect(parsedA.error).toBeNull();
+      expect(parsedB.error).toBeNull();
+
+      for (const t of [0, 2, 3.99, 4, 5]) {
+        const heroA = evaluateEntitiesAtTime(t, parsedA.score!).entitiesById.get('hero')!;
+        const heroB = evaluateEntitiesAtTime(t, parsedB.score!).entitiesById.get('hero')!;
+        expect(heroB.position).toEqual(heroA.position);
+        expect(heroB.rotationYRad).toBeCloseTo(heroA.rotationYRad, 6);
+        expect(heroB.pitchRad).toBeCloseTo(heroA.pitchRad!, 6);
+        expect(heroB.rollRad).toBeCloseTo(heroA.rollRad!, 6);
+      }
     });
   });
 });

@@ -55,6 +55,7 @@ StageFlow operates in a right-handed, **$Y$-Up** 3D Cartesian space centered at 
 | **`yaw` (Azimuth)** | Camera on `+Z` looking at `-Z` | **Counter-clockwise orbit toward `+X`** | **Clockwise orbit toward `-X`** | Degrees (`deg`)* |
 | **`roll` (Dutch angle)** | Level horizon (`0°`) | **Clockwise camera bank** (from operator POV) | **Counter-clockwise camera bank** | Degrees (`deg`)* |
 | **Entity `rotation`** | Mannequin faces `+Z` (downstage) | Faces toward `+X` (`+90°` = Stage Right) | Faces toward `-X` (`-90°` = Stage Left) | Degrees (`deg`)* |
+| **Entity `pitch` / `roll`** | Upright (`0°` vertical) | `+pitch` tilts forward toward local `+Z`; `+roll` banks clockwise from behind | `-pitch` tilts backward (supine); `-roll` banks counter-clockwise | Degrees (`deg`)* |
 
 > **Note:** All angles in YAML default to **human degrees** (`deg`). If you explicitly pass a string suffixed with `"rad"` (such as `"1.57rad"`), the parser interprets it directly as radians. Degree string suffixes such as `"45deg"` and `"45°"` are also accepted. For the exact spherical-to-Cartesian forward/inverse projection equations and roll basis vectors, see [StageFlow Script Specification §2](?mode=spec#section-2).
 
@@ -878,7 +879,7 @@ Actors and props can dynamically transform dimensions and 3D mesh tilt (`pitch`,
 - **Animated Posture Changes**: Authoring `height: 1.15` causes an actor to smoothly crouch down or sit in a chair over the cue duration using the specified easing curve. Specifying `from_height` or `from_size` explicitly sets starting bounds; omitting them glides smoothly from the preceding cue's terminal dimensions.
 - **Rigid Anatomical Proportions (Telescoping Torso)**: When lowering an actor's height to sit on a chair or crouch behind cover (e.g. `height: 1.15`), StageFlow automatically protects anatomical proportions: the head sphere ($r = 0.14\text{m}$) and eye-visor cone remain perfectly spherical ($Y \equiv 1.0$) and the shoulder bar maintains standard thickness ($0.08\text{m}$). The torso column telescopes cleanly between the floor and shoulders without squashing the head or neck into a pancake.
 - **Per-Axis Forward Chaining**: Overriding one dimension (e.g. `height: 1.15`) does not reset other dimensions (`width`, `depth`) back to default; each axis preserves its active state across cues.
-- **Dynamic Look-At & Focus Tracking**: The Stage Camera's look-at target and thin-lens DoF focus plane dynamically follow the entity's moving anchor ($\vec{A}_i(t) = (x_i(t), y_i(t) + \text{ratio} \cdot h_i(t), z_i(t))$). As an actor crouches, the camera smoothly lowers its framing and maintains sharp optical focus on the actor's head.
+- **Dynamic Look-At & Focus Tracking**: The Stage Camera's look-at target and thin-lens DoF focus plane dynamically follow the entity's moving and tilting anchor ($\vec{A}_i(t) = \vec{p}_i(t) + R_y(\psi_i(t))\,R_x(\theta_i(t))\,R_z(\phi_i(t))\,(0,\; \text{ratio} \cdot h_i(t),\; 0)^T$). When upright ($\theta_i = 0, \phi_i = 0$), this reduces identically to $(x_i(t), y_i(t) + \text{ratio} \cdot h_i(t), z_i(t))$. As an actor crouches, lies prone, or banks in flight, the camera smoothly tracks their 3D anchor and maintains sharp optical focus.
 
 ```yaml
 blocking:
@@ -938,7 +939,7 @@ When evaluating root `blocking:` cues at timestamp $t$, the engine executes a de
 
 When root `blocking:` is declared in a score:
 1. `blocking:` claims **exclusive authority** over entity translation, facing rotation, and floor trails.
-2. Per-shot entity overrides in `shots[].entities` for `position`, `from`, `rotation`, and `look_at` are **ignored**.
+2. Per-shot entity overrides in `shots[].entities` for `position`, `from`, `rotation`, `pitch`, `roll`, `look_at`, and dimension fields (`size`, `width`, `height`, `depth`, `from_*`) are **ignored**.
 3. Per-shot focus flags (`highlighted: true`) and staging notes (`note: "..."`) in `shots[].entities` layer non-destructively on top of the physical blocking movement.
 
 ### 6.4 Legacy Per-Shot Entity Overrides (`shots[].entities`)
@@ -965,7 +966,7 @@ shots:
 ```
 
 - Motion spans the complete duration of the shot ($[t_{\text{start}}, t_{\text{end}}]$).
-- Entities inherit their terminal position and facing angle into the subsequent shot unless overridden with `from:`.
+- Entities inherit their terminal position, facing angle (`rotation`), `pitch`, `roll`, and dimensions into the subsequent shot unless overridden (or relocated via `from:` / `cut: true`).
 - `highlighted:` defaults to `false` for each shot unless explicitly re-declared.
 
 ### 6.5 Decoupled Diorama Viewport Moves (`observer_shots:`)
