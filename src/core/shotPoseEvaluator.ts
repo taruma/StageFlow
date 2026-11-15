@@ -5,27 +5,14 @@
  */
 
 import type {
-  CameraCueSpec,
-  EvaluatedEntityState,
-  SphericalPose,
-  Vec3,
+  CameraCueSpec, EvaluatedEntityState, SphericalPose, Vec3,
 } from './types';
+import { catmullRomScalar, evaluateCameraEasing, evaluateManeuverPose } from './maneuvers';
 import {
-  catmullRomScalar,
-  evaluateCameraEasing,
-  evaluateManeuverPose,
-} from './maneuvers';
-import {
-  clampSphericalPose,
-  cloneSphericalPose,
-  shortestAngleDiff,
-  sphericalToCartesian,
+  clampSphericalPose, cloneSphericalPose, shortestAngleDiff, sphericalToCartesian,
 } from './sphericalMath';
 import {
-  ZERO_OFFSET,
-  resolveShotDestOffset,
-  resolveShotDestRoll,
-  resolveTargetPoint3D,
+  ZERO_OFFSET, resolveShotDestOffset, resolveShotDestRoll, resolveTargetPoint3D,
 } from './cameraTargetResolver';
 import { evaluateRigCameraPose } from './cameraRigEvaluator';
 
@@ -154,7 +141,8 @@ export function evaluateShotCameraPose(
   baselinePose?: SphericalPose,
   startOffset: Vec3 = ZERO_OFFSET,
   destOffset?: Vec3,
-  isContinuous = false
+  isContinuous = false,
+  fallbackEyeOverride?: Vec3
 ): SphericalPose {
   const u = evaluateCameraEasing(spec.easing, tRaw);
 
@@ -167,7 +155,8 @@ export function evaluateShotCameraPose(
       baselinePose,
       startOffset,
       destOffset,
-      isContinuous
+      isContinuous,
+      fallbackEyeOverride
     );
   }
 
@@ -224,7 +213,8 @@ export function sampleTrajectoryPoints(
   startOffset: Vec3 = ZERO_OFFSET,
   destOffset?: Vec3,
   isContinuous = false,
-  samples = 32
+  samples = 32,
+  fallbackEyeOverride?: Vec3
 ): Vec3[] {
   if (spec.maneuver === 'cut') {
     return [];
@@ -241,7 +231,8 @@ export function sampleTrajectoryPoints(
       baselinePose,
       startOffset,
       destOffset,
-      isContinuous
+      isContinuous,
+      fallbackEyeOverride
     );
     const cart = sphericalToCartesian(pose, aspectRatio);
     points.push(cart.position);

@@ -1701,5 +1701,63 @@ shots:
       expect(obsTarget.y).toBeCloseTo(1.5, 4);
       expect(obsTarget.z).toBeCloseTo(-1.0, 4);
     });
+
+    it('parses stage.gridStep, flat root optics aliases, and flat shot-root f_stop/dof start/end ramps', () => {
+      const yamlA = `
+version: "1.0"
+id: "alias-parity-a"
+title: "Alias Parity A"
+blur: true
+depth_of_field: "shallow"
+f_stop: 2.0
+stage:
+  width: 12
+  depth: 12
+  gridStep: 0.5
+shots:
+  - id: "s1"
+    start: 0
+    end: 4
+    f_stop_start: 1.4
+    f_stop_end: 8.0
+`;
+      const resA = parseStageScore(yamlA);
+      expect(resA.error).toBeNull();
+      expect(resA.score?.stage.gridStep).toBe(0.5);
+      expect(resA.score?.optics).toEqual({
+        dofBlur: true,
+        defaultDof: 'shallow',
+        defaultApertureFStop: 2.0,
+      });
+      expect(resA.score?.shots[0].stageCamera?.apertureStartFStop).toBeCloseTo(1.4, 4);
+      expect(resA.score?.shots[0].stageCamera?.apertureEndFStop).toBeCloseTo(8.0, 4);
+
+      const yamlB = `
+version: "1.0"
+id: "alias-parity-b"
+title: "Alias Parity B"
+depthOfField: "medium"
+fStop: "f/4"
+shots:
+  - id: "s1"
+    start: 0
+    end: 4
+    dof_start: "shallow"
+    dof_end: "deep"
+    stage_camera:
+      target: [0, 1, 0]
+      aperture_end: 11.0
+`;
+      const resB = parseStageScore(yamlB);
+      expect(resB.error).toBeNull();
+      expect(resB.score?.optics).toEqual({
+        dofBlur: false,
+        defaultDof: 'medium',
+        defaultApertureFStop: 4.0,
+      });
+      // dof_start ("shallow" -> f/2.8) inherited from flat shot root, while nested aperture_end (11.0) takes precedence over dof_end
+      expect(resB.score?.shots[0].stageCamera?.apertureStartFStop).toBeCloseTo(2.8, 4);
+      expect(resB.score?.shots[0].stageCamera?.apertureEndFStop).toBeCloseTo(11.0, 4);
+    });
   });
 });

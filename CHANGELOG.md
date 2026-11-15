@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+#### Continuous Rig Eye Inheritance, Parser Alias Parity & Living Documentation Sync
+
+- **Continuous Camera Rig `E_prev` Inheritance (`src/core/cameraRigEvaluator.ts`, `src/core/shotPoseEvaluator.ts`, `src/core/trajectoryChain.ts`)**:
+  - Added optional `fallbackEyeOverride?: Vec3` across `evaluateRigCameraPose`, `evaluateShotCameraPose`, and `sampleTrajectoryPoints`, with `resolveCueStartPose` extracted in `src/core/trajectoryChain.ts` and `cuePrevEndEyes` cached for both `stageCamera` and `observerCamera` tracks.
+  - When `isContinuous` is active (`i > 0`, `maneuver !== 'cut'`) and `rig.from` / `rig.position` is omitted (`track`, 1-point `spline_track`, or `tripod`), both runtime evaluation and 3D floor rail sampling now inherit the preceding shot's terminal eye position `E_prev` seamlessly even when `target:` changes or moves.
+- **Parser Alias Parity & Type Comment Fixes (`src/core/scoreParser.ts`, `src/core/cameraCueParser.ts`, `src/core/types.ts`)**:
+  - Added `stage.gridStep` camelCase alias (with finite positive guard) for `stage.grid_step` and extended flat root `optics` fallbacks in `src/core/scoreParser.ts` to match nested `optics:` aliases (`root.blur`, `root.depth_of_field`, `root.depthOfField`, `root.f_stop`, `root.fStop`).
+  - Added `f_stop_start`, `dof_start`, `f_stop_end`, and `dof_end` detection to `hasFlatOpticalField` inside `applyFlatShotCameraOverrides` in `src/core/cameraCueParser.ts`.
+  - Updated stale comments in `src/core/types.ts` for `SphericalPose.pitch` (`[-85 deg, +85 deg]`) and `ScoreCategory` blueprint range (`BP 01–07`).
+- **Unit Tests & Living Documentation Sync (`tests/unit/`, `docs/*.md`, `README.md`, `AGENTS.md`)**:
+  - Added unit tests in `tests/unit/scoreParser.test.ts` and `tests/unit/cameraRigs.test.ts` covering parser aliases, flat shot-root aperture/DoF overrides, and continuous `track`/`spline_track`/`tripod` rig eye inheritance across changing `target:` anchors (`295` passing tests across `23` suites).
+  - Audited and synchronized `docs/STAGEFLOW_SCRIPT_SPECIFICATION.md`, `docs/CORE_MATH_AND_SCORE_SPECIFICATIONS.md`, `docs/YAML_AUTHORING_GUIDE.md`, `README.md`, and `AGENTS.md` to eliminate mathematical, AST contract, and authoring-guide drift (including uniform `spline_track` math, `EvaluatedEntityState` / missing AST sub-interfaces in §7.2, `[0.4m, 100.0m]` `d_focus` clamp, `orbit`/`sweep` `from` evaluation, reserved `waypoints[]` fields, undocumented YAML aliases, and Cookbook blueprint citations).
+
 ### Added
 
 #### Dot-Notation Entity Target Sub-Anchors (GH Issue #19)

@@ -337,4 +337,119 @@ shots:
     expect(f4.stageCamera.baseTarget!.x).toBeGreaterThan(-2.0);
     expect(f4.stageCamera.baseTarget!.x).toBeLessThan(2.5);
   });
+
+  it('inherits prevEndPose eye E_prev on continuous rigs (track, 1-pt spline_track, tripod) even when target switches', () => {
+    const rawYaml = `
+version: "1.0"
+id: "continuous-rig-target-switch"
+title: "Continuous Rig Target Switch"
+duration: 12.0
+entities:
+  - id: "hero"
+    kind: "character"
+    position: [-3.0, 0, 0]
+  - id: "villain"
+    kind: "character"
+    position: [3.0, 0, -2.0]
+shots:
+  - id: "s1-tripod"
+    shot: 1
+    start: 0.0
+    end: 3.0
+    stage_camera:
+      rig:
+        type: "tripod"
+        position: [-1.5, 1.6, 4.5]
+      target: "hero"
+    observer_camera:
+      rig:
+        type: "tripod"
+        position: [0.0, 4.0, 8.0]
+      target: "hero"
+  - id: "s2-track-switch"
+    shot: 2
+    start: 3.0
+    end: 6.0
+    continuous: true
+    stage_camera:
+      rig:
+        type: "track"
+        to: [2.5, 1.6, 4.5]
+      target: "villain"
+      easing: "linear"
+    observer_camera:
+      rig:
+        type: "track"
+        to: [4.0, 4.0, 8.0]
+      target: "villain"
+      easing: "linear"
+  - id: "s3-spline-1pt-switch"
+    shot: 3
+    start: 6.0
+    end: 9.0
+    continuous: true
+    stage_camera:
+      rig:
+        type: "spline_track"
+        points:
+          - [0.5, 2.0, 3.5]
+      target: "hero"
+      easing: "linear"
+  - id: "s4-tripod-no-pos-switch"
+    shot: 4
+    start: 9.0
+    end: 12.0
+    continuous: true
+    stage_camera:
+      rig:
+        type: "tripod"
+      target: "villain"
+`;
+    const { score, error } = parseStageScore(rawYaml);
+    expect(error).toBeNull();
+    expect(score).toBeDefined();
+
+    // Shot 2 start (t = 3.0): must inherit E_prev [-1.5, 1.6, 4.5] for stage and [0, 4, 8] for observer
+    const f2Start = computeStageFrame(3.0, score!);
+    expect(f2Start.stageCamera.transform.position.x).toBeCloseTo(-1.5, 4);
+    expect(f2Start.stageCamera.transform.position.y).toBeCloseTo(1.6, 4);
+    expect(f2Start.stageCamera.transform.position.z).toBeCloseTo(4.5, 4);
+    expect(f2Start.stageCamera.rig?.eyePosition.x).toBeCloseTo(-1.5, 4);
+    expect(f2Start.stageCamera.rig?.railPoints[0].x).toBeCloseTo(-1.5, 4);
+    expect(f2Start.stageCamera.rig?.railPoints[1].x).toBeCloseTo(2.5, 4);
+    expect(f2Start.stageCamera.trajectoryPoints[0].x).toBeCloseTo(-1.5, 4);
+    expect(f2Start.stageCamera.trajectoryPoints[0].z).toBeCloseTo(4.5, 4);
+    // Look-at target switched to villain (x = 3.0, z = -2.0)
+    expect(f2Start.stageCamera.transform.target.x).toBeCloseTo(3.0, 4);
+    expect(f2Start.stageCamera.transform.target.z).toBeCloseTo(-2.0, 4);
+
+    // Observer camera track also inherited E_prev [0.0, 4.0, 8.0] even though target switched to villain
+    expect(f2Start.observerCamera.transform.position.x).toBeCloseTo(0.0, 4);
+    expect(f2Start.observerCamera.transform.position.y).toBeCloseTo(4.0, 4);
+    expect(f2Start.observerCamera.transform.position.z).toBeCloseTo(8.0, 4);
+    expect(f2Start.observerCamera.rig?.railPoints[0].x).toBeCloseTo(0.0, 4);
+    expect(f2Start.observerCamera.trajectoryPoints[0].x).toBeCloseTo(0.0, 4);
+    expect(f2Start.observerCamera.transform.target.x).toBeCloseTo(3.0, 4);
+
+    // Shot 2 midpoint (t = 4.5): linear halfway between -1.5 and 2.5 => x = 0.5
+    const f2Mid = computeStageFrame(4.5, score!);
+    expect(f2Mid.stageCamera.transform.position.x).toBeCloseTo(0.5, 4);
+    expect(f2Mid.observerCamera.transform.position.x).toBeCloseTo(2.0, 4);
+
+    // Shot 3 start (t = 6.0): 1-pt spline_track inherits [2.5, 1.6, 4.5] while switching target to hero
+    const f3Start = computeStageFrame(6.0, score!);
+    expect(f3Start.stageCamera.transform.position.x).toBeCloseTo(2.5, 4);
+    expect(f3Start.stageCamera.transform.position.y).toBeCloseTo(1.6, 4);
+    expect(f3Start.stageCamera.transform.position.z).toBeCloseTo(4.5, 4);
+    expect(f3Start.stageCamera.rig?.railPoints[0].x).toBeCloseTo(2.5, 4);
+    expect(f3Start.stageCamera.trajectoryPoints[0].x).toBeCloseTo(2.5, 4);
+    expect(f3Start.stageCamera.transform.target.x).toBeCloseTo(-3.0, 4);
+
+    // Shot 4 (t = 10.5): tripod without position stays pinned at Shot 3 end [0.5, 2.0, 3.5] while looking at villain
+    const f4Mid = computeStageFrame(10.5, score!);
+    expect(f4Mid.stageCamera.transform.position.x).toBeCloseTo(0.5, 4);
+    expect(f4Mid.stageCamera.transform.position.y).toBeCloseTo(2.0, 4);
+    expect(f4Mid.stageCamera.transform.position.z).toBeCloseTo(3.5, 4);
+    expect(f4Mid.stageCamera.transform.target.x).toBeCloseTo(3.0, 4);
+  });
 });

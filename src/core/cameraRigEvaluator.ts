@@ -5,26 +5,16 @@
  */
 
 import type {
-  CameraCueSpec,
-  CameraRigSpec,
-  CameraRigType,
-  EvaluatedEntityState,
-  SphericalPose,
-  Vec3,
+  CameraCueSpec, CameraRigSpec, CameraRigType,
+  EvaluatedEntityState, SphericalPose, Vec3,
 } from './types';
 import { parseOptionalVec3 } from './scorePrimitives';
 import {
-  cartesianToSpherical,
-  clampSphericalPose,
-  shortestAngleDiff,
-  sphericalToCartesian,
+  cartesianToSpherical, clampSphericalPose, shortestAngleDiff, sphericalToCartesian,
 } from './sphericalMath';
 import { catmullRomScalar, interpolateRoll } from './maneuvers';
 import {
-  ZERO_OFFSET,
-  resolveShotDestOffset,
-  resolveShotDestRoll,
-  resolveTargetPoint3D,
+  ZERO_OFFSET, resolveShotDestOffset, resolveShotDestRoll, resolveTargetPoint3D,
 } from './cameraTargetResolver';
 
 /**
@@ -157,10 +147,14 @@ export function evaluateRigCameraPose(
   baselinePose?: SphericalPose,
   startOffset: Vec3 = ZERO_OFFSET,
   destOffset?: Vec3,
-  isContinuous = false
+  isContinuous = false,
+  fallbackEyeOverride?: Vec3
 ): SphericalPose {
   const rig = spec.rig!;
-  const startEye = sphericalToCartesian(P0).position;
+  const startEye =
+    isContinuous && fallbackEyeOverride
+      ? fallbackEyeOverride
+      : sphericalToCartesian(P0).position;
   const eye = evaluateRigEyePosition(rig, u, startEye);
 
   const endOffset =

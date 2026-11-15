@@ -15,7 +15,7 @@ export interface Vec3 {
 export interface SphericalPose {
   target: Vec3;
   distance: number;      // meters
-  pitch: number;         // radians (-PI/2 to +PI/2)
+  pitch: number;         // radians (clamped to [-85 deg, +85 deg])
   yaw: number;           // radians
   roll: number;          // radians (0 = level horizon, + = CW camera tilt from operator POV)
   focalLengthMm: number; // e.g., 24, 35, 50, 85
@@ -398,7 +398,7 @@ export interface ParseScoreResult {
 /**
  * Provenance category for StageFlow choreography scores.
  * - 'study': Authentic directorial scene studies authored by Taruma Sakti (e.g. Vector Field).
- * - 'blueprint': Synthetic educational camera-blocking presets and testbeds (BP 01–05).
+ * - 'blueprint': Synthetic educational camera-blocking presets and testbeds (BP 01–07).
  * - 'custom': User-authored, imported, or forked projects persisted in browser IndexedDB.
  */
 export type ScoreCategory = 'study' | 'blueprint' | 'custom';

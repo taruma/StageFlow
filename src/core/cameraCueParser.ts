@@ -380,8 +380,12 @@ export function applyFlatShotCameraOverrides(
     shotObj.t_stop !== undefined ||
     shotObj.aperture_start !== undefined ||
     shotObj.apertureStart !== undefined ||
+    shotObj.f_stop_start !== undefined ||
+    shotObj.dof_start !== undefined ||
     shotObj.aperture_end !== undefined ||
     shotObj.apertureEnd !== undefined ||
+    shotObj.f_stop_end !== undefined ||
+    shotObj.dof_end !== undefined ||
     shotObj.rig !== undefined ||
     shotObj.show_rig !== undefined ||
     shotObj.showRig !== undefined;

@@ -191,9 +191,12 @@ export function parseStageScore(
     typeof rawStage.depth === 'number' && rawStage.depth > 0
       ? rawStage.depth
       : 10;
+  const rawGridStep = rawStage.grid_step ?? rawStage.gridStep;
   const gridStep =
-    typeof rawStage.grid_step === 'number' && rawStage.grid_step > 0
-      ? rawStage.grid_step
+    typeof rawGridStep === 'number' &&
+    Number.isFinite(rawGridStep) &&
+    rawGridStep > 0
+      ? rawGridStep
       : 1;
 
   const rawShowRigs =
@@ -465,20 +468,25 @@ export function parseStageScore(
     rawOptics?.dofBlur ??
     rawOptics?.blur ??
     root.dof_blur ??
-    root.dofBlur;
+    root.dofBlur ??
+    root.blur;
   const dofBlur =
     rawDofBlur === true || rawDofBlur === 'true' || rawDofBlur === 'yes';
   const defaultDof = parseDofPreset(
     rawOptics?.dof ??
       rawOptics?.depth_of_field ??
       rawOptics?.depthOfField ??
-      root.dof
+      root.dof ??
+      root.depth_of_field ??
+      root.depthOfField
   );
   const defaultApertureFStop = parseApertureFStop(
     rawOptics?.aperture ??
       rawOptics?.f_stop ??
       rawOptics?.fStop ??
-      root.aperture
+      root.aperture ??
+      root.f_stop ??
+      root.fStop
   );
   const optics: ScoreOpticsConfig | undefined =
     rawOptics !== undefined ||
