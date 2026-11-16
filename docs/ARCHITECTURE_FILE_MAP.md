@@ -196,7 +196,7 @@ stageflow/
 │   │   ├── CleanVideoExportConfigForm.tsx # Export camera, angle, resolution, fps, range & palette form controls
 │   │   ├── ExportRangeScrubber.tsx  # Dual-handle shot-aware timeline scrubber + inline Start/End decimal inputs
 │   │   ├── ExportRangeScrubberTrack.tsx # Visual scrubber track, shot cut ticks, hover hairline & Start/End thumbs
-│   │   ├── StoryboardModal.tsx      # Storyboard Contact Sheet generator & viewer modal (Phase 1)
+│   │   ├── StoryboardModal.tsx      # Storyboard Contact Sheet generator, viewer & single-panel export modal
 │   │   ├── StoryboardControlsSidebar.tsx # Storyboard render & instant layout controls sidebar
 │   │   ├── StoryboardGuideOverlay.tsx # Instant CSS/SVG Rule-of-Thirds, Safe-Action & Crosshair guides overlay
 │   │   ├── StoryboardSpecGuidePopover.tsx # Footer "?" Spec Guide popover explaining technical card notation

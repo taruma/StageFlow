@@ -448,6 +448,12 @@ export const StoryboardControlsSidebar: React.FC<
             Burn-in
           </button>
         </div>
+
+        {exportIncludeOverlays && !annotated && guideMode === 'off' && (
+          <p className="text-[9.5px] font-mono text-text-faint leading-tight px-0.5">
+            Clean Only + Guides Off: exports clean frame.
+          </p>
+        )}
       </div>
 
       {/* Render Telemetry & Refresh */}

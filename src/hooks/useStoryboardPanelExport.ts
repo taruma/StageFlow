@@ -78,6 +78,16 @@ function encodeCanvasImage(
   });
 }
 
+function resolveActualFormat(
+  requested: StoryboardExportFormat,
+  blobType: string
+): StoryboardExportFormat {
+  if (blobType === 'image/png') return 'png';
+  if (blobType === 'image/jpeg') return 'jpeg';
+  if (blobType === 'image/webp') return 'webp';
+  return requested;
+}
+
 function triggerImageDownload(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
@@ -146,6 +156,11 @@ export function useStoryboardPanelExport({
     []
   );
 
+  const cancelExport = useCallback(() => {
+    isExportingRef.current = false;
+    setPendingRequest(null);
+  }, []);
+
   useEffect(() => {
     if (!pendingRequest) return;
     let cancelled = false;
@@ -183,8 +198,34 @@ export function useStoryboardPanelExport({
           );
         }
 
-        triggerImageDownload(blob, pendingRequest.filename);
-        onNotifyRef.current?.(`Saved "${pendingRequest.filename}"`, 'success');
+        const actualFormat = resolveActualFormat(
+          pendingRequest.format,
+          blob.type
+        );
+        const downloadFilename =
+          actualFormat === pendingRequest.format
+            ? pendingRequest.filename
+            : formatStoryboardFrameFilename({
+                scoreIdOrTitle:
+                  pendingRequest.score.id || pendingRequest.score.title,
+                shotNumber: pendingRequest.sample.shot.shotNumber,
+                shotId: pendingRequest.sample.shot.id,
+                beatTag: pendingRequest.sample.beatTag,
+                stageTimeSec: pendingRequest.sample.stageTimeSec,
+                tier: pendingRequest.tier,
+                format: actualFormat,
+                targetCamera: pendingRequest.targetCamera,
+              });
+
+        triggerImageDownload(blob, downloadFilename);
+        if (actualFormat !== pendingRequest.format) {
+          onNotifyRef.current?.(
+            `${pendingRequest.format.toUpperCase()} unsupported — saved "${downloadFilename}"`,
+            'warning'
+          );
+        } else {
+          onNotifyRef.current?.(`Saved "${downloadFilename}"`, 'success');
+        }
       } catch (err) {
         if (!cancelled) {
           const message =
@@ -214,5 +255,6 @@ export function useStoryboardPanelExport({
     pendingRequest,
     canvasRef,
     exportPanel,
+    cancelExport,
   };
 }

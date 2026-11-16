@@ -1,8 +1,9 @@
 /**
- * Storyboard Contact Sheet Generator & Viewer Modal (Phase 1).
+ * Storyboard Contact Sheet Generator, Viewer & Single-Panel Export Modal.
  * Renders shot panels progressively offscreen via a single CleanStageCamExportCanvas,
  * adapts grid density and card orientation to the active aspect ratio, overlays
- * instant CSS composition guides, and unmounts WebGL immediately upon completion.
+ * instant CSS composition guides, supports 720p/1080p single-frame downloads,
+ * and unmounts WebGL immediately upon completion.
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -126,7 +127,20 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
     dofBlurEnabled: localDofBlur,
   });
 
-  const panelExporter = useStoryboardPanelExport({ onNotify });
+  const {
+    downloadingKey: panelDownloadingKey,
+    pendingRequest: panelExportPendingRequest,
+    canvasRef: panelExportCanvasRef,
+    exportPanel,
+    cancelExport,
+  } = useStoryboardPanelExport({ onNotify });
+
+  // Cancel any in-flight single-panel export when the modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      cancelExport();
+    }
+  }, [isOpen, cancelExport]);
 
   const panelsByKey = useMemo(() => {
     return new Map(panels.map((p) => [p.sample.key, p]));
@@ -156,7 +170,7 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
     (sample: StoryboardSamplePoint) => {
       const shouldBurnOverlay =
         exportIncludeOverlays && (annotated || guideMode !== 'off');
-      panelExporter.exportPanel({
+      exportPanel({
         score,
         sample,
         targetCamera,
@@ -179,7 +193,7 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
       });
     },
     [
-      panelExporter,
+      exportPanel,
       score,
       targetCamera,
       themeCategory,
@@ -399,7 +413,7 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
                       layoutMode={layoutMode}
                       isPortrait={layoutSpec.isPortrait}
                       effectiveDensity={layoutSpec.effectiveDensity}
-                      downloadingKey={panelExporter.downloadingKey}
+                      downloadingKey={panelDownloadingKey}
                       exportTier={exportTier}
                       exportFormat={exportFormat}
                       onExportSample={handleExportSample}
@@ -463,17 +477,17 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
         )}
 
         {/* Dedicated 1-Frame Offscreen WebGL Renderer (mounted strictly during single-panel export) */}
-        {panelExporter.pendingRequest && (
+        {panelExportPendingRequest && (
           <CleanStageCamExportCanvas
-            key={`export-${panelExporter.pendingRequest.sample.key}-${panelExporter.pendingRequest.tier}`}
-            ref={panelExporter.canvasRef}
-            score={panelExporter.pendingRequest.score}
-            initialFrame={panelExporter.pendingRequest.sample.frame}
-            width={panelExporter.pendingRequest.width}
-            height={panelExporter.pendingRequest.height}
-            dofBlurEnabled={panelExporter.pendingRequest.dofBlurEnabled}
-            themeCategory={panelExporter.pendingRequest.themeCategory}
-            targetCamera={panelExporter.pendingRequest.targetCamera}
+            key={`export-${panelExportPendingRequest.sample.key}-${panelExportPendingRequest.tier}`}
+            ref={panelExportCanvasRef}
+            score={panelExportPendingRequest.score}
+            initialFrame={panelExportPendingRequest.sample.frame}
+            width={panelExportPendingRequest.width}
+            height={panelExportPendingRequest.height}
+            dofBlurEnabled={panelExportPendingRequest.dofBlurEnabled}
+            themeCategory={panelExportPendingRequest.themeCategory}
+            targetCamera={panelExportPendingRequest.targetCamera}
           />
         )}
       </div>
