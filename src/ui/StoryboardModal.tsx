@@ -42,7 +42,10 @@ import { useStoryboardGenerator } from '../hooks/useStoryboardGenerator';
 import { useStoryboardPanelExport } from '../hooks/useStoryboardPanelExport';
 import { CleanStageCamExportCanvas } from '../stage/CleanStageCamExportCanvas';
 import { formatFilmGateLabel } from './shotBreakdownUtils';
-import { renderStoryboardContactSheetCanvas } from './storyboardContactSheetRenderer';
+import {
+  estimateStoryboardContactSheetPageCount,
+  renderStoryboardContactSheetPages,
+} from './storyboardContactSheetRenderer';
 import { StoryboardControlsSidebar } from './StoryboardControlsSidebar';
 import {
   StoryboardPanelCard,
@@ -249,57 +252,90 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
         ? 'start-end'
         : 'grid';
 
-  const handleExportContactSheet = useCallback(() => {
-    if (
-      panelDownloadingKey ||
-      isBatchExporting ||
-      isGenerating ||
-      panels.length < totalCount ||
-      shotGroups.length === 0
-    ) {
-      return;
-    }
-    void exportContactSheet({
+  const handleExportContactSheet = useCallback(
+    (singlePage = false) => {
+      if (
+        panelDownloadingKey ||
+        isBatchExporting ||
+        isGenerating ||
+        panels.length < totalCount ||
+        shotGroups.length === 0
+      ) {
+        return;
+      }
+      void exportContactSheet({
+        score,
+        targetCamera,
+        annotated,
+        renderSheetPages: () =>
+          renderStoryboardContactSheetPages(
+            {
+              score,
+              shotGroups,
+              panelsByKey,
+              sheetSummary,
+              gateLabel,
+              panelWidth: dims.width,
+              panelHeight: dims.height,
+              targetCamera,
+              layoutSpec,
+              layoutMode,
+              annotated,
+              guideMode,
+              totalCount,
+            },
+            { singlePage }
+          ),
+      });
+    },
+    [
+      panelDownloadingKey,
+      isBatchExporting,
+      isGenerating,
+      panels.length,
+      totalCount,
+      shotGroups,
+      exportContactSheet,
       score,
       targetCamera,
       annotated,
-      renderSheetCanvas: () =>
-        renderStoryboardContactSheetCanvas({
-          score,
-          shotGroups,
-          panelsByKey,
-          sheetSummary,
-          gateLabel,
-          panelWidth: dims.width,
-          panelHeight: dims.height,
-          targetCamera,
-          layoutSpec,
-          layoutMode,
-          annotated,
-          guideMode,
-          totalCount,
-        }),
-    });
-  }, [
-    panelDownloadingKey,
-    isBatchExporting,
-    isGenerating,
-    panels.length,
-    totalCount,
-    shotGroups,
-    exportContactSheet,
-    score,
-    targetCamera,
-    annotated,
-    panelsByKey,
-    sheetSummary,
-    gateLabel,
-    dims.width,
-    dims.height,
-    layoutSpec,
-    layoutMode,
-    guideMode,
-  ]);
+      panelsByKey,
+      sheetSummary,
+      gateLabel,
+      dims.width,
+      dims.height,
+      layoutSpec,
+      layoutMode,
+      guideMode,
+    ]
+  );
+
+  const sheetPageCount = useMemo(
+    () =>
+      isOpen
+        ? estimateStoryboardContactSheetPageCount({
+            shotGroups,
+            sheetSummary,
+            panelWidth: dims.width,
+            panelHeight: dims.height,
+            targetCamera,
+            layoutSpec,
+            layoutMode,
+            annotated,
+          })
+        : 1,
+    [
+      isOpen,
+      shotGroups,
+      sheetSummary,
+      dims.width,
+      dims.height,
+      targetCamera,
+      layoutSpec,
+      layoutMode,
+      annotated,
+    ]
+  );
 
   const handleExportAllZip = useCallback(() => {
     if (panelDownloadingKey || isBatchExporting || samples.length === 0) {
@@ -460,6 +496,11 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
                     </div>
                     <div className="text-[10px] text-text-faint">
                       {gateLabel} · {dims.width}×{dims.height}
+                      {sheetPageCount > 1 && (
+                        <span className="ml-1.5 inline-flex items-center px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-700 dark:text-amber-300 font-semibold">
+                          {sheetPageCount} Pages
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -564,7 +605,9 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
                 <span className="truncate">
                   {batchProgress.mode === 'zip'
                     ? `Exporting ZIP ${batchProgress.completed} / ${batchProgress.total}...`
-                    : 'Compositing Contact Sheet...'}
+                    : batchProgress.total > 1
+                      ? `Encoding Sheet ${batchProgress.completed} / ${batchProgress.total}...`
+                      : 'Compositing Contact Sheet...'}
                 </span>
                 <button
                   type="button"
@@ -595,11 +638,13 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
             <button
               type="button"
               disabled={!canExportSheet}
-              onClick={handleExportContactSheet}
+              onClick={() => handleExportContactSheet(false)}
               title={
                 isGenerating
                   ? 'Wait for preview frames to finish rendering'
-                  : 'Download Contact Sheet as crisp white-paper PNG'
+                  : sheetPageCount > 1
+                    ? `Download ${sheetPageCount}-page Contact Sheet bundle (.zip)`
+                    : 'Download Contact Sheet as clean white-paper PNG'
               }
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border-main bg-surface hover:bg-surface-hover text-xs font-semibold text-text-main disabled:opacity-45 disabled:cursor-not-allowed transition-colors cursor-pointer"
             >
@@ -608,8 +653,24 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
               ) : (
                 <FileImage className="w-3.5 h-3.5 text-amber-500" />
               )}
-              <span>Contact Sheet</span>
+              <span>
+                {sheetPageCount > 1
+                  ? `Contact Sheet (${sheetPageCount}p .zip)`
+                  : 'Contact Sheet'}
+              </span>
             </button>
+
+            {sheetPageCount > 1 && (
+              <button
+                type="button"
+                disabled={!canExportSheet}
+                onClick={() => handleExportContactSheet(true)}
+                title={`Download all ${sheetPageCount} pages combined into one tall single-page PNG`}
+                className="inline-flex items-center gap-1 px-2.5 py-2 rounded-xl border border-border-main bg-surface hover:bg-surface-hover text-xs font-semibold text-text-muted hover:text-text-main disabled:opacity-45 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              >
+                <span>1-Page PNG</span>
+              </button>
+            )}
 
             <button
               type="button"

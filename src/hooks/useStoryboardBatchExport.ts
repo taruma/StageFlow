@@ -16,6 +16,7 @@ import {
 } from '../core/exportMath';
 import {
   formatStoryboardContactSheetFilename,
+  formatStoryboardContactSheetZipFilename,
   formatStoryboardFrameFilename,
   formatStoryboardZipFilename,
   type StoryboardExportFormat,
@@ -79,7 +80,7 @@ export interface ExportContactSheetParams {
   score: StageScore;
   targetCamera: ExportTargetCamera;
   annotated: boolean;
-  renderSheetCanvas: () => Promise<HTMLCanvasElement>;
+  renderSheetPages: () => Promise<HTMLCanvasElement[]>;
 }
 
 export interface UseStoryboardBatchExportOptions {
@@ -155,7 +156,7 @@ export function useStoryboardBatchExport({
       score,
       targetCamera,
       annotated,
-      renderSheetCanvas,
+      renderSheetPages,
     }: ExportContactSheetParams) => {
       if (isBusyRef.current) return;
       isBusyRef.current = true;
@@ -163,23 +164,85 @@ export function useStoryboardBatchExport({
       setProgress({ mode: 'contact-sheet', completed: 0, total: 1 });
 
       try {
-        const sheetCanvas = await renderSheetCanvas();
+        const pageCanvases = await renderSheetPages();
         if (jobIdRef.current !== jobId) return;
 
-        const blob = await encodeCanvasImage(sheetCanvas, 'png');
-        if (jobIdRef.current !== jobId) return;
-
-        if (!blob) {
-          throw new Error('Failed to encode Contact Sheet as PNG.');
+        if (pageCanvases.length === 0) {
+          throw new Error('No Contact Sheet pages were rendered.');
         }
 
-        const filename = formatStoryboardContactSheetFilename({
-          scoreIdOrTitle: score.id || score.title,
+        const scoreIdOrTitle = score.id || score.title;
+
+        if (pageCanvases.length === 1) {
+          const blob = await encodeCanvasImage(pageCanvases[0], 'png');
+          if (jobIdRef.current !== jobId) return;
+
+          if (!blob) {
+            throw new Error('Failed to encode Contact Sheet as PNG.');
+          }
+
+          const filename = formatStoryboardContactSheetFilename({
+            scoreIdOrTitle,
+            targetCamera,
+            annotated,
+          });
+          triggerBlobDownload(blob, filename);
+          onNotifyRef.current?.(`Saved "${filename}"`, 'success');
+          return;
+        }
+
+        const totalPages = pageCanvases.length;
+        setProgress({ mode: 'contact-sheet', completed: 0, total: totalPages });
+        const entries: ZipArchiveEntry[] = [];
+        const now = new Date();
+
+        for (let i = 0; i < totalPages; i++) {
+          if (jobIdRef.current !== jobId) return;
+
+          const blob = await encodeCanvasImage(pageCanvases[i], 'png');
+          if (jobIdRef.current !== jobId) return;
+
+          if (!blob) {
+            throw new Error(`Failed to encode Contact Sheet page ${i + 1} as PNG.`);
+          }
+
+          const data = new Uint8Array(await blob.arrayBuffer());
+          if (jobIdRef.current !== jobId) return;
+
+          entries.push({
+            filename: formatStoryboardContactSheetFilename({
+              scoreIdOrTitle,
+              targetCamera,
+              annotated,
+              pageNumber: i + 1,
+              totalPages,
+            }),
+            data,
+            modifiedAt: now,
+          });
+          setProgress({
+            mode: 'contact-sheet',
+            completed: i + 1,
+            total: totalPages,
+          });
+          await yieldToEventLoop();
+        }
+
+        if (jobIdRef.current !== jobId) return;
+
+        const zipBytes = buildZipArchive(entries);
+        const zipBlob = new Blob([zipBytes], { type: 'application/zip' });
+        const zipFilename = formatStoryboardContactSheetZipFilename({
+          scoreIdOrTitle,
           targetCamera,
           annotated,
+          downloadedAt: now,
         });
-        triggerBlobDownload(blob, filename);
-        onNotifyRef.current?.(`Saved "${filename}"`, 'success');
+        triggerBlobDownload(zipBlob, zipFilename);
+        onNotifyRef.current?.(
+          `Saved "${zipFilename}" (${totalPages} pages)`,
+          'success'
+        );
       } catch (err) {
         if (jobIdRef.current === jobId) {
           const message =

@@ -9,6 +9,7 @@
 import type { ExportTargetCamera } from '../core/exportMath';
 import {
   formatStoryboardShotMeta,
+  paginateStoryboardRows,
   type StoryboardGuideMode,
   type StoryboardLayoutSpec,
   type StoryboardSamplePoint,
@@ -37,6 +38,7 @@ export interface RenderStoryboardContactSheetParams {
 }
 
 const SHEET_LOGICAL_WIDTH = 2400;
+const PAGE_HEIGHT_BUDGET = 3200;
 const SHEET_PAD = 56;
 const GRID_GAP = 28;
 const MAX_CANVAS_DIM = 15000;
@@ -306,53 +308,252 @@ function buildSpecRows(
   ];
 }
 
-/**
- * Composites the clean white-paper Storyboard Contact Sheet onto an offscreen PNG canvas.
- */
-export async function renderStoryboardContactSheetCanvas(
-  params: RenderStoryboardContactSheetParams
-): Promise<HTMLCanvasElement> {
+function drawContactSheetCard(
+  ctx: CanvasRenderingContext2D,
+  box: CardLayoutBox,
+  loadedImages: Map<string, HTMLImageElement>,
+  panelAspect: number,
+  annotated: boolean,
+  guideMode: StoryboardGuideMode
+): void {
+  const radius = 14;
+  ctx.save();
+  drawRoundedRectPath(ctx, box.x, box.y, box.width, box.height, radius);
+  ctx.fillStyle = PALETTE.cardBg;
+  ctx.fill();
+  ctx.clip();
+
+  const tiles = computeTileRectsForCard(box, panelAspect);
+
+  // Subtle bay fill behind multi-tile / portrait frame areas
+  if (
+    box.isPortraitHorizontalCard ||
+    box.isLandscapeHorizontalStaticRow ||
+    box.isTripleStrip ||
+    box.isStartEndPair
+  ) {
+    const maxX = tiles.reduce((m, t) => Math.max(m, t.x + t.w), box.x);
+    const bayW = box.isHorizontalSplit ? maxX - box.x + 16 : box.width;
+    const bayH = box.isHorizontalSplit
+      ? box.height
+      : (tiles[0]?.h ?? 0) + (box.isStartEndPair ? 28 : 32);
+    ctx.fillStyle = '#f8fafc';
+    ctx.fillRect(box.x, box.y, bayW, bayH);
+  }
+
+  // Draw frame tiles + optional slate stamps & composition guides
+  for (const tile of tiles) {
+    ctx.save();
+    if (tile.rounded) {
+      drawRoundedRectPath(ctx, tile.x, tile.y, tile.w, tile.h, 8);
+    } else {
+      ctx.beginPath();
+      ctx.rect(tile.x, tile.y, tile.w, tile.h);
+    }
+    ctx.clip();
+
+    ctx.fillStyle = PALETTE.tileBayBg;
+    ctx.fillRect(tile.x, tile.y, tile.w, tile.h);
+
+    const img = loadedImages.get(tile.sample.key);
+    if (img) {
+      drawImageCover(ctx, img, tile.x, tile.y, tile.w, tile.h);
+    }
+
+    if (annotated || guideMode !== 'off') {
+      drawStoryboardOverlayInRect(
+        ctx,
+        { x: tile.x, y: tile.y, width: tile.w, height: tile.h },
+        {
+          guideMode,
+          includeSlate: annotated,
+          shotNumber: tile.sample.shot.shotNumber,
+          beatTag: tile.sample.beatTag,
+          stageTimeSec: tile.sample.stageTimeSec,
+          startSec: tile.sample.shot.startSec,
+          endSec: tile.sample.shot.endSec,
+        },
+        320
+      );
+    }
+    ctx.restore();
+
+    if (tile.rounded) {
+      drawRoundedRectPath(ctx, tile.x, tile.y, tile.w, tile.h, 8);
+      ctx.strokeStyle = PALETTE.subtleBorder;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+  }
+
+  // Annotated technical footer/right-pane
+  if (annotated) {
+    const bayMaxX = tiles.reduce((m, t) => Math.max(m, t.x + t.w), box.x) + 16;
+    const bayMaxY =
+      (tiles[0]?.y ?? box.y) +
+      (tiles[0]?.h ?? 0) +
+      (box.isStartEndPair ? 14 : box.isTripleStrip ? 16 : 0);
+
+    const metaX = box.isHorizontalSplit ? bayMaxX : box.x;
+    const metaY = box.isHorizontalSplit ? box.y : bayMaxY;
+    const metaW = box.isHorizontalSplit ? box.x + box.width - metaX : box.width;
+    const padX = box.isHorizontalSplit ? 24 : 20;
+
+    ctx.strokeStyle = PALETTE.subtleBorder;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    if (box.isHorizontalSplit) {
+      ctx.moveTo(metaX, metaY);
+      ctx.lineTo(metaX, box.y + box.height);
+    } else {
+      ctx.moveTo(metaX, metaY);
+      ctx.lineTo(metaX + metaW, metaY);
+    }
+    ctx.stroke();
+
+    let curY = metaY + 20;
+    const innerW = metaW - padX * 2;
+
+    // Title + optional multi-beat shot timecode
+    const timeStamp = `${box.meta.timeRangeText} (${box.meta.durationText})`;
+    let titleMaxW = innerW;
+    if (box.group.samples.length > 1) {
+      ctx.font = `400 16px ${MONO_FONT}`;
+      const tsWidth = ctx.measureText(timeStamp).width;
+      titleMaxW = Math.max(60, innerW - tsWidth - 16);
+      ctx.fillStyle = PALETTE.textFaint;
+      ctx.textAlign = 'right';
+      ctx.fillText(timeStamp, metaX + metaW - padX, curY + 2);
+      ctx.textAlign = 'left';
+    }
+
+    ctx.fillStyle = PALETTE.textMain;
+    ctx.font = `700 20px ${SANS_FONT}`;
+    ctx.fillText(
+      truncateText(ctx, box.meta.label, titleMaxW),
+      metaX + padX,
+      curY
+    );
+    curY += 34;
+
+    // Top hairline above spec table
+    ctx.strokeStyle = PALETTE.subtleBorder;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(metaX + padX, curY);
+    ctx.lineTo(metaX + metaW - padX, curY);
+    ctx.stroke();
+    curY += 12;
+
+    // 2-Column Technical Spec Table
+    const colGap = 16;
+    const cellW = (innerW - colGap) / 2;
+    let cellCol = 0;
+
+    for (const spec of box.specRows) {
+      if (spec.spanFull && cellCol === 1) {
+        curY += 26;
+        cellCol = 0;
+      }
+      const cellX = metaX + padX + cellCol * (cellW + colGap);
+      const availW = spec.spanFull ? innerW : cellW;
+
+      ctx.fillStyle = PALETTE.textFaint;
+      ctx.font = `600 13px ${MONO_FONT}`;
+      ctx.fillText(spec.label, cellX, curY + 2);
+
+      const valX = cellX + 60;
+      ctx.fillStyle = PALETTE.textBody;
+      ctx.font = `500 16px ${MONO_FONT}`;
+      ctx.fillText(
+        truncateText(ctx, spec.value, Math.max(20, availW - 60)),
+        valX,
+        curY
+      );
+
+      if (spec.spanFull) {
+        curY += 26;
+        cellCol = 0;
+      } else if (cellCol === 1) {
+        curY += 26;
+        cellCol = 0;
+      } else {
+        cellCol = 1;
+      }
+    }
+    if (cellCol === 1) {
+      curY += 26;
+    }
+
+    curY += 4;
+    ctx.beginPath();
+    ctx.moveTo(metaX + padX, curY);
+    ctx.lineTo(metaX + metaW - padX, curY);
+    ctx.stroke();
+
+    if (box.noteLines.length > 0) {
+      curY += 14;
+      ctx.fillStyle = PALETTE.textMuted;
+      ctx.font = `400 18px ${SANS_FONT}`;
+      for (const line of box.noteLines) {
+        ctx.fillText(line, metaX + padX, curY);
+        curY += 24;
+      }
+    }
+  }
+
+  ctx.restore();
+
+  // Outer card border
+  drawRoundedRectPath(ctx, box.x, box.y, box.width, box.height, radius);
+  ctx.strokeStyle = PALETTE.cardBorder;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+}
+
+export interface RenderStoryboardContactSheetOptions {
+  singlePage?: boolean;
+}
+
+export type PlanContactSheetLayoutParams = Omit<
+  RenderStoryboardContactSheetParams,
+  'panelsByKey' | 'score' | 'gateLabel' | 'totalCount' | 'guideMode'
+>;
+
+let cachedMeasureCtx: CanvasRenderingContext2D | null = null;
+
+function getMeasureContext(): CanvasRenderingContext2D {
+  if (!cachedMeasureCtx) {
+    const canvas = document.createElement('canvas');
+    cachedMeasureCtx = canvas.getContext('2d');
+  }
+  if (!cachedMeasureCtx) {
+    throw new Error('2D canvas context unavailable for Contact Sheet layout.');
+  }
+  return cachedMeasureCtx;
+}
+
+function planContactSheetLayout(
+  params: PlanContactSheetLayoutParams,
+  singlePage = false
+) {
   const {
-    score,
     shotGroups,
-    panelsByKey,
     sheetSummary,
-    gateLabel,
     panelWidth,
     panelHeight,
     targetCamera,
     layoutSpec,
     layoutMode,
     annotated,
-    guideMode,
-    totalCount,
   } = params;
 
-  const measureCanvas = document.createElement('canvas');
-  const mctx = measureCanvas.getContext('2d');
-  if (!mctx) {
-    throw new Error('2D canvas context unavailable for Contact Sheet export.');
-  }
-
-  // Decode all ready panel images in parallel
-  const loadedImages = new Map<string, HTMLImageElement>();
-  await Promise.all(
-    shotGroups.flatMap((group) =>
-      group.samples.map(async (sample) => {
-        const panel = panelsByKey.get(sample.key);
-        if (panel) {
-          loadedImages.set(sample.key, await loadImage(panel.imageUrl));
-        }
-      })
-    )
-  );
-
+  const mctx = getMeasureContext();
   const innerWidth = SHEET_LOGICAL_WIDTH - SHEET_PAD * 2;
   const cols = layoutSpec.columns;
   const colUnitWidth = (innerWidth - GRID_GAP * (cols - 1)) / cols;
   const panelAspect = panelWidth / Math.max(1, panelHeight);
 
-  // Measure header height
   const summaryParts: Array<{ title: string; value: string }> = [];
   if (sheetSummary.lenses.length > 0) {
     summaryParts.push({
@@ -373,11 +574,8 @@ export async function renderStoryboardContactSheetCanvas(
     });
   }
 
-  const headerHeight = summaryParts.length > 0 ? 148 : 112;
-  let cursorY = SHEET_PAD + headerHeight + 32;
-
-  // Pack cards into rows matching CSS Grid behavior
-  const cardBoxes: CardLayoutBox[] = [];
+  // Pack cards into visual rows (with y=0 relative to row top)
+  const rows: Array<{ height: number; boxes: CardLayoutBox[] }> = [];
   let rowGroups: Array<{ group: StoryboardShotGroup; colSpan: number; colStart: number }> = [];
   let colCursor = 0;
 
@@ -406,7 +604,7 @@ export async function renderStoryboardContactSheetCanvas(
           group,
           colSpan,
           x,
-          y: cursorY,
+          y: 0,
           width: w,
           height: 0,
           meta,
@@ -473,7 +671,7 @@ export async function renderStoryboardContactSheetCanvas(
         group,
         colSpan,
         x,
-        y: cursorY,
+        y: 0,
         width: w,
         height: cardHeight,
         meta,
@@ -490,10 +688,9 @@ export async function renderStoryboardContactSheetCanvas(
     const rowHeight = rowBoxes.reduce((m, b) => Math.max(m, b.height), 0);
     for (const box of rowBoxes) {
       box.height = rowHeight;
-      cardBoxes.push(box);
     }
+    rows.push({ height: rowHeight, boxes: rowBoxes });
 
-    cursorY += rowHeight + GRID_GAP;
     rowGroups = [];
     colCursor = 0;
   };
@@ -515,285 +712,254 @@ export async function renderStoryboardContactSheetCanvas(
   }
   flushRow();
 
-  const logicalHeight =
-    shotGroups.length === 0 ? cursorY + 140 : cursorY - GRID_GAP + SHEET_PAD;
-  const scale = Math.min(1, MAX_CANVAS_DIM / Math.max(1, logicalHeight));
+  const firstHeaderH = summaryParts.length > 0 ? 148 : 112;
+  const firstGapAfterHeader = 32;
+  const contHeaderH = 68;
+  const contGapAfterHeader = 28;
 
-  const outCanvas = document.createElement('canvas');
-  outCanvas.width = Math.round(SHEET_LOGICAL_WIDTH * scale);
-  outCanvas.height = Math.round(logicalHeight * scale);
-  const ctx = outCanvas.getContext('2d');
-  if (!ctx) {
-    throw new Error('Failed to acquire 2D Contact Sheet canvas context.');
-  }
+  const firstPageBudget =
+    PAGE_HEIGHT_BUDGET - (SHEET_PAD * 2 + firstHeaderH + firstGapAfterHeader);
+  const contPageBudget =
+    PAGE_HEIGHT_BUDGET - (SHEET_PAD * 2 + contHeaderH + contGapAfterHeader);
 
-  ctx.scale(scale, scale);
+  const pageRowIndices = singlePage
+    ? [rows.map((_, idx) => idx)]
+    : paginateStoryboardRows(
+        rows.map((r) => r.height),
+        firstPageBudget,
+        contPageBudget,
+        GRID_GAP
+      );
 
-  // 1. Clean White Paper Background
-  ctx.fillStyle = PALETTE.paperBg;
-  ctx.fillRect(0, 0, SHEET_LOGICAL_WIDTH, logicalHeight);
+  return {
+    innerWidth,
+    panelAspect,
+    summaryParts,
+    rows,
+    firstHeaderH,
+    firstGapAfterHeader,
+    contHeaderH,
+    contGapAfterHeader,
+    pageRowIndices,
+  };
+}
 
-  // 2. Contact Sheet Header
-  const headerY = SHEET_PAD;
-  ctx.textBaseline = 'top';
-  ctx.fillStyle = PALETTE.textFaint;
-  ctx.font = `600 16px ${MONO_FONT}`;
-  ctx.fillText('STORYBOARD CONTACT SHEET', SHEET_PAD, headerY);
+/**
+ * Computes how many pages the current Contact Sheet layout will span when paginated.
+ */
+export function estimateStoryboardContactSheetPageCount(
+  params: PlanContactSheetLayoutParams
+): number {
+  if (params.shotGroups.length === 0) return 1;
+  return planContactSheetLayout(params, false).pageRowIndices.length;
+}
 
-  ctx.fillStyle = PALETTE.textMain;
-  ctx.font = `700 34px ${SANS_FONT}`;
-  ctx.fillText(
-    truncateText(ctx, score.title, innerWidth * 0.65),
-    SHEET_PAD,
-    headerY + 26
+/**
+ * Composites the clean white-paper Storyboard Contact Sheet across one or more
+ * balanced pages (~3200px tall at 2400px wide), or onto 1 continuous page when
+ * `options.singlePage` is true.
+ */
+export async function renderStoryboardContactSheetPages(
+  params: RenderStoryboardContactSheetParams,
+  options: RenderStoryboardContactSheetOptions = {}
+): Promise<HTMLCanvasElement[]> {
+  const {
+    score,
+    shotGroups,
+    panelsByKey,
+    gateLabel,
+    panelWidth,
+    panelHeight,
+    targetCamera,
+    guideMode,
+    annotated,
+    totalCount,
+  } = params;
+
+  // Decode all ready panel images in parallel
+  const loadedImages = new Map<string, HTMLImageElement>();
+  await Promise.all(
+    shotGroups.flatMap((group) =>
+      group.samples.map(async (sample) => {
+        const panel = panelsByKey.get(sample.key);
+        if (panel) {
+          loadedImages.set(sample.key, await loadImage(panel.imageUrl));
+        }
+      })
+    )
   );
 
-  ctx.textAlign = 'right';
-  ctx.fillStyle = PALETTE.textMuted;
-  ctx.font = `500 18px ${MONO_FONT}`;
+  const {
+    innerWidth,
+    panelAspect,
+    summaryParts,
+    rows,
+    firstHeaderH,
+    firstGapAfterHeader,
+    contHeaderH,
+    contGapAfterHeader,
+    pageRowIndices,
+  } = planContactSheetLayout(params, options.singlePage ?? false);
+
+  const totalPages = pageRowIndices.length;
   const camTitle =
     targetCamera === 'observer' ? 'Observer Diorama' : 'Stage Cam POV';
-  ctx.fillText(
-    `${shotGroups.length} ${shotGroups.length === 1 ? 'Shot' : 'Shots'} · ${totalCount} ${totalCount === 1 ? 'Frame' : 'Frames'} · ${camTitle}`,
-    SHEET_LOGICAL_WIDTH - SHEET_PAD,
-    headerY + 18
-  );
-  ctx.fillStyle = PALETTE.textFaint;
-  ctx.font = `400 16px ${MONO_FONT}`;
-  ctx.fillText(
-    `${gateLabel} · ${panelWidth}×${panelHeight}`,
-    SHEET_LOGICAL_WIDTH - SHEET_PAD,
-    headerY + 46
-  );
-  ctx.textAlign = 'left';
 
-  if (summaryParts.length > 0) {
-    let sx = SHEET_PAD;
-    const sy = headerY + 86;
-    for (let i = 0; i < summaryParts.length; i++) {
-      if (i > 0) {
-        ctx.fillStyle = PALETTE.cardBorder;
-        ctx.font = `400 17px ${MONO_FONT}`;
-        ctx.fillText('|', sx, sy);
-        sx += ctx.measureText('|').width + 18;
-      }
+  const canvases: HTMLCanvasElement[] = [];
+
+  for (let pIdx = 0; pIdx < totalPages; pIdx++) {
+    const rowIdxList = pageRowIndices[pIdx];
+    const isFirstPage = pIdx === 0;
+    const headerH = isFirstPage ? firstHeaderH : contHeaderH;
+    const gapAfterHeader = isFirstPage ? firstGapAfterHeader : contGapAfterHeader;
+
+    const rowsContentH = rowIdxList.reduce(
+      (sum, rIdx, idx) => sum + rows[rIdx].height + (idx > 0 ? GRID_GAP : 0),
+      0
+    );
+    const logicalHeight =
+      rowIdxList.length === 0
+        ? SHEET_PAD * 2 + headerH + gapAfterHeader + 140
+        : SHEET_PAD * 2 + headerH + gapAfterHeader + rowsContentH;
+
+    const scale = Math.min(1, MAX_CANVAS_DIM / Math.max(1, logicalHeight));
+    const pageCanvas = document.createElement('canvas');
+    pageCanvas.width = Math.round(SHEET_LOGICAL_WIDTH * scale);
+    pageCanvas.height = Math.round(logicalHeight * scale);
+    const ctx = pageCanvas.getContext('2d');
+    if (!ctx) {
+      throw new Error('Failed to acquire 2D Contact Sheet canvas context.');
+    }
+
+    ctx.scale(scale, scale);
+
+    // 1. Clean White Paper Background
+    ctx.fillStyle = PALETTE.paperBg;
+    ctx.fillRect(0, 0, SHEET_LOGICAL_WIDTH, logicalHeight);
+
+    // 2. Page Header
+    const headerY = SHEET_PAD;
+    ctx.textBaseline = 'top';
+
+    if (isFirstPage) {
       ctx.fillStyle = PALETTE.textFaint;
-      ctx.font = `600 14px ${MONO_FONT}`;
-      ctx.fillText(summaryParts[i].title, sx, sy + 2);
-      sx += ctx.measureText(summaryParts[i].title).width + 12;
-
-      ctx.fillStyle = PALETTE.textBody;
-      ctx.font = `500 17px ${MONO_FONT}`;
-      const maxSummaryValW = Math.max(120, SHEET_LOGICAL_WIDTH - SHEET_PAD - sx);
-      const valText = truncateText(ctx, summaryParts[i].value, maxSummaryValW);
-      ctx.fillText(valText, sx, sy);
-      sx += ctx.measureText(valText).width + 18;
-    }
-  }
-
-  ctx.strokeStyle = PALETTE.subtleBorder;
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(SHEET_PAD, SHEET_PAD + headerHeight);
-  ctx.lineTo(SHEET_LOGICAL_WIDTH - SHEET_PAD, SHEET_PAD + headerHeight);
-  ctx.stroke();
-
-  // 3. Shot Cards
-  for (const box of cardBoxes) {
-    const radius = 14;
-    ctx.save();
-    drawRoundedRectPath(ctx, box.x, box.y, box.width, box.height, radius);
-    ctx.fillStyle = PALETTE.cardBg;
-    ctx.fill();
-    ctx.clip();
-
-    const tiles = computeTileRectsForCard(box, panelAspect);
-
-    // Subtle bay fill behind multi-tile / portrait frame areas
-    if (
-      box.isPortraitHorizontalCard ||
-      box.isLandscapeHorizontalStaticRow ||
-      box.isTripleStrip ||
-      box.isStartEndPair
-    ) {
-      const maxX = tiles.reduce((m, t) => Math.max(m, t.x + t.w), box.x);
-      const bayW = box.isHorizontalSplit ? maxX - box.x + 16 : box.width;
-      const bayH = box.isHorizontalSplit
-        ? box.height
-        : (tiles[0]?.h ?? 0) + (box.isStartEndPair ? 28 : 32);
-      ctx.fillStyle = '#f8fafc';
-      ctx.fillRect(box.x, box.y, bayW, bayH);
-    }
-
-    // Draw frame tiles + optional slate stamps & composition guides
-    for (const tile of tiles) {
-      ctx.save();
-      if (tile.rounded) {
-        drawRoundedRectPath(ctx, tile.x, tile.y, tile.w, tile.h, 8);
-      } else {
-        ctx.beginPath();
-        ctx.rect(tile.x, tile.y, tile.w, tile.h);
-      }
-      ctx.clip();
-
-      ctx.fillStyle = PALETTE.tileBayBg;
-      ctx.fillRect(tile.x, tile.y, tile.w, tile.h);
-
-      const img = loadedImages.get(tile.sample.key);
-      if (img) {
-        drawImageCover(ctx, img, tile.x, tile.y, tile.w, tile.h);
-      }
-
-      if (annotated || guideMode !== 'off') {
-        drawStoryboardOverlayInRect(
-          ctx,
-          { x: tile.x, y: tile.y, width: tile.w, height: tile.h },
-          {
-            guideMode,
-            includeSlate: annotated,
-            shotNumber: tile.sample.shot.shotNumber,
-            beatTag: tile.sample.beatTag,
-            stageTimeSec: tile.sample.stageTimeSec,
-            startSec: tile.sample.shot.startSec,
-            endSec: tile.sample.shot.endSec,
-          },
-          320
-        );
-      }
-      ctx.restore();
-
-      if (tile.rounded) {
-        drawRoundedRectPath(ctx, tile.x, tile.y, tile.w, tile.h, 8);
-        ctx.strokeStyle = PALETTE.subtleBorder;
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-      }
-    }
-
-    // Annotated technical footer/right-pane
-    if (annotated) {
-      const bayMaxX = tiles.reduce((m, t) => Math.max(m, t.x + t.w), box.x) + 16;
-      const bayMaxY =
-        (tiles[0]?.y ?? box.y) +
-        (tiles[0]?.h ?? 0) +
-        (box.isStartEndPair ? 14 : box.isTripleStrip ? 16 : 0);
-
-      const metaX = box.isHorizontalSplit ? bayMaxX : box.x;
-      const metaY = box.isHorizontalSplit ? box.y : bayMaxY;
-      const metaW = box.isHorizontalSplit ? box.x + box.width - metaX : box.width;
-      const padX = box.isHorizontalSplit ? 24 : 20;
-
-      ctx.strokeStyle = PALETTE.subtleBorder;
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      if (box.isHorizontalSplit) {
-        ctx.moveTo(metaX, metaY);
-        ctx.lineTo(metaX, box.y + box.height);
-      } else {
-        ctx.moveTo(metaX, metaY);
-        ctx.lineTo(metaX + metaW, metaY);
-      }
-      ctx.stroke();
-
-      let curY = metaY + 20;
-      const innerW = metaW - padX * 2;
-
-      // Title + optional multi-beat shot timecode
-      const timeStamp = `${box.meta.timeRangeText} (${box.meta.durationText})`;
-      let titleMaxW = innerW;
-      if (box.group.samples.length > 1) {
-        ctx.font = `400 16px ${MONO_FONT}`;
-        const tsWidth = ctx.measureText(timeStamp).width;
-        titleMaxW = Math.max(60, innerW - tsWidth - 16);
-        ctx.fillStyle = PALETTE.textFaint;
-        ctx.textAlign = 'right';
-        ctx.fillText(timeStamp, metaX + metaW - padX, curY + 2);
-        ctx.textAlign = 'left';
-      }
+      ctx.font = `600 16px ${MONO_FONT}`;
+      ctx.fillText('STORYBOARD CONTACT SHEET', SHEET_PAD, headerY);
 
       ctx.fillStyle = PALETTE.textMain;
-      ctx.font = `700 20px ${SANS_FONT}`;
+      ctx.font = `700 34px ${SANS_FONT}`;
       ctx.fillText(
-        truncateText(ctx, box.meta.label, titleMaxW),
-        metaX + padX,
-        curY
+        truncateText(ctx, score.title, innerWidth * 0.62),
+        SHEET_PAD,
+        headerY + 26
       );
-      curY += 34;
 
-      // Top hairline above spec table
-      ctx.strokeStyle = PALETTE.subtleBorder;
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(metaX + padX, curY);
-      ctx.lineTo(metaX + metaW - padX, curY);
-      ctx.stroke();
-      curY += 12;
+      ctx.textAlign = 'right';
+      ctx.fillStyle = PALETTE.textMuted;
+      ctx.font = `500 18px ${MONO_FONT}`;
+      ctx.fillText(
+        `${shotGroups.length} ${shotGroups.length === 1 ? 'Shot' : 'Shots'} · ${totalCount} ${totalCount === 1 ? 'Frame' : 'Frames'} · ${camTitle}`,
+        SHEET_LOGICAL_WIDTH - SHEET_PAD,
+        headerY + 18
+      );
+      ctx.fillStyle = PALETTE.textFaint;
+      ctx.font = `400 16px ${MONO_FONT}`;
+      const pageSuffix = totalPages > 1 ? ` · Page 1 / ${totalPages}` : '';
+      ctx.fillText(
+        `${gateLabel} · ${panelWidth}×${panelHeight}${pageSuffix}`,
+        SHEET_LOGICAL_WIDTH - SHEET_PAD,
+        headerY + 46
+      );
+      ctx.textAlign = 'left';
 
-      // 2-Column Technical Spec Table
-      const colGap = 16;
-      const cellW = (innerW - colGap) / 2;
-      let cellCol = 0;
+      if (summaryParts.length > 0) {
+        let sx = SHEET_PAD;
+        const sy = headerY + 86;
+        for (let i = 0; i < summaryParts.length; i++) {
+          if (i > 0) {
+            ctx.fillStyle = PALETTE.cardBorder;
+            ctx.font = `400 17px ${MONO_FONT}`;
+            ctx.fillText('|', sx, sy);
+            sx += ctx.measureText('|').width + 18;
+          }
+          ctx.fillStyle = PALETTE.textFaint;
+          ctx.font = `600 14px ${MONO_FONT}`;
+          ctx.fillText(summaryParts[i].title, sx, sy + 2);
+          sx += ctx.measureText(summaryParts[i].title).width + 12;
 
-      for (const spec of box.specRows) {
-        if (spec.spanFull && cellCol === 1) {
-          curY += 26;
-          cellCol = 0;
-        }
-        const cellX = metaX + padX + cellCol * (cellW + colGap);
-        const availW = spec.spanFull ? innerW : cellW;
-
-        ctx.fillStyle = PALETTE.textFaint;
-        ctx.font = `600 13px ${MONO_FONT}`;
-        ctx.fillText(spec.label, cellX, curY + 2);
-
-        const valX = cellX + 60;
-        ctx.fillStyle = PALETTE.textBody;
-        ctx.font = `500 16px ${MONO_FONT}`;
-        ctx.fillText(
-          truncateText(ctx, spec.value, Math.max(20, availW - 60)),
-          valX,
-          curY
-        );
-
-        if (spec.spanFull) {
-          curY += 26;
-          cellCol = 0;
-        } else if (cellCol === 1) {
-          curY += 26;
-          cellCol = 0;
-        } else {
-          cellCol = 1;
-        }
-      }
-      if (cellCol === 1) {
-        curY += 26;
-      }
-
-      curY += 4;
-      ctx.beginPath();
-      ctx.moveTo(metaX + padX, curY);
-      ctx.lineTo(metaX + metaW - padX, curY);
-      ctx.stroke();
-
-      if (box.noteLines.length > 0) {
-        curY += 14;
-        ctx.fillStyle = PALETTE.textMuted;
-        ctx.font = `400 18px ${SANS_FONT}`;
-        for (const line of box.noteLines) {
-          ctx.fillText(line, metaX + padX, curY);
-          curY += 24;
+          ctx.fillStyle = PALETTE.textBody;
+          ctx.font = `500 17px ${MONO_FONT}`;
+          const maxSummaryValW = Math.max(
+            120,
+            SHEET_LOGICAL_WIDTH - SHEET_PAD - sx
+          );
+          const valText = truncateText(
+            ctx,
+            summaryParts[i].value,
+            maxSummaryValW
+          );
+          ctx.fillText(valText, sx, sy);
+          sx += ctx.measureText(valText).width + 18;
         }
       }
+    } else {
+      ctx.fillStyle = PALETTE.textFaint;
+      ctx.font = `600 15px ${MONO_FONT}`;
+      ctx.fillText('STORYBOARD CONTACT SHEET', SHEET_PAD, headerY + 2);
+
+      ctx.fillStyle = PALETTE.textMain;
+      ctx.font = `700 24px ${SANS_FONT}`;
+      ctx.fillText(
+        truncateText(ctx, score.title, innerWidth * 0.62),
+        SHEET_PAD,
+        headerY + 24
+      );
+
+      ctx.textAlign = 'right';
+      ctx.fillStyle = PALETTE.textMuted;
+      ctx.font = `600 18px ${MONO_FONT}`;
+      ctx.fillText(
+        `Page ${pIdx + 1} / ${totalPages}`,
+        SHEET_LOGICAL_WIDTH - SHEET_PAD,
+        headerY + 8
+      );
+      ctx.fillStyle = PALETTE.textFaint;
+      ctx.font = `400 15px ${MONO_FONT}`;
+      ctx.fillText(
+        `${camTitle} · ${gateLabel}`,
+        SHEET_LOGICAL_WIDTH - SHEET_PAD,
+        headerY + 34
+      );
+      ctx.textAlign = 'left';
     }
 
-    ctx.restore();
-
-    // Outer card border
-    drawRoundedRectPath(ctx, box.x, box.y, box.width, box.height, radius);
-    ctx.strokeStyle = PALETTE.cardBorder;
-    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = PALETTE.subtleBorder;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(SHEET_PAD, SHEET_PAD + headerH);
+    ctx.lineTo(SHEET_LOGICAL_WIDTH - SHEET_PAD, SHEET_PAD + headerH);
     ctx.stroke();
+
+    // 3. Draw rows assigned to this page
+    let cursorY = SHEET_PAD + headerH + gapAfterHeader;
+    for (const rIdx of rowIdxList) {
+      const row = rows[rIdx];
+      for (const box of row.boxes) {
+        box.y = cursorY;
+        drawContactSheetCard(
+          ctx,
+          box,
+          loadedImages,
+          panelAspect,
+          annotated,
+          guideMode
+        );
+      }
+      cursorY += row.height + GRID_GAP;
+    }
+
+    canvases.push(pageCanvas);
   }
 
-  return outCanvas;
+  return canvases;
 }

@@ -7,10 +7,12 @@ import {
   cleanShotLabel,
   computeShotSampleTimeSec,
   formatStoryboardContactSheetFilename,
+  formatStoryboardContactSheetZipFilename,
   formatStoryboardFrameFilename,
   formatStoryboardPanelMeta,
   formatStoryboardShotMeta,
   formatStoryboardZipFilename,
+  paginateStoryboardRows,
   groupStoryboardSamplesByShot,
   resolveStoryboardLayoutSpec,
   summarizeStoryboardSheet,
@@ -431,5 +433,47 @@ describe('storyboardMath', () => {
         downloadedAt: fixedDate,
       })
     ).toBe('afraid_frames_observer_20261116_163601_720p.zip');
+
+    expect(
+      formatStoryboardContactSheetFilename({
+        scoreIdOrTitle: 'Vector Field',
+        targetCamera: 'stage-cam',
+        annotated: true,
+        pageNumber: 2,
+        totalPages: 4,
+      })
+    ).toBe('vector_field_storyboard_p02.png');
+
+    expect(
+      formatStoryboardContactSheetZipFilename({
+        scoreIdOrTitle: 'Vector Field',
+        targetCamera: 'stage-cam',
+        annotated: true,
+        downloadedAt: fixedDate,
+      })
+    ).toBe('vector_field_storyboard_20261116_163601.zip');
+  });
+
+  it('paginates Contact Sheet rows within page height budgets without splitting rows', () => {
+    expect(paginateStoryboardRows([], 2800, 2900, 28)).toEqual([[]]);
+
+    // Fits comfortably on 1 page
+    expect(paginateStoryboardRows([800, 800, 800], 2800, 2900, 28)).toEqual([
+      [0, 1, 2],
+    ]);
+
+    // Wraps cleanly onto page 2 when 4th row overflows firstPageBudget (800*3 + 28*2 = 2456 <= 2600; +828 = 3284 > 2600)
+    expect(
+      paginateStoryboardRows([800, 800, 800, 800, 800], 2600, 2800, 28)
+    ).toEqual([
+      [0, 1, 2],
+      [3, 4],
+    ]);
+
+    // Oversized single row stays whole on its own page without looping
+    expect(paginateStoryboardRows([3500, 900], 2600, 2800, 28)).toEqual([
+      [0],
+      [1],
+    ]);
   });
 });

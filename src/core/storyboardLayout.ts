@@ -545,17 +545,81 @@ export function formatStoryboardFrameFilename(params: {
 
 /**
  * Formats a deterministic Storyboard Contact Sheet PNG filename, e.g.:
- * `afraid_storyboard_stage_cam.png` or `vector_field_storyboard_observer_clean.png`.
+ * - Single page: `afraid_storyboard.png` or `vector_field_storyboard_observer_clean.png`
+ * - Multi-page entry: `vector_field_storyboard_p01.png`
  */
 export function formatStoryboardContactSheetFilename(params: {
   scoreIdOrTitle: string;
   targetCamera: ExportTargetCamera;
   annotated: boolean;
+  pageNumber?: number;
+  totalPages?: number;
 }): string {
   const slug = sanitizeExportSlug(params.scoreIdOrTitle);
   const camPart = params.targetCamera === 'observer' ? '_observer' : '';
   const cleanPart = params.annotated ? '' : '_clean';
-  return `${slug}_storyboard${camPart}${cleanPart}.png`;
+  const pagePart =
+    params.totalPages && params.totalPages > 1 && params.pageNumber != null
+      ? `_p${String(Math.max(1, Math.round(params.pageNumber))).padStart(2, '0')}`
+      : '';
+  return `${slug}_storyboard${camPart}${cleanPart}${pagePart}.png`;
+}
+
+/**
+ * Formats a deterministic multi-page Storyboard Contact Sheet ZIP filename, e.g.:
+ * `vector_field_storyboard_20261116_163905.zip`.
+ */
+export function formatStoryboardContactSheetZipFilename(params: {
+  scoreIdOrTitle: string;
+  targetCamera: ExportTargetCamera;
+  annotated: boolean;
+  downloadedAt?: Date;
+}): string {
+  const slug = sanitizeExportSlug(params.scoreIdOrTitle);
+  const camPart = params.targetCamera === 'observer' ? '_observer' : '';
+  const cleanPart = params.annotated ? '' : '_clean';
+  const clockTag = formatLocalClockTag(params.downloadedAt ?? new Date());
+  return `${slug}_storyboard${camPart}${cleanPart}_${clockTag}.zip`;
+}
+
+/**
+ * Packs row heights greedily into pages without splitting any row across a page boundary.
+ * Always places at least 1 row per page even if a single row exceeds the available budget.
+ */
+export function paginateStoryboardRows(
+  rowHeights: ReadonlyArray<number>,
+  firstPageBudget: number,
+  continuationPageBudget: number,
+  rowGap: number
+): number[][] {
+  if (rowHeights.length === 0) {
+    return [[]];
+  }
+
+  const pages: number[][] = [];
+  let currentPage: number[] = [];
+  let usedHeight = 0;
+
+  for (let i = 0; i < rowHeights.length; i++) {
+    const h = Math.max(0, rowHeights[i]);
+    const budget = pages.length === 0 ? firstPageBudget : continuationPageBudget;
+    const needed = currentPage.length === 0 ? h : usedHeight + rowGap + h;
+
+    if (currentPage.length > 0 && needed > budget) {
+      pages.push(currentPage);
+      currentPage = [i];
+      usedHeight = h;
+    } else {
+      currentPage.push(i);
+      usedHeight = needed;
+    }
+  }
+
+  if (currentPage.length > 0) {
+    pages.push(currentPage);
+  }
+
+  return pages;
 }
 
 /**
