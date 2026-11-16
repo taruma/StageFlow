@@ -111,7 +111,7 @@ function wrapTextLines(
   ctx: CanvasRenderingContext2D,
   text: string,
   maxWidth: number,
-  maxLines: number
+  maxLines = Number.POSITIVE_INFINITY
 ): string[] {
   if (!text.trim() || maxWidth <= 0 || maxLines <= 0) return [];
   const words = text.trim().split(/\s+/);
@@ -126,7 +126,7 @@ function wrapTextLines(
     }
     if (current) {
       lines.push(current);
-      if (lines.length === maxLines) {
+      if (lines.length >= maxLines) {
         const remaining = [words[i], ...words.slice(i + 1)].join(' ');
         lines[maxLines - 1] = truncateText(
           ctx,
@@ -138,7 +138,7 @@ function wrapTextLines(
       current = words[i];
     } else {
       lines.push(truncateText(ctx, words[i], maxWidth));
-      if (lines.length === maxLines) return lines;
+      if (lines.length >= maxLines) return lines;
       current = '';
     }
   }
@@ -642,12 +642,7 @@ function planContactSheetLayout(
       mctx.font = `400 18px ${SANS_FONT}`;
       const noteLines =
         annotated && meta.description
-          ? wrapTextLines(
-              mctx,
-              meta.description,
-              metaWidth - metaPadX * 2,
-              isHorizontalSplit ? 4 : 2
-            )
+          ? wrapTextLines(mctx, meta.description, metaWidth - metaPadX * 2)
           : [];
 
       let metaHeight = 0;
