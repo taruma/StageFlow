@@ -221,16 +221,16 @@ export const StoryboardPanelCard: React.FC<StoryboardPanelCardProps> = memo(
           </div>
 
           {/* Traditional Hairline Technical Spec Table */}
-          <div className="border-y border-border-subtle py-1.5 grid grid-cols-2 gap-x-3 gap-y-1 text-[10px] font-mono">
+          <div className="border-y border-border-subtle py-1.5 grid grid-cols-2 gap-x-2 gap-y-1 text-[9.5px] font-mono">
             {specItems.map((item) => (
               <div
                 key={item.label}
-                className={`flex items-baseline gap-1.5 min-w-0 cursor-help ${
+                className={`flex items-baseline gap-1 min-w-0 cursor-help ${
                   item.spanFull ? 'col-span-2' : ''
                 }`}
                 title={item.tooltip}
               >
-                <span className="text-[8.5px] uppercase tracking-wider text-text-faint shrink-0 w-[38px]">
+                <span className="text-[8px] uppercase tracking-wider text-text-faint shrink-0 w-[34px]">
                   {item.label}
                 </span>
                 <span className="text-text-body truncate">{item.value}</span>

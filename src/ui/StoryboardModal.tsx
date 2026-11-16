@@ -29,6 +29,7 @@ import {
   StoryboardPanelCard,
   type StoryboardCardLayoutMode,
 } from './StoryboardPanelCard';
+import { StoryboardSpecGuidePopover } from './StoryboardSpecGuidePopover';
 import { UI_TOKENS } from './tokens/ui';
 
 export interface StoryboardModalProps {
@@ -60,25 +61,32 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
   const [density, setDensity] = useState<StoryboardDensity>('balanced');
   const [guideMode, setGuideMode] = useState<StoryboardGuideMode>('off');
   const [annotated, setAnnotated] = useState<boolean>(true);
+  const [isSpecGuideOpen, setIsSpecGuideOpen] = useState<boolean>(false);
 
   // Sync DoF blur toggle from active Stage Cam state whenever the modal opens
   useEffect(() => {
     if (isOpen) {
       setLocalDofBlur(dofBlurEnabled);
+    } else {
+      setIsSpecGuideOpen(false);
     }
   }, [isOpen, dofBlurEnabled]);
 
-  // Close on Escape
+  // Close Spec Guide popover first, otherwise close Storyboard modal on Escape
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose();
+        if (isSpecGuideOpen) {
+          setIsSpecGuideOpen(false);
+        } else {
+          onClose();
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, isSpecGuideOpen, onClose]);
 
   const {
     canvasRef,
@@ -305,38 +313,23 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
                   No shots defined in this choreography score yet.
                 </div>
               ) : (
-                <>
-                  <div className={`grid gap-4 ${gridClass}`}>
-                    {shotGroups.map((group) => (
-                      <StoryboardPanelCard
-                        key={group.key}
-                        group={group}
-                        panelsByKey={panelsByKey}
-                        width={dims.width}
-                        height={dims.height}
-                        targetCamera={targetCamera}
-                        annotated={annotated}
-                        guideMode={guideMode}
-                        layoutMode={layoutMode}
-                        isPortrait={layoutSpec.isPortrait}
-                        effectiveDensity={layoutSpec.effectiveDensity}
-                      />
-                    ))}
-                  </div>
-
-                  {annotated && (
-                    <div className="pt-3 border-t border-border-subtle flex flex-wrap items-center gap-x-3 gap-y-1 text-[9.5px] font-mono text-text-faint">
-                      <span className="uppercase tracking-widest font-semibold text-text-muted">
-                        Spec Key
-                      </span>
-                      <span>TARGET subject · Δ[X, Y, Z]m</span>
-                      <span className="text-border-main select-none">|</span>
-                      <span>CAM dist · Y yaw · P pitch · R roll</span>
-                      <span className="text-border-main select-none">|</span>
-                      <span>FOCUS depth (near–far DoF)</span>
-                    </div>
-                  )}
-                </>
+                <div className={`grid gap-4 ${gridClass}`}>
+                  {shotGroups.map((group) => (
+                    <StoryboardPanelCard
+                      key={group.key}
+                      group={group}
+                      panelsByKey={panelsByKey}
+                      width={dims.width}
+                      height={dims.height}
+                      targetCamera={targetCamera}
+                      annotated={annotated}
+                      guideMode={guideMode}
+                      layoutMode={layoutMode}
+                      isPortrait={layoutSpec.isPortrait}
+                      effectiveDensity={layoutSpec.effectiveDensity}
+                    />
+                  ))}
+                </div>
               )}
             </div>
           </div>
@@ -362,13 +355,20 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
             )}
           </div>
 
-          <button
-            type="button"
-            onClick={onClose}
-            className={UI_TOKENS.button.secondary}
-          >
-            Close
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <StoryboardSpecGuidePopover
+              isOpen={isSpecGuideOpen}
+              onToggle={() => setIsSpecGuideOpen((prev) => !prev)}
+              onClose={() => setIsSpecGuideOpen(false)}
+            />
+            <button
+              type="button"
+              onClick={onClose}
+              className={UI_TOKENS.button.secondary}
+            >
+              Close
+            </button>
+          </div>
         </div>
 
         {/* Offscreen WebGL Renderer (mounted strictly during batch capture) */}

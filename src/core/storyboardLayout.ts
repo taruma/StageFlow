@@ -226,6 +226,11 @@ function formatRigName(type: string): string {
   return type === 'spline_track' ? 'spline' : type;
 }
 
+function normalizeRoundedDeg360(rad: number): number {
+  const deg = Math.round(radToDeg(rad)) % 360;
+  return Object.is(deg, -0) ? 0 : deg;
+}
+
 function formatSignedDeg(rad: number, prefix = ''): string {
   const deg = Math.round(radToDeg(rad));
   const val = deg > 0 ? `+${deg}°` : `${deg}°`;
@@ -347,8 +352,8 @@ export function formatStoryboardShotMeta(
       ? dist1
       : `${firstTrack.transform.pose.distance.toFixed(1)}→${dist2}`;
 
-  const yaw1Deg = Math.round(radToDeg(firstTrack.transform.pose.yaw));
-  const yaw2Deg = Math.round(radToDeg(lastTrack.transform.pose.yaw));
+  const yaw1Deg = normalizeRoundedDeg360(firstTrack.transform.pose.yaw);
+  const yaw2Deg = normalizeRoundedDeg360(lastTrack.transform.pose.yaw);
   const yawStr =
     yaw1Deg === yaw2Deg ? `Y${yaw1Deg}°` : `Y${yaw1Deg}→${yaw2Deg}°`;
   const yawVerbose =

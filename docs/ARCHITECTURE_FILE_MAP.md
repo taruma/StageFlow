@@ -198,6 +198,7 @@ stageflow/
 │   │   ├── StoryboardModal.tsx      # Storyboard Contact Sheet generator & viewer modal (Phase 1)
 │   │   ├── StoryboardControlsSidebar.tsx # Storyboard render & instant layout controls sidebar
 │   │   ├── StoryboardGuideOverlay.tsx # Instant CSS/SVG Rule-of-Thirds, Safe-Action & Crosshair guides overlay
+│   │   ├── StoryboardSpecGuidePopover.tsx # Footer "?" Spec Guide popover explaining technical card notation
 │   │   ├── StoryboardPanelCard.tsx  # Grouped shot storyboard card (1-up, Start-End 2-col, Start·Mid·End row)
 │   │   ├── StorageStatusBadge.tsx   # Visual status badge (Bundled vs. IndexedDB draft)
 │   │   └── InteractiveStudioApp.tsx # 3D choreography diorama & split workspace orchestrator

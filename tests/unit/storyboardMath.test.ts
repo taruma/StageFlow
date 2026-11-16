@@ -213,6 +213,13 @@ describe('storyboardMath', () => {
     expect(dollyMeta.targetTooltip).toBe('Target: Hero');
     expect(dollyMeta.rigText).toBe('track');
     expect(dollyMeta.rigTooltip).toBe('Physical Camera Mount: track');
+
+    // Verify 360-degree yaw normalizes to Y0° without overflowing 3-column cells
+    const wrappedYaml = MULTI_SHOT_YAML.replace('yaw: 82', 'yaw: 360');
+    const wrappedScore = parseValidScore(wrappedYaml);
+    const wrappedSamples = buildStoryboardSamples(wrappedScore, 'mid', 'stage-cam');
+    const wrappedMeta = formatStoryboardShotMeta([wrappedSamples[0]], 'stage-cam');
+    expect(wrappedMeta.cameraText).toBe('6.0m · Y0° · P+4° · R+5°');
     expect(dollyMeta.description).toBe('Slow dolly move toward hero.');
 
     const summary = summarizeStoryboardSheet(groups, 'stage-cam');
