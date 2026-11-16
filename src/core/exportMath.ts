@@ -324,3 +324,39 @@ export function formatExportMp4Filename(
   const cameraTag = targetCamera === 'observer' ? 'observer' : 'stage_cam';
   return `${baseSlug}${shotSuffix}${rangeSuffix}_${cameraTag}_${tier}p_${fps}fps.mp4`;
 }
+
+/**
+ * Formats a Date into a local wall-clock timestamp tag (`YYYYMMDD_HHmmss_SSS`)
+ * so consecutive snapshots at the same scene time remain uniquely identifiable.
+ */
+export function formatSnapshotClockTag(date: Date): string {
+  const pad2 = (n: number) => String(n).padStart(2, '0');
+  const pad3 = (n: number) => String(n).padStart(3, '0');
+  const year = date.getFullYear();
+  const month = pad2(date.getMonth() + 1);
+  const day = pad2(date.getDate());
+  const hours = pad2(date.getHours());
+  const minutes = pad2(date.getMinutes());
+  const seconds = pad2(date.getSeconds());
+  const millis = pad3(date.getMilliseconds());
+  return `${year}${month}${day}_${hours}${minutes}${seconds}_${millis}`;
+}
+
+/**
+ * Formats a clean Stage Cam PNG snapshot filename:
+ * `<slug>[_<shot-id>]_<scene-sec>s_snap_<YYYYMMDD_HHmmss_SSS>_<tier>p.png`
+ */
+export function formatExportSnapshotFilename(
+  scoreIdOrTitle: string,
+  timestampSec: number,
+  snapshotDate: Date,
+  shotId?: string | null,
+  tier: ExportResolutionTier = 1080
+): string {
+  const baseSlug = sanitizeExportSlug(scoreIdOrTitle);
+  const trimmedShotId = shotId?.trim() || null;
+  const shotSuffix = trimmedShotId ? `_${sanitizeExportSlug(trimmedShotId)}` : '';
+  const sceneTimeTag = `${formatRangeSecToken(timestampSec)}s`;
+  const clockTag = formatSnapshotClockTag(snapshotDate);
+  return `${baseSlug}${shotSuffix}_${sceneTimeTag}_snap_${clockTag}_${tier}p.png`;
+}

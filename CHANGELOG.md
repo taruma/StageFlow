@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+#### 1-Click 1080p Stage Cam PNG Snapshot
+
+- **Pure Snapshot Filename & Timestamp Formatting (`src/core/exportMath.ts`, `tests/unit/exportMath.test.ts`)**:
+  - Added `formatSnapshotClockTag` (`YYYYMMDD_HHmmss_SSS`) and `formatExportSnapshotFilename` (`<slug>[_<shot-id>]_<scene-sec>s_snap_<YYYYMMDD_HHmmss_SSS>_1080p.png`) so consecutive PNG snapshots at any playhead position remain uniquely identifiable.
+  - Added unit tests in `tests/unit/exportMath.test.ts` verifying zero-padding, shot ID slugs, and sub-second uniqueness (`296` passing tests across `23` suites).
+- **Offscreen Single-Frame PNG Capture Hook (`src/hooks/useStageCamSnapshot.ts`)**:
+  - Added `useStageCamSnapshot` to evaluate `computeStageFrame(timestampSec, score)` and `computeExportDimensions(1080, score.aspectRatio)`, mount `CleanStageCamExportCanvas` (`targetCamera="stage-cam"`, `gateScale = 1.0`, `labelMode="off"`) offscreen strictly during capture while inheriting active Diorama Theme and `[Blur]` DoF state, encode to `image/png`, trigger browser download, and unmount immediately (0% idle GPU overhead).
+- **Transport Bar Bottom-Left Capture Button (`src/ui/DirectorialTransportBar.tsx`, `src/ui/InteractiveStudioApp.tsx`, `docs/`)**:
+  - Placed a single-click Camera button on the bottom-left flank of Row 3 in `DirectorialTransportBar` (hidden `< 768px` via `hidden md:flex`) using a balanced `md:grid-cols-[1fr_auto_1fr]` layout so `DirectorialTransportDeck` remains dead-center, wired in `InteractiveStudioApp.tsx`, and documented across `docs/ARCHITECTURE_FILE_MAP.md`, `docs/DIORAMA_3D_AND_UI_SPECIFICATIONS.md`, `README.md`, and `AGENTS.md`.
+
 ### Fixed
 
 #### Continuous Rig Eye Inheritance, Parser Alias Parity & Living Documentation Sync

@@ -8,6 +8,7 @@
  */
 
 import React from 'react';
+import { Camera, Loader2 } from 'lucide-react';
 import type { StageFrame, StageScore } from '../core/types';
 import { DirectorialTimelineTrack } from './transport/DirectorialTimelineTrack';
 import { DirectorialShotChipsStrip } from './transport/DirectorialShotChipsStrip';
@@ -21,6 +22,7 @@ export interface DirectorialTransportBarProps {
   playbackRate: number;
   isMuted: boolean;
   loopActiveShot: boolean;
+  isCapturingSnapshot?: boolean;
   onTogglePlay: () => void;
   onPause?: () => void;
   onSeek: (targetSec: number) => void;
@@ -28,6 +30,7 @@ export interface DirectorialTransportBarProps {
   onSetPlaybackRate: (rate: number) => void;
   onToggleMute: () => void;
   onToggleLoopActiveShot: () => void;
+  onCaptureStageCamSnapshot?: () => void;
 }
 
 export const DirectorialTransportBar: React.FC<
@@ -40,6 +43,7 @@ export const DirectorialTransportBar: React.FC<
   playbackRate,
   isMuted,
   loopActiveShot,
+  isCapturingSnapshot = false,
   onTogglePlay,
   onPause,
   onSeek,
@@ -47,6 +51,7 @@ export const DirectorialTransportBar: React.FC<
   onSetPlaybackRate,
   onToggleMute,
   onToggleLoopActiveShot,
+  onCaptureStageCamSnapshot,
 }) => {
   const safeDuration = Math.max(0.1, durationSec);
   const currentSec = frame.timestampSec;
@@ -74,21 +79,45 @@ export const DirectorialTransportBar: React.FC<
         />
       </div>
 
-      {/* Row 3: Unified Centered Transport Island */}
-      <DirectorialTransportDeck
-        currentSec={currentSec}
-        safeDuration={safeDuration}
-        isPlaying={isPlaying}
-        playbackRate={playbackRate}
-        isMuted={isMuted}
-        loopActiveShot={loopActiveShot}
-        onTogglePlay={onTogglePlay}
-        onSeek={onSeek}
-        onStepFrames={onStepFrames}
-        onSetPlaybackRate={onSetPlaybackRate}
-        onToggleMute={onToggleMute}
-        onToggleLoopActiveShot={onToggleLoopActiveShot}
-      />
+      {/* Row 3: Unified Centered Transport Island + Desktop Bottom-Left Stage Cam Snapshot */}
+      <div className="w-full flex items-center justify-center md:grid md:grid-cols-[1fr_auto_1fr] md:items-center md:gap-3">
+        <div className="hidden md:flex items-center justify-start">
+          {onCaptureStageCamSnapshot && (
+            <button
+              type="button"
+              onClick={onCaptureStageCamSnapshot}
+              disabled={isCapturingSnapshot}
+              className="p-1.5 rounded-xl bg-surface hover:bg-surface-hover border border-border-main text-text-muted hover:text-text-main transition-all cursor-pointer shadow-2xs active:scale-95 disabled:opacity-50 disabled:cursor-wait"
+              title="Download clean 1080p Stage Cam PNG snapshot"
+              aria-label="Download clean 1080p Stage Cam PNG snapshot"
+            >
+              {isCapturingSnapshot ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-500" />
+              ) : (
+                <Camera className="w-3.5 h-3.5 text-amber-500" />
+              )}
+            </button>
+          )}
+        </div>
+
+        <DirectorialTransportDeck
+          currentSec={currentSec}
+          safeDuration={safeDuration}
+          isPlaying={isPlaying}
+          playbackRate={playbackRate}
+          isMuted={isMuted}
+          loopActiveShot={loopActiveShot}
+          onTogglePlay={onTogglePlay}
+          onSeek={onSeek}
+          onStepFrames={onStepFrames}
+          onSetPlaybackRate={onSetPlaybackRate}
+          onToggleMute={onToggleMute}
+          onToggleLoopActiveShot={onToggleLoopActiveShot}
+        />
+
+        {/* Right balancing spacer so Transport Deck stays mathematically centered */}
+        <div className="hidden md:block" aria-hidden="true" />
+      </div>
     </footer>
   );
 };

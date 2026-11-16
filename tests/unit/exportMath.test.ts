@@ -5,7 +5,9 @@ import {
   computeExportFrameTimestampSec,
   computeExportTimeRange,
   formatExportMp4Filename,
+  formatExportSnapshotFilename,
   formatExportTimeRangeTag,
+  formatSnapshotClockTag,
   resolveExportAspectRatio,
   roundToEven,
   sanitizeExportSlug,
@@ -352,5 +354,29 @@ describe('exportMath', () => {
         { startSec: 2.5, endSec: 6.0 }
       )
     ).toBe('vector_field_shot_2_push_stage_cam_1080p_60fps.mp4');
+  });
+
+  it('formats zero-padded snapshot clock tags and 1080p Stage Cam PNG filenames', () => {
+    const morningDate = new Date(2026, 0, 5, 7, 3, 9, 42);
+    expect(formatSnapshotClockTag(morningDate)).toBe('20260105_070309_042');
+
+    expect(
+      formatExportSnapshotFilename(
+        'Vector Field',
+        12.5,
+        morningDate,
+        'shot-03-ots'
+      )
+    ).toBe('vector_field_shot_03_ots_12_5s_snap_20260105_070309_042_1080p.png');
+
+    expect(
+      formatExportSnapshotFilename('Blank Stage', 0, morningDate, null)
+    ).toBe('blank_stage_0s_snap_20260105_070309_042_1080p.png');
+
+    // Consecutive snapshots at the same scene timestamp remain distinct
+    const nextInstant = new Date(2026, 0, 5, 7, 3, 9, 418);
+    expect(
+      formatExportSnapshotFilename('Vector Field', 12.5, nextInstant, 'shot-03-ots')
+    ).toBe('vector_field_shot_03_ots_12_5s_snap_20260105_070309_418_1080p.png');
   });
 });
