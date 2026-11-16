@@ -53,6 +53,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+#### Stage Cam DoF `deep` (`f/∞`) Shot-Cut Continuity (`src/stage/StageCamDofEffect.tsx`, `docs/DIORAMA_3D_AND_UI_SPECIFICATIONS.md`)
+
+- **Consistent `shallow` $\leftrightarrow$ `deep` (`f/∞`) Color in Stage Cam Blur ON (`src/stage/StageCamDofEffect.tsx`, `docs/DIORAMA_3D_AND_UI_SPECIFICATIONS.md`)**:
+  - Added a `uOpticalScale <= 0.0` 1-tap passthrough branch in `DOF_FRAGMENT_SHADER` (skipping depth sampling and the 28-tap bokeh loop) and routed `dof: 'deep'` (`f/∞`) shots through the Stage Cam FBO composite pass when `BLUR` is ON instead of bypassing to direct screen render, preserving the Stage Cam Blur-ON look without brightness or color jumps across `shallow` $\leftrightarrow$ `deep` cuts.
+
 #### Continuous Rig Eye Inheritance, Parser Alias Parity & Living Documentation Sync
 
 - **Continuous Camera Rig `E_prev` Inheritance (`src/core/cameraRigEvaluator.ts`, `src/core/shotPoseEvaluator.ts`, `src/core/trajectoryChain.ts`)**:
