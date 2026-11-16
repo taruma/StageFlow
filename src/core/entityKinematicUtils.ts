@@ -69,10 +69,11 @@ export function lerpAngleShortest(
 /**
  * Resolves start and end vertical pivot ratios for a cue:
  * - endPivot inherits prevPivot when cuePivotRatio is undefined.
- * - startPivot adopts endPivot immediately when `isCut` is true OR when the entity starts
- *   the cue upright (|startPitchRad| < 1e-8 && |startRollRad| < 1e-8), since upright poses
- *   are 100% invariant to pivot ratio (zero world-space jump) and this keeps the hinge fixed
- *   throughout a 0° -> θ° takeoff/tilt transition.
+ * - startPivot adopts endPivot immediately when `isCut` is true OR when the entity's local +Y
+ *   spine axis is upright at cue start (`1 - cos(startPitchRad) * cos(startRollRad) < 1e-8`,
+ *   including 0° and 360° multi-turn multiples), since upright poses are 100% invariant to
+ *   pivot ratio (`||e_y - R*e_y||^2 = 2*(1 - cos(pitch)*cos(roll)) = 0`, zero world-space jump)
+ *   and this keeps the hinge fixed throughout a takeoff/tilt transition.
  * - When the entity is already tilted at cue start (!isCut && !isStartUpright), startPivot
  *   starts at prevPivot and eases smoothly to endPivot to preserve C0 world continuity.
  */
@@ -85,7 +86,7 @@ export function resolveCueStartEndPivot(
 ): { startPivot: number; endPivot: number } {
   const endPivot = cuePivotRatio ?? prevPivot;
   const isStartUpright =
-    Math.abs(startPitchRad) < 1e-8 && Math.abs(startRollRad) < 1e-8;
+    1 - Math.cos(startPitchRad) * Math.cos(startRollRad) < 1e-8;
   const startPivot = isCut || isStartUpright ? endPivot : prevPivot;
   return { startPivot, endPivot };
 }

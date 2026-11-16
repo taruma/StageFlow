@@ -7,7 +7,10 @@ import {
   evaluateLegacyEntitiesAtTime,
   resolveLookAtPoint,
 } from '../../src/core/entityEngine';
-import { computeOrientedBoundingBox } from '../../src/core/entityKinematicUtils';
+import {
+  computeOrientedBoundingBox,
+  resolveCueStartEndPivot,
+} from '../../src/core/entityKinematicUtils';
 import {
   computeRotatedSubAnchorPoint,
   computeTiltedEntityLabelOffset,
@@ -1440,6 +1443,16 @@ shots:
 
       // Cue 3: cut: true snaps pivot immediately to 1.0
       expect(evaluateEntitiesAtTime(6.0, score!).entitiesById.get('hero')!.pivotRatio).toBeCloseTo(1.0, 6);
+
+      // Direct unit check on resolveCueStartEndPivot for 360-degree (2*PI) upright equivalence
+      expect(resolveCueStartEndPivot(0.5, 0, Math.PI * 2, 0, false)).toEqual({
+        startPivot: 0.5,
+        endPivot: 0.5,
+      });
+      expect(resolveCueStartEndPivot(0.5, 0, Math.PI, Math.PI, false)).toEqual({
+        startPivot: 0.5,
+        endPivot: 0.5,
+      });
 
       // Verify legacy shots[].entities parity for mid-tilt easing & upright takeoff
       const legacyYaml = `
