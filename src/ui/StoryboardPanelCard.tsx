@@ -120,10 +120,10 @@ export const StoryboardPanelCard: React.FC<StoryboardPanelCardProps> = memo(
 
     const footerContent = annotated ? (
       <div
-        className={`p-2.5 space-y-1.5 bg-surface flex-1 flex flex-col justify-between ${
+        className={`p-2.5 bg-surface flex-1 flex flex-col ${
           isHorizontalStaticRow
-            ? 'sm:p-3.5 border-t sm:border-t-0 sm:border-l border-border-subtle'
-            : 'border-t border-border-subtle'
+            ? 'sm:p-3.5 justify-start gap-2.5 border-t sm:border-t-0 sm:border-l border-border-subtle'
+            : 'justify-between gap-1.5 border-t border-border-subtle'
         }`}
       >
         <div className="space-y-1">
@@ -170,7 +170,9 @@ export const StoryboardPanelCard: React.FC<StoryboardPanelCardProps> = memo(
               className="text-text-faint shrink-0"
               title={`Duration: ${meta.durationText}`}
             >
-              {meta.timeRangeText}
+              {isHorizontalStaticRow
+                ? `${meta.timeRangeText} (${meta.durationText})`
+                : meta.timeRangeText}
             </span>
           </div>
         </div>
