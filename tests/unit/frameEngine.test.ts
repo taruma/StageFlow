@@ -2532,5 +2532,84 @@ shots:
       expect(f8.stageCamera.transform.target.y).toBeCloseTo(1.2, 4);
       expect(f8.stageCamera.transform.target.z).toBeCloseTo(-2.0, 4);
     });
+
+    it('tracks center-pivoted banking/pitching entities with live height scaling and thin-lens focus (#20)', () => {
+      const yaml = `
+version: "1.0"
+id: "pivot-frame-test"
+title: "Pivot Frame Test"
+duration: 4.0
+entities:
+  - id: "drone"
+    kind: "prop"
+    shape: "box"
+    position: [0.0, 2.0, 0.0]
+    size: [1.0, 1.0, 1.0]
+    pivot: "center"
+    pitch: 90
+    roll: 45
+  - id: "flyer"
+    kind: "character"
+    position: [2.0, 0.0, 0.0]
+    size: [0.5, 2.0, 0.5]
+blocking:
+  - id: "drone-grow"
+    entity: "drone"
+    start: 0.0
+    end: 4.0
+    size: [1.0, 3.0, 1.0]
+    easing: "linear"
+  - id: "flyer-flight"
+    entity: "flyer"
+    start: 0.0
+    end: 4.0
+    position: [2.0, 4.0, 0.0]
+    pitch: 90
+    pivot: "center"
+    easing: "linear"
+shots:
+  - id: "s1"
+    start: 0.0
+    end: 2.0
+    stage_camera:
+      target: "drone"
+      focus: "drone"
+      dof: "shallow"
+      distance: 4.0
+      pitch: 0
+      yaw: 0
+  - id: "s2"
+    start: 2.0
+    end: 4.0
+    stage_camera:
+      target: "flyer"
+      focus: "flyer.feet"
+      dof: "shallow"
+      distance: 5.0
+      pitch: 0
+      yaw: 90
+`;
+      const { score, error } = parseStageScore(yaml);
+      expect(error).toBeNull();
+      expect(score).not.toBeNull();
+
+      // Shot 1 at t=1.0s: drone live height = 1.5m -> center-pivoted target stays at (0, 2.0 + 0.5*1.5 = 2.75, 0)
+      const f1 = computeStageFrame(1.0, score!);
+      expect(f1.stageCamera.transform.target.x).toBeCloseTo(0.0, 4);
+      expect(f1.stageCamera.transform.target.y).toBeCloseTo(2.75, 4);
+      expect(f1.stageCamera.transform.target.z).toBeCloseTo(0.0, 4);
+      expect(f1.stageCamera.dof.focusTargetPoint?.y).toBeCloseTo(2.75, 4);
+
+      // Shot 2 at t=4.0s: flyer at [2.0, 4.0, 0.0], h=2.0, pivot=0.5 -> pivot at y=5.0m, pitch=90deg
+      // default eye anchor (0.9h -> +0.8m from pivot) rotates forward to (2.0, 5.0, +0.8)
+      // focus flyer.feet (0.05h -> -0.9m from pivot) rotates backward to (2.0, 5.0, -0.9)
+      const f4 = computeStageFrame(4.0, score!);
+      expect(f4.stageCamera.transform.target.x).toBeCloseTo(2.0, 4);
+      expect(f4.stageCamera.transform.target.y).toBeCloseTo(5.0, 4);
+      expect(f4.stageCamera.transform.target.z).toBeCloseTo(0.8, 4);
+      expect(f4.stageCamera.dof.focusTargetPoint?.x).toBeCloseTo(2.0, 4);
+      expect(f4.stageCamera.dof.focusTargetPoint?.y).toBeCloseTo(5.0, 4);
+      expect(f4.stageCamera.dof.focusTargetPoint?.z).toBeCloseTo(-0.9, 4);
+    });
   });
 });

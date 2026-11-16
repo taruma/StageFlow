@@ -33,6 +33,7 @@ import {
   parseApertureFStop,
   parseBlockingCues,
   parseDofPreset,
+  parseEntityPivotRatio,
   parseFocusTargetOrDistance,
   parseLensFocalLengthMm,
   parseMetricDistanceM,
@@ -61,6 +62,7 @@ export {
   parseApertureFStop,
   parseBlockingCues,
   parseDofPreset,
+  parseEntityPivotRatio,
   parseFocusTargetOrDistance,
   parseLensFocalLengthMm,
   parseMetricDistanceM,
@@ -255,6 +257,11 @@ export function parseStageScore(
         rotationYRad: parseAngleToRad(ent.rotation ?? ent.yaw, 0) ?? 0,
         pitchRad: parseAngleToRad(ent.pitch, 0) ?? 0,
         rollRad: parseAngleToRad(ent.roll, 0) ?? 0,
+        pivotRatio:
+          parseEntityPivotRatio(
+            ent.pivot ?? ent.pivot_ratio ?? ent.pivotRatio,
+            0
+          ) ?? 0,
         height,
         width,
         depth,
@@ -382,6 +389,9 @@ export function parseStageScore(
             rotationYRad: parseAngleToRad(ov.rotation ?? ov.yaw),
             pitchRad: parseAngleToRad(ov.pitch),
             rollRad: parseAngleToRad(ov.roll),
+            pivotRatio: parseEntityPivotRatio(
+              ov.pivot ?? ov.pivot_ratio ?? ov.pivotRatio
+            ),
             lookAt: parseTargetOrVec3(ov.look_at ?? ov.lookAt),
             ...dimOverrides,
             easing: normalizeCameraEasing(ov.easing),

@@ -7,8 +7,15 @@ import {
   evaluateLegacyEntitiesAtTime,
   resolveLookAtPoint,
 } from '../../src/core/entityEngine';
-import { computeOrientedBoundingBox } from '../../src/core/entityKinematicUtils';
-import { getEntityLookAnchor } from '../../src/core/cameraTargetResolver';
+import {
+  computeOrientedBoundingBox,
+  resolveCueStartEndPivot,
+} from '../../src/core/entityKinematicUtils';
+import {
+  computeRotatedSubAnchorPoint,
+  computeTiltedEntityLabelOffset,
+  getEntityLookAnchor,
+} from '../../src/core/cameraTargetResolver';
 import { parseStageScore } from '../../src/core/scoreParser';
 import { degToRad, rotateVec3YXZ, shortestAngleDiff } from '../../src/core/sphericalMath';
 
@@ -1290,6 +1297,263 @@ shots:
           );
         }
       }
+    });
+
+    it('rotates entity sub-anchors around custom vertical pivot ratios while remaining upright-invariant (#20)', () => {
+      const pos = { x: 1.5, y: 3.0, z: -2.0 };
+      const w = 0.6;
+      const h = 1.8;
+
+      // 1. Upright invariance (pitch=0, roll=0): pivot=0, 0.5, 1.0 yield identical anchors
+      for (const part of [undefined, 'head', 'chest', 'shoulder_l', 'waist', 'feet', 'top']) {
+        const baseAnchor = computeRotatedSubAnchorPoint(pos, 'character', w, h, 0.7, 0, 0, part, 0);
+        const centerAnchor = computeRotatedSubAnchorPoint(pos, 'character', w, h, 0.7, 0, 0, part, 0.5);
+        const topAnchor = computeRotatedSubAnchorPoint(pos, 'character', w, h, 0.7, 0, 0, part, 1.0);
+        expect(centerAnchor.x).toBeCloseTo(baseAnchor.x, 6);
+        expect(centerAnchor.y).toBeCloseTo(baseAnchor.y, 6);
+        expect(centerAnchor.z).toBeCloseTo(baseAnchor.z, 6);
+        expect(topAnchor.x).toBeCloseTo(baseAnchor.x, 6);
+        expect(topAnchor.y).toBeCloseTo(baseAnchor.y, 6);
+        expect(topAnchor.z).toBeCloseTo(baseAnchor.z, 6);
+      }
+
+      // 2. Center-pivoted prop (pivot=0.5, default anchor=0.5h): stationary under arbitrary 3D rotation
+      for (const [yawDeg, pitchDeg, rollDeg] of [
+        [0, 90, 0],
+        [45, -60, 30],
+        [-120, 145, -75],
+      ]) {
+        const anchor = computeRotatedSubAnchorPoint(
+          pos,
+          'prop',
+          1.2,
+          h,
+          degToRad(yawDeg),
+          degToRad(pitchDeg),
+          degToRad(rollDeg),
+          undefined,
+          0.5
+        );
+        expect(anchor.x).toBeCloseTo(pos.x, 6);
+        expect(anchor.y).toBeCloseTo(pos.y + 0.5 * h, 6);
+        expect(anchor.z).toBeCloseTo(pos.z, 6);
+      }
+
+      // 3. Center-pivoted flying character (h=1.8m at y=3.0 -> pivot at y=3.9m, pitch=90deg forward +Z)
+      // Eye anchor (0.9h = 1.62m -> +0.72m from pivot) rotates forward to (1.5, 3.9, -2.0 + 0.72)
+      const flyingHead = computeRotatedSubAnchorPoint(
+        pos,
+        'character',
+        w,
+        h,
+        0,
+        degToRad(90),
+        0,
+        undefined,
+        0.5
+      );
+      expect(flyingHead.x).toBeCloseTo(1.5, 5);
+      expect(flyingHead.y).toBeCloseTo(3.9, 5);
+      expect(flyingHead.z).toBeCloseTo(-1.28, 5);
+
+      // .feet (0.05h = 0.09m -> -0.81m from pivot) rotates backward to (1.5, 3.9, -2.0 - 0.81)
+      const flyingFeet = computeRotatedSubAnchorPoint(
+        pos,
+        'character',
+        w,
+        h,
+        0,
+        degToRad(90),
+        0,
+        'feet',
+        0.5
+      );
+      expect(flyingFeet.x).toBeCloseTo(1.5, 5);
+      expect(flyingFeet.y).toBeCloseTo(3.9, 5);
+      expect(flyingFeet.z).toBeCloseTo(-2.81, 5);
+    });
+
+    it('forward-chains cue-level pivot with C0 continuity across upright takeoffs, mid-tilt transitions, cuts, and look_at (#20)', () => {
+      const yaml = `
+version: "1.0"
+id: "pivot-chaining-test"
+title: "Pivot Chaining Test"
+duration: 9.0
+entities:
+  - id: "hero"
+    kind: "character"
+    position: [0, 0, 0]
+    height: 2.0
+    rotation: 0
+  - id: "spotter"
+    kind: "character"
+    position: [4, 0, 0]
+    rotation: -90
+blocking:
+  # Cue 1 (0..3): Upright takeoff to y=3.0, pivots from base->center immediately at t=0 (upright start -> zero jump, locked hinge)
+  - id: "takeoff"
+    entity: "hero"
+    start: 0.0
+    end: 3.0
+    position: [0, 3.0, 0]
+    pitch: 90
+    pivot: "center"
+    easing: "linear"
+  # Cue 2 (3..6): Already tilted at pitch=90, switches center->base -> eases smoothly from 0.5 to 0.0 for C0 continuity
+  - id: "mid-tilt-pivot-change"
+    entity: "hero"
+    start: 3.0
+    end: 6.0
+    pivot: "base"
+    easing: "linear"
+  # Cue 3 (6..9): Cut snaps pivot immediately to "top" (1.0)
+  - id: "cut-pivot"
+    entity: "hero"
+    start: 6.0
+    end: 9.0
+    cut: true
+    pivot: "top"
+  # Spotter tracks hero's head continuously across the takeoff
+  - id: "spotter-track"
+    entity: "spotter"
+    start: 0.0
+    end: 3.0
+    look_at: "hero"
+shots:
+  - id: "s1"
+    start: 0
+    end: 9
+`;
+      const { score, error } = parseStageScore(yaml);
+      expect(error).toBeNull();
+
+      // Cue 1: starts upright, so pivot locks immediately to 0.5 at t=0 and stays 0.5 through t=3
+      expect(evaluateEntitiesAtTime(0.0, score!).entitiesById.get('hero')!.pivotRatio).toBeCloseTo(0.5, 6);
+      expect(evaluateEntitiesAtTime(1.5, score!).entitiesById.get('hero')!.pivotRatio).toBeCloseTo(0.5, 6);
+      expect(evaluateEntitiesAtTime(2.999, score!).entitiesById.get('hero')!.pivotRatio).toBeCloseTo(0.5, 6);
+
+      // Spotter gaze at end of Cue 1: hero at [0, 3, 0], pitch=90, h=2.0, pivot=0.5 -> head at z = (0.9 - 0.5)*2.0 = +0.8m
+      const spotterEnd = evaluateEntitiesAtTime(2.999, score!).entitiesById.get('spotter')!;
+      expect(spotterEnd.rotationYRad).toBeCloseTo(Math.atan2(0 - 4, 0.8 - 0), 4);
+
+      // Cue 2: starts already tilted (pitch=90), so pivot eases smoothly 0.5 -> 0.25 -> 0.0 (zero C0 jump at t=3.0)
+      expect(evaluateEntitiesAtTime(3.0, score!).entitiesById.get('hero')!.pivotRatio).toBeCloseTo(0.5, 6);
+      expect(evaluateEntitiesAtTime(4.5, score!).entitiesById.get('hero')!.pivotRatio).toBeCloseTo(0.25, 6);
+      expect(evaluateEntitiesAtTime(5.999, score!).entitiesById.get('hero')!.pivotRatio).toBeCloseTo(0.5 * (1 - 2.999 / 3), 6);
+
+      // Cue 3: cut: true snaps pivot immediately to 1.0
+      expect(evaluateEntitiesAtTime(6.0, score!).entitiesById.get('hero')!.pivotRatio).toBeCloseTo(1.0, 6);
+
+      // Direct unit check on resolveCueStartEndPivot for 360-degree (2*PI) upright equivalence
+      expect(resolveCueStartEndPivot(0.5, 0, Math.PI * 2, 0, false)).toEqual({
+        startPivot: 0.5,
+        endPivot: 0.5,
+      });
+      expect(resolveCueStartEndPivot(0.5, 0, Math.PI, Math.PI, false)).toEqual({
+        startPivot: 0.5,
+        endPivot: 0.5,
+      });
+
+      // Verify legacy shots[].entities parity for mid-tilt easing & upright takeoff
+      const legacyYaml = `
+version: "1.0"
+id: "pivot-legacy-test"
+title: "Pivot Legacy Test"
+duration: 6.0
+entities:
+  - id: "drone"
+    kind: "prop"
+    position: [0, 2, 0]
+    height: 1.0
+shots:
+  - id: "s1"
+    start: 0
+    end: 3
+    entities:
+      drone:
+        pitch: 90
+        pivot: "center"
+        easing: "linear"
+  - id: "s2"
+    start: 3
+    end: 6
+    entities:
+      drone:
+        pivot: "base"
+        easing: "linear"
+`;
+      const legacyScore = parseStageScore(legacyYaml).score!;
+      expect(evaluateEntitiesAtTime(0.0, legacyScore).entitiesById.get('drone')!.pivotRatio).toBeCloseTo(0.5, 6);
+      expect(evaluateEntitiesAtTime(3.0, legacyScore).entitiesById.get('drone')!.pivotRatio).toBeCloseTo(0.5, 6);
+      expect(evaluateEntitiesAtTime(4.5, legacyScore).entitiesById.get('drone')!.pivotRatio).toBeCloseTo(0.25, 6);
+      expect(evaluateEntitiesAtTime(6.0, legacyScore).entitiesById.get('drone')!.pivotRatio).toBeCloseTo(0.0, 6);
+    });
+
+    it('computes kind-aware floating label offsets for pivoted and inverted entities (#20)', () => {
+      // Upright invariance across all kinds
+      expect(computeTiltedEntityLabelOffset('character', undefined, 0.5, 1.8, 0.5, 0, 0, 0.5)).toEqual({
+        x: 0,
+        y: 2.08,
+        z: 0,
+      });
+
+      // Character at pivot=0.5, pitch=90deg (horizontal flight +Z): crown at (0, 0.5h, +0.5h)
+      const charFlight = computeTiltedEntityLabelOffset(
+        'character',
+        undefined,
+        0.5,
+        1.8,
+        0.5,
+        degToRad(90),
+        0,
+        0.5
+      );
+      expect(charFlight.x).toBeCloseTo(0, 5);
+      expect(charFlight.y).toBeCloseTo(0.9 + 0.28, 5);
+      expect(charFlight.z).toBeCloseTo(0.9, 5);
+
+      // Character inverted upside down (pivot=0.5, pitch=180deg): clamped above baseY (=1.8m), never sinking to 0.28m
+      const charInverted = computeTiltedEntityLabelOffset(
+        'character',
+        undefined,
+        0.5,
+        1.8,
+        0.5,
+        degToRad(180),
+        0,
+        0.5
+      );
+      expect(charInverted.y).toBeCloseTo(1.8 + 0.28, 5);
+
+      // Sphere prop (w=h=d=1.0, pivot=0.5) stays invariant at (0, 1.0 + 0.28, 0) under any tilt
+      const sphereLabel = computeTiltedEntityLabelOffset(
+        'prop',
+        'sphere',
+        1.0,
+        1.0,
+        1.0,
+        degToRad(53),
+        degToRad(-37),
+        0.5
+      );
+      expect(sphereLabel.x).toBeCloseTo(0, 5);
+      expect(sphereLabel.y).toBeCloseTo(1.28, 5);
+      expect(sphereLabel.z).toBeCloseTo(0, 5);
+
+      // Box prop (w=2.0, h=0.8, d=1.0, pivot=0.5, pitch=90deg): center at y=0.4, depth half-extent rz=0.5 rises along Y -> 0.4 + 0.5 + 0.28 = 1.18m
+      const boxLabel = computeTiltedEntityLabelOffset(
+        'prop',
+        'box',
+        2.0,
+        0.8,
+        1.0,
+        degToRad(90),
+        0,
+        0.5
+      );
+      expect(boxLabel.x).toBeCloseTo(0, 5);
+      expect(boxLabel.y).toBeCloseTo(1.18, 5);
+      expect(boxLabel.z).toBeCloseTo(0, 5);
     });
   });
 });

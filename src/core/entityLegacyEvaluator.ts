@@ -27,6 +27,7 @@ import {
   getEntityBaseSize,
   lerpAngleShortest,
   relaxLookAtPoses,
+  resolveCueStartEndPivot,
   resolveCueStartEndSize,
 } from './entityKinematicUtils';
 
@@ -50,6 +51,7 @@ export function evaluateLegacyEntitiesAtTime(
       rotationYRad: def.rotationYRad,
       pitchRad: def.pitchRad ?? 0,
       rollRad: def.rollRad ?? 0,
+      pivotRatio: def.pivotRatio ?? 0,
       visible: true,
       size: getEntityBaseSize(def),
     });
@@ -66,6 +68,7 @@ export function evaluateLegacyEntitiesAtTime(
       rotationYRad: pose.rotationYRad,
       pitchRad: pose.pitchRad,
       rollRad: pose.rollRad,
+      pivotRatio: pose.pivotRatio,
       visible: pose.visible,
       size: cloneVec3(pose.size),
     });
@@ -105,6 +108,15 @@ export function evaluateLegacyEntitiesAtTime(
 
       const endPitch = override?.pitchRad ?? prev.pitchRad;
       const endRoll = override?.rollRad ?? prev.rollRad;
+      const startPitch = isCut ? endPitch : prev.pitchRad;
+      const startRoll = isCut ? endRoll : prev.rollRad;
+      const { startPivot, endPivot } = resolveCueStartEndPivot(
+        override?.pivotRatio,
+        prev.pivotRatio,
+        startPitch,
+        startRoll,
+        isCut
+      );
       const baselineEndRot =
         override?.rotationYRad !== undefined
           ? override.rotationYRad
@@ -116,8 +128,9 @@ export function evaluateLegacyEntitiesAtTime(
       startMap.set(def.id, {
         position: startPos,
         rotationYRad: prev.rotationYRad,
-        pitchRad: isCut ? endPitch : prev.pitchRad,
-        rollRad: isCut ? endRoll : prev.rollRad,
+        pitchRad: startPitch,
+        rollRad: startRoll,
+        pivotRatio: startPivot,
         visible: override?.visible ?? prev.visible,
         size: startSize,
       });
@@ -128,6 +141,7 @@ export function evaluateLegacyEntitiesAtTime(
         rotationYRad: baselineEndRot,
         pitchRad: endPitch,
         rollRad: endRoll,
+        pivotRatio: endPivot,
         size: endSize,
       });
     }
@@ -162,6 +176,7 @@ export function evaluateLegacyEntitiesAtTime(
         rotationYRad: endRot,
         pitchRad: override?.pitchRad ?? startSnap.pitchRad,
         rollRad: override?.rollRad ?? startSnap.rollRad,
+        pivotRatio: endPoses.get(def.id)!.pivotRatio ?? startSnap.pivotRatio,
         visible: override?.visible ?? startSnap.visible,
         size: endSizes.get(def.id)!,
       };
@@ -272,7 +287,13 @@ export function evaluateLegacyEntitiesAtTime(
   const livePoses = new Map<string, EntityLookAtPose>();
   const preLookAtStates = new Map<
     string,
-    { rotY: number; pitchRad: number; rollRad: number; size: Vec3 }
+    {
+      rotY: number;
+      pitchRad: number;
+      rollRad: number;
+      pivotRatio: number;
+      size: Vec3;
+    }
   >();
   for (const def of score.entities) {
     const item = rawStates.get(def.id)!;
@@ -292,6 +313,9 @@ export function evaluateLegacyEntitiesAtTime(
       item.endSnap.rollRad,
       item.u
     );
+    const pivotRatio =
+      item.startSnap.pivotRatio +
+      item.u * (item.endSnap.pivotRatio - item.startSnap.pivotRatio);
     const size: Vec3 = {
       x:
         item.startSnap.size.x +
@@ -303,12 +327,13 @@ export function evaluateLegacyEntitiesAtTime(
         item.startSnap.size.z +
         item.u * (item.endSnap.size.z - item.startSnap.size.z),
     };
-    preLookAtStates.set(def.id, { rotY, pitchRad, rollRad, size });
+    preLookAtStates.set(def.id, { rotY, pitchRad, rollRad, pivotRatio, size });
     livePoses.set(def.id, {
       position: pos,
       rotationYRad: rotY,
       pitchRad,
       rollRad,
+      pivotRatio,
       size,
     });
   }
@@ -326,7 +351,7 @@ export function evaluateLegacyEntitiesAtTime(
     const pre = preLookAtStates.get(def.id)!;
 
     const rotY = livePoses.get(def.id)!.rotationYRad;
-    const { pitchRad, rollRad, size } = pre;
+    const { pitchRad, rollRad, pivotRatio, size } = pre;
 
     const trailPoints = override?.cut
       ? []
@@ -343,6 +368,7 @@ export function evaluateLegacyEntitiesAtTime(
       rotationYRad: rotY,
       pitchRad,
       rollRad,
+      pivotRatio,
       size,
       highlighted: item.highlighted,
       visible: item.visible,

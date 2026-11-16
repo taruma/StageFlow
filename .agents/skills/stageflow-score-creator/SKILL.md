@@ -61,14 +61,14 @@ flowchart TD
     - Standing human: `height: 1.7m`, `radius: 0.25m` (or `size: [0.5, 1.7, 0.3]`).
     - Seated human: `height: 1.2m`.
     - Conference / interrogation desk: `size: [2.0, 0.75, 1.0]`.
-  - Initial position `[x, y, z]`, facing rotation `rotation: 0deg` ($0^\circ$ faces downstage $+Z$), and optional 3D mesh tilt `pitch: 0` (`+90` = prone/head-first flight, `-90` = supine) and `roll: 0` (`+` = bank CW from behind). For prone floor poses (`pitch: 90`), set `y: 0.18` so the torso rests cleanly atop `Y = 0`.
+  - Initial position `[x, y, z]`, facing rotation `rotation: 0deg` ($0^\circ$ faces downstage $+Z$), optional 3D mesh tilt `pitch: 0` (`+90` = prone/head-first flight, `-90` = supine) and `roll: 0` (`+` = bank CW from behind), and optional vertical rotation pivot `pivot: "base"` (default `0.0` for floor/prone blocking; `"center"` / `0.5` for flying characters, rolling spheres, or tumbling mid-air props; `"top"` / `1.0` or any `0..1` ratio). For prone floor poses (`pitch: 90` with `pivot: "base"`), set `y: 0.18` so the torso rests cleanly atop `Y = 0`.
 
 ### Step 2: Decoupled Actor Kinematics (`blocking:`)
 - **Golden Rule**: Always stage continuous actor movement in the root `blocking:` block, **not** inside `shots[].entities`.
 - **Why**: Putting actor paths in root `blocking:` gives actors Option A continuous ground movement trails and lets them walk smoothly across multiple camera cuts without resetting or stopping.
 - Author cues with:
   - Explicit timing (`start: 0.0`, `end: 8.0` or `duration: 8.0`).
-  - Target destination `position: [x, y, z]` and optional destination tilt `pitch` / `roll` in degrees (e.g. `pitch: 65`, `roll: 25` for banked flight; inherited when omitted and preserved under `look_at`).
+  - Target destination `position: [x, y, z]` and optional destination tilt `pitch` / `roll` in degrees and vertical rotation hinge `pivot` (`"base"`, `"center"`, `"top"`, or `0..1`; e.g. `pitch: 65, roll: 25, pivot: "center"` for banked mid-air flight; inherited when omitted and preserved under `look_at`).
   - Dynamic facing (`look_at: "witness"` or `look_at: ["actor_a", "actor_b"]` for conversational midpoint).
   - Easing curve (`cruise` or `smooth` for natural walking momentum).
   - For jump cuts or immediate relocations without ground trails, set `cut: true`.

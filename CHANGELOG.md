@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Entity Rotation Pivot (`base` vs `center` vs `top` / `0..1`) (#20)
+
+- **Layer 1 AST & Pivot Normalizer (`src/core/types.ts`, `src/core/scorePrimitives.ts`, `src/core/scoreParser.ts`)**:
+  - Added optional `pivotRatio?: number` (clamped `[0, 1]`, default `0`) to `SceneEntityDef`, `EntityCueOverride`, `BlockingCueSpec`, and `EvaluatedEntityState` (plus `EntityLookAtPose`, `EntityPoseSnapshot`, and `ChainedBlockingCueEntry` in `src/core/entityKinematicUtils.ts`).
+  - Added `parseEntityPivotRatio` normalizing presets (`"base"`/`"bottom"`/`"feet"`/`"floor"`/`"ground"` $\to 0.0$, `"center"`/`"centre"`/`"middle"`/`"mid"`/`"waist"` $\to 0.5$, `"top"`/`"head"`/`"crown"`/`"apex"` $\to 1.0$) and numeric/string ratios clamped to `[0, 1]`, parsed across `entities[]` (`pivot`, `pivot_ratio`, `pivotRatio`), `blocking:` Format A & B (supporting scoped child override or parent inheritance), and `shots[].entities`.
+- **Layer 1 World Anchor, $C^0$ Forward-Chaining & Label Offset Math (`src/core/cameraTargetResolver.ts`, `src/core/entityKinematicUtils.ts`, `src/core/entityBlockingEvaluator.ts`, `src/core/entityLegacyEvaluator.ts`)**:
+  - Updated `computeRotatedSubAnchorPoint` to pivot local offsets around `(0, p * height, 0)` before `rotateVec3YXZ` (`world.y = pos.y + pivotY + rotated.y`), preserving upright invariance ($\theta = 0, \phi = 0$) and `#18`/`#19` parity (`p = 0`), and wired live `pivotRatio` through `getEntityLookAnchor`, `getEntityDefLookAnchor`, and `resolveLookAtPoint`.
+  - Added `resolveCueStartEndPivot` and forward-chained `pivotRatio` across `evaluateBlockingEntitiesAtTime` and `evaluateLegacyEntitiesAtTime`: locking immediately on `cut: true` or upright cue starts (`1 - cos(startPitchRad) * cos(startRollRad) < 1e-8`, including $0^\circ$ and $360^\circ$ multi-turn multiples with zero world jump), and easing smoothly (`startPivot + u * (endPivot - startPivot)`) when already tilted for $C^0$ continuity.
+  - Added `computeTiltedEntityLabelOffset` computing kind-aware badge positions (head/crown clamped above highest Y extent for characters; rotated center + closed-form shape support height for boxes, spheres, cylinders/capsules, and markers).
+- **Layer 4 3D Pivot Rig (`src/stage/DirectionalMannequin.tsx`)**:
+  - Added an imperative `pivotOffsetRef` inside `tiltGroupRef` wrapping `meshContainerRef`, setting `tiltGroupRef` to `(0, pivotRatio * liveH, 0)` and `pivotOffsetRef` to `(0, -pivotRatio * liveH, 0)` at 60fps in `syncEntityTransform` while keeping non-uniform scaling shear-free and updating `labelGroupRef` via `computeTiltedEntityLabelOffset`.
+- **Unit Tests & Living Documentation (`tests/unit/`, `docs/*.md`, `.agents/skills/`, `README.md`, `AGENTS.md`)**:
+  - Added unit tests in `tests/unit/scoreParser.test.ts`, `tests/unit/entityEngine.test.ts`, `tests/unit/frameEngine.test.ts`, and `tests/unit/scoreMinimapUtils.test.ts` (`302` passing tests across `23` suites), and synchronized `docs/STAGEFLOW_SCRIPT_SPECIFICATION.md`, `docs/YAML_AUTHORING_GUIDE.md`, `docs/CORE_MATH_AND_SCORE_SPECIFICATIONS.md`, `docs/DIORAMA_3D_AND_UI_SPECIFICATIONS.md`, `.agents/skills/stageflow-score-creator/SKILL.md`, `.agents/skills/stageflow-score-debugger/SKILL.md`, `README.md`, and `AGENTS.md`.
+
 #### 1-Click 1080p Stage Cam PNG Snapshot
 
 - **Pure Snapshot Filename & Timestamp Formatting (`src/core/exportMath.ts`, `tests/unit/exportMath.test.ts`)**:

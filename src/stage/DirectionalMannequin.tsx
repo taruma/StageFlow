@@ -14,7 +14,7 @@ import { useFrame } from '@react-three/fiber';
 import { Line, Edges } from '@react-three/drei';
 import * as THREE from 'three';
 import { ENTITY_DEFAULTS } from '../core/constants';
-import { rotateVec3YXZ } from '../core/sphericalMath';
+import { computeTiltedEntityLabelOffset } from '../core/cameraTargetResolver';
 import type { Vec3 } from '../core/types';
 import { resolveGatedState } from './stageSyncGate';
 
@@ -82,6 +82,7 @@ const DirectionalMannequinComponent: React.FC<DirectionalMannequinProps> = ({
   const groupRef = useRef<THREE.Group | null>(null);
   const lastSyncedEntityRef = useRef<EvaluatedEntityState | null>(null);
   const tiltGroupRef = useRef<THREE.Group | null>(null);
+  const pivotOffsetRef = useRef<THREE.Group | null>(null);
   const meshContainerRef = useRef<THREE.Group | null>(null);
   const footprintRef = useRef<THREE.Group | null>(null);
   const labelGroupRef = useRef<THREE.Group | null>(null);
@@ -125,14 +126,6 @@ const DirectionalMannequinComponent: React.FC<DirectionalMannequinProps> = ({
       entity.position.z
     );
     groupRef.current.rotation.set(0, entity.rotationYRad, 0);
-    if (tiltGroupRef.current) {
-      tiltGroupRef.current.rotation.set(
-        entity.pitchRad ?? 0,
-        0,
-        entity.rollRad ?? 0,
-        'YXZ'
-      );
-    }
 
     const liveW = entity.size?.x ?? baseWidth;
     const liveH = entity.size?.y ?? height;
@@ -140,6 +133,21 @@ const DirectionalMannequinComponent: React.FC<DirectionalMannequinProps> = ({
     const sx = baseWidth > 1e-5 ? liveW / baseWidth : 1;
     const sy = height > 1e-5 ? liveH / height : 1;
     const sz = baseDepth > 1e-5 ? liveD / baseDepth : 1;
+    const pivotRatio = entity.pivotRatio ?? def.pivotRatio ?? 0;
+    const pivotOffsetY = pivotRatio * liveH;
+
+    if (tiltGroupRef.current) {
+      tiltGroupRef.current.position.set(0, pivotOffsetY, 0);
+      tiltGroupRef.current.rotation.set(
+        entity.pitchRad ?? 0,
+        0,
+        entity.rollRad ?? 0,
+        'YXZ'
+      );
+    }
+    if (pivotOffsetRef.current) {
+      pivotOffsetRef.current.position.set(0, -pivotOffsetY, 0);
+    }
 
     if (def.kind === 'character') {
       if (meshContainerRef.current) {
@@ -171,17 +179,17 @@ const DirectionalMannequinComponent: React.FC<DirectionalMannequinProps> = ({
       footprintRef.current.scale.set(sx, 1, sz);
     }
     if (labelGroupRef.current) {
-      const tiltedTop = rotateVec3YXZ(
-        { x: 0, y: liveH, z: 0 },
-        0,
+      const labelPos = computeTiltedEntityLabelOffset(
+        def.kind,
+        def.shape,
+        liveW,
+        liveH,
+        liveD,
         entity.pitchRad ?? 0,
-        entity.rollRad ?? 0
+        entity.rollRad ?? 0,
+        pivotRatio
       );
-      labelGroupRef.current.position.set(
-        tiltedTop.x,
-        Math.max(0, tiltedTop.y) + 0.28,
-        tiltedTop.z
-      );
+      labelGroupRef.current.position.set(labelPos.x, labelPos.y, labelPos.z);
     }
   };
 
@@ -626,15 +634,18 @@ const DirectionalMannequinComponent: React.FC<DirectionalMannequinProps> = ({
 
         {/* 3D Mesh Pitch/Roll Tilt Group (YXZ order, unscaled to prevent shear) */}
         <group ref={tiltGroupRef}>
-          {/* Scaled 3D Mesh Container (Base at Y=0) */}
-          <group ref={meshContainerRef}>
-            {def.kind === 'character' ? (
-              renderCharacter()
-            ) : def.kind === 'prop' ? (
-              renderPropShape()
-            ) : (
-              renderMarkerShape()
-            )}
+          {/* Local Vertical Pivot Offset (-p * liveH) */}
+          <group ref={pivotOffsetRef}>
+            {/* Scaled 3D Mesh Container (Base at Y=0) */}
+            <group ref={meshContainerRef}>
+              {def.kind === 'character' ? (
+                renderCharacter()
+              ) : def.kind === 'prop' ? (
+                renderPropShape()
+              ) : (
+                renderMarkerShape()
+              )}
+            </group>
           </group>
         </group>
 

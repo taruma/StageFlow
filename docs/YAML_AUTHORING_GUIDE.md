@@ -394,6 +394,7 @@ entities:
     rotation: 90               # Facing +90° (toward +X Stage Right; alias: yaw)
     pitch: 0                   # Optional forward/back tilt in degrees (+90 = prone toward +Z, -90 = supine)
     roll: 0                    # Optional lateral bank in degrees (+ = CW from behind entity)
+    pivot: "base"              # Optional vertical rotation pivot: "base" (0.0, default) | "center" (0.5) | "top" (1.0) | 0..1 (aliases: pivot_ratio, pivotRatio)
     size: [0.55, 1.82, 0.45]   # [w, h, d] 3D dimensions in meters (or explicit width, height, depth)
     color: "#38bdf8"           # Hex token for proxy, badge, and floor ring
 
@@ -889,6 +890,7 @@ blocking:
     rotation: 45               # Explicit destination facing angle in degrees (alias: yaw)
     pitch: 0                   # Optional destination X-axis tilt in degrees (+90 = prone / head-first flight)
     roll: 0                    # Optional destination Z-axis bank in degrees (+ = CW from behind)
+    pivot: "base"              # Optional vertical rotation pivot override ("base" | "center" | "top" | 0..1)
     look_at: "witness"         # Dynamic continuous gaze tracking (alias: lookAt)
     easing: "cruise"           # Movement easing curve
     highlighted: true          # Active focus ring and tag (alias: highlight)
@@ -911,12 +913,12 @@ blocking:
 - **Supported Cue Dimension & Scale Aliases**: Both Format A and Format B `blocking:` cues (as well as `shots[].entities`) accept `size` / `dimensions` / `from_size` / `fromSize` / `size_start` / `sizeStart` / `size_end` / `sizeEnd`, `scale` / `from_scale` / `fromScale` / `scale_start` / `scaleStart` / `scale_end` / `scaleEnd`, and per-axis scalars `from_width` / `fromWidth` / `width_start` / `widthStart` / `width` / `width_end` / `widthEnd`, `from_height` / `fromHeight` / `height_start` / `heightStart` / `height` / `height_end` / `heightEnd`, `from_depth` / `fromDepth` / `depth_start` / `depthStart` / `from_length` / `depth` / `length` / `depth_end` / `depthEnd`, and `from_radius` / `fromRadius` / `radius_start` / `radiusStart` / `radius` / `radius_end` / `radiusEnd`.
 
 #### Dynamic Posture, Tilt & Dimension Transformations
-Actors and props can dynamically transform dimensions and 3D mesh tilt (`pitch`, `roll`) during `blocking:` cues:
-- **3D Mesh Tilt (`pitch` & `roll`)**: Entities pivot around their bottom-center base (`Y = 0`) in intrinsic `YXZ` order (`yaw -> pitch -> roll`). Only the 3D mesh tilts; ground footprints and badges stay flat/upright. Positive `pitch` tilts forward toward local `+Z` (`pitch: 90` = prone or head-first flight; `-90` = supine), and positive `roll` banks clockwise from behind. Both interpolate along the shortest arc using the cue's `easing`, preserve across `look_at` / walking auto-facing cues when omitted, and snap immediately on `cut: true`. For a character lying prone on the floor (`pitch: 90`), set `position: [x, 0.18, z]` so the horizontal torso rests cleanly atop the `Y = 0` grid.
+Actors and props can dynamically transform dimensions and 3D mesh tilt (`pitch`, `roll`, `pivot`) during `blocking:` cues:
+- **3D Mesh Tilt & Vertical Pivot (`pitch`, `roll` & `pivot`)**: Entities pivot around their vertical pivot `pivot` (`"base"` / `"bottom"` / `"feet"` $= 0.0$ default at $Y = 0$; `"center"` / `"middle"` / `"waist"` $= 0.5$; `"top"` / `"head"` / `"crown"` $= 1.0$; or any numeric ratio clamped to `[0, 1]`; aliases `pivot_ratio`, `pivotRatio`) in intrinsic `YXZ` order (`yaw -> pitch -> roll`). Use `"base"` for floor-standing/prone transitions (`y: 0.18` at `pitch: 90`), and `"center"` for mid-air flight, flips, banking drones, or rolling/tumbling props. Only the 3D mesh tilts; ground footprints stay flat while kind-aware badges track the rotated head (characters) or highest rotated extent above center (props/markers). `pitch` and `roll` interpolate along the shortest arc using the cue's `easing`, preserve across `look_at` / walking auto-facing cues when omitted, and snap immediately on `cut: true`. Per-cue `pivot` overrides forward-chain cleanly: locking immediately when starting upright or on `cut: true` (zero jump) and easing smoothly when already tilted.
 - **Animated Posture Changes**: Authoring `height: 1.15` causes an actor to smoothly crouch down or sit in a chair over the cue duration using the specified easing curve. Specifying `from_height` or `from_size` explicitly sets starting bounds; omitting them glides smoothly from the preceding cue's terminal dimensions.
 - **Rigid Anatomical Proportions (Telescoping Torso)**: When lowering an actor's height to sit on a chair or crouch behind cover (e.g. `height: 1.15`), StageFlow automatically protects anatomical proportions: the head sphere ($r = 0.14\text{m}$) and eye-visor cone remain perfectly spherical ($Y \equiv 1.0$) and the shoulder bar maintains standard thickness ($0.08\text{m}$). The torso column telescopes cleanly between the floor and shoulders without squashing the head or neck into a pancake.
 - **Per-Axis Forward Chaining**: Overriding one dimension (e.g. `height: 1.15`) does not reset other dimensions (`width`, `depth`) back to default; each axis preserves its active state across cues.
-- **Dynamic Look-At & Focus Tracking**: The Stage Camera's look-at target and thin-lens DoF focus plane dynamically follow the entity's moving and tilting anchor ($\vec{A}_i(t) = \vec{p}_i(t) + R_y(\psi_i(t))\,R_x(\theta_i(t))\,R_z(\phi_i(t))\,(0,\; \text{ratio} \cdot h_i(t),\; 0)^T$). When upright ($\theta_i = 0, \phi_i = 0$), this reduces identically to $(x_i(t), y_i(t) + \text{ratio} \cdot h_i(t), z_i(t))$. As an actor crouches, lies prone, or banks in flight, the camera smoothly tracks their 3D anchor and maintains sharp optical focus.
+- **Dynamic Look-At & Focus Tracking**: The Stage Camera's look-at target and thin-lens DoF focus plane dynamically follow the entity's moving and tilting anchor around its active vertical pivot ($\vec{A}_i(t) = \vec{p}_i(t) + (0,\; p_i(t) h_i(t),\; 0)^T + R_y(\psi_i(t))\,R_x(\theta_i(t))\,R_z(\phi_i(t))\,(0,\; (\text{ratio} - p_i(t)) h_i(t),\; 0)^T$). When upright ($\theta_i = 0, \phi_i = 0$), `pivot` cancels out completely and this reduces identically to $(x_i(t), y_i(t) + \text{ratio} \cdot h_i(t), z_i(t))$. As an actor crouches, lies prone, or banks in flight, the camera smoothly tracks their 3D anchor and maintains sharp optical focus.
 
 ```yaml
 blocking:
@@ -976,7 +978,7 @@ When evaluating root `blocking:` cues at timestamp $t$, the engine executes a de
 
 When root `blocking:` is declared in a score:
 1. `blocking:` claims **exclusive authority** over entity translation, facing rotation, dimensions/scale, and floor trails.
-2. Per-shot entity overrides in `shots[].entities` for `position`, `from`, `rotation`, `pitch`, `roll`, `look_at`, and dimension fields (`size`, `dimensions`, `scale`, `width`, `height`, `depth`, `from_*`) are **ignored**.
+2. Per-shot entity overrides in `shots[].entities` for `position`, `from`, `rotation`, `pitch`, `roll`, `pivot`, `look_at`, and dimension fields (`size`, `dimensions`, `scale`, `width`, `height`, `depth`, `from_*`) are **ignored**.
 3. Per-shot focus flags (`highlighted: true`) and staging notes (`note: "..."`) in `shots[].entities` layer non-destructively on top of the physical blocking movement (with an active `blocking:` cue's own `highlighted` or `note` taking precedence when both are set), while `shots[].entities[].visible` applies during preroll before the entity's first blocking cue begins.
 
 ### 6.4 Legacy Per-Shot Entity Overrides (`shots[].entities`)
@@ -995,6 +997,7 @@ shots:
         rotation: 45           # Facing angle in degrees
         pitch: 0               # Optional destination X-axis tilt in degrees
         roll: 0                # Optional destination Z-axis bank in degrees
+        pivot: "base"          # Optional vertical rotation pivot override ("base" | "center" | "top" | 0..1)
         look_at: "witness"     # Continuous gaze tracking
         easing: "smooth"
         highlighted: true      # Alias: highlight
@@ -1005,7 +1008,7 @@ shots:
 ```
 
 - Motion spans the complete duration of the shot ($[t_{\text{start}}, t_{\text{end}}]$), matching entity keys against declared `entities[].id` case-insensitively.
-- Entities inherit their terminal position, facing angle (`rotation`), `pitch`, `roll`, and dimensions into the subsequent shot unless overridden (or relocated via `from:` / `cut: true`).
+- Entities inherit their terminal position, facing angle (`rotation`), `pitch`, `roll`, `pivot`, and dimensions into the subsequent shot unless overridden (or relocated via `from:` / `cut: true`).
 - `highlighted:` defaults to `false` for each shot unless explicitly re-declared (whereas listing an entity in `shots[].entities` without `visible: false` sets `visible: true`).
 
 ### 6.5 Decoupled Diorama Viewport Moves (`observer_shots:`)

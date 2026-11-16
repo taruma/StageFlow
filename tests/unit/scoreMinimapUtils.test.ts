@@ -156,5 +156,37 @@ shots:
       // Shot 2 inherits base target (1, 0) and continuous offset (0.5, -1.0) -> camera at (1.5, 1.0)
       expect(layout.cameraTrackPath).toBe(' M 1.50 3.00 L 1.50 1.00');
     });
+
+    it('projects tilted entity targets using their configured vertical pivotRatio (#20)', () => {
+      const yaml = `
+version: "1.0"
+id: "minimap-pivot-test"
+title: "Minimap Pivot Test"
+duration: 4.0
+entities:
+  - id: "flyer"
+    kind: "character"
+    position: [1.0, 2.0, 0.0]
+    height: 2.0
+    pitch: 90
+    pivot: "center"
+shots:
+  - id: "s1"
+    start: 0
+    end: 4
+    stage_camera:
+      target: "flyer"
+      distance: 4.0
+      pitch: 0
+      yaw: 0
+`;
+      const { score, error } = parseStageScore(yaml);
+      expect(error).toBeNull();
+      const layout = computeMinimapLayout(score!);
+
+      // flyer h=2.0, pivot=0.5, pitch=90 -> eye anchor (0.9h -> +0.8m from pivot) rotates forward to z = +0.8m
+      expect(layout.cameraTarget.x).toBeCloseTo(1.0, 4);
+      expect(layout.cameraTarget.z).toBeCloseTo(0.8, 4);
+    });
   });
 });
