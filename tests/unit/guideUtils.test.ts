@@ -48,7 +48,7 @@ describe('guideUtils', () => {
     expect(guideToc.length).toBeGreaterThan(30);
 
     const guideH2s = guideToc.filter((item) => item.level === 2);
-    expect(guideH2s.length).toBe(7);
+    expect(guideH2s.length).toBe(8);
     guideH2s.forEach((h2, idx) => {
       expect(h2.id).toBe(`section-${idx + 1}`);
       expect(h2.sectionNumber).toBe(idx + 1);

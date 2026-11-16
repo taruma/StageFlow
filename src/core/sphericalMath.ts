@@ -248,3 +248,50 @@ export function computeFloorClampedMaxPolarAngle(
   return Math.min(maxSafeAngleRad, calculatedAngle);
 }
 
+/**
+ * Rotates a 3D vector by intrinsic YXZ Euler angles (yaw -> local pitch -> local roll)
+ * in Three.js right-handed Y-up space (+X = right, +Y = up, +Z = forward).
+ */
+export function rotateVec3YXZ(
+  v: Vec3,
+  yawRad: number,
+  pitchRad: number,
+  rollRad: number
+): Vec3 {
+  if (Math.abs(pitchRad) < 1e-8 && Math.abs(rollRad) < 1e-8) {
+    if (Math.abs(v.x) < 1e-8 && Math.abs(v.z) < 1e-8) {
+      return { x: 0, y: v.y, z: 0 };
+    }
+    const cy = Math.cos(yawRad);
+    const sy = Math.sin(yawRad);
+    return {
+      x: v.x * cy + v.z * sy,
+      y: v.y,
+      z: -v.x * sy + v.z * cy,
+    };
+  }
+  const cz = Math.cos(rollRad);
+  const sz = Math.sin(rollRad);
+  const cx = Math.cos(pitchRad);
+  const sx = Math.sin(pitchRad);
+  const cy = Math.cos(yawRad);
+  const sy = Math.sin(yawRad);
+
+  // 1. Roll around local Z
+  const x1 = v.x * cz - v.y * sz;
+  const y1 = v.x * sz + v.y * cz;
+  const z1 = v.z;
+
+  // 2. Pitch around local X
+  const x2 = x1;
+  const y2 = y1 * cx - z1 * sx;
+  const z2 = y1 * sx + z1 * cx;
+
+  // 3. Yaw around world Y
+  return {
+    x: x2 * cy + z2 * sy,
+    y: y2,
+    z: -x2 * sy + z2 * cy,
+  };
+}
+

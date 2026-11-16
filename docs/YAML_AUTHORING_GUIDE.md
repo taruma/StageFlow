@@ -55,6 +55,7 @@ StageFlow operates in a right-handed, **$Y$-Up** 3D Cartesian space centered at 
 | **`yaw` (Azimuth)** | Camera on `+Z` looking at `-Z` | **Counter-clockwise orbit toward `+X`** | **Clockwise orbit toward `-X`** | Degrees (`deg`)* |
 | **`roll` (Dutch angle)** | Level horizon (`0°`) | **Clockwise camera bank** (from operator POV) | **Counter-clockwise camera bank** | Degrees (`deg`)* |
 | **Entity `rotation`** | Mannequin faces `+Z` (downstage) | Faces toward `+X` (`+90°` = Stage Right) | Faces toward `-X` (`-90°` = Stage Left) | Degrees (`deg`)* |
+| **Entity `pitch` / `roll`** | Upright (`0°` vertical) | `+pitch` tilts forward toward local `+Z`; `+roll` banks clockwise from behind | `-pitch` tilts backward (supine); `-roll` banks counter-clockwise | Degrees (`deg`)* |
 
 > **Note:** All angles in YAML default to **human degrees** (`deg`). If you explicitly pass a string suffixed with `"rad"` (such as `"1.57rad"`), the parser interprets it directly as radians. Degree string suffixes such as `"45deg"` and `"45°"` are also accepted. For the exact spherical-to-Cartesian forward/inverse projection equations and roll basis vectors, see [StageFlow Script Specification §2](?mode=spec#section-2).
 
@@ -75,7 +76,7 @@ The engine enforces spatial and optical safety bounds across all evaluators:
 | **Camera Distance ($d$)** | `0.4m` | `100.0m` | `5.0m` |
 | **Camera Pitch ($\theta$)** | `-85.0°` | `+85.0°` | `14.3°` (`0.25 rad`) |
 | **Lens Focal Length ($f$)** | `12mm` | `200mm` | `50mm` |
-| **Shot Duration ($\Delta t$)** | `0.1s` | No upper bound | Clamped to $\text{start} + 0.1\text{s}$ |
+| **Shot Duration ($\Delta t$)** | `0.1s` (`0.016s` for `blocking:`) | No upper bound | Clamped to $\text{start} + 0.1\text{s}$ (`+0.016s` for `blocking:`) |
 | **Stage Floor Bounds** | `1.0m` | No upper bound | `10.0m × 10.0m` |
 
 ### 1.5 Score Root Block Anatomy
@@ -264,9 +265,9 @@ StageFlow organizes choreography scores into a clean 3-tier taxonomy (`study`, `
 3. **Confusing camera `target_offset` with root-level `offset`**: Root `offset: 0.0` calibrates the global media clock in seconds; to shift a camera's 3D look-at point in meters, use `target_offset: [dx, dy, dz]` (or `targetOffset`).
 4. **Expecting `roll` to hold across standard cuts without declaring it**: In standard mode (`continuous: false`), camera roll resets to level horizon (`0°`) at shot boundaries unless explicitly authored or chained via `continuous: true`.
 5. **Declaring a single `distance:` in standard mode expecting motion**: A single value establishes a constant distance throughout the shot. To animate distance in standard mode, provide `distance_start` and `distance_end`.
-6. **Writing entity movement in `shots[].entities` when root `blocking:` is present**: When root `blocking:` exists, it claims exclusive kinematic authority over position and rotation; per-shot entity maps provide only `highlighted: true` and `note:` overlays.
-7. **Entity ID mismatch**: Entity keys in `shots[].entities` must match the entity `id` exactly.
-8. **Shots shorter than 0.1s**: The engine clamps all shot durations to $\Delta t \ge 0.1\text{s}$.
+6. **Writing entity movement in `shots[].entities` when root `blocking:` is present**: When root `blocking:` exists, it claims exclusive kinematic authority over position, rotation, and dimensions; per-shot entity maps provide `highlighted` / `note` overlays (overridden by `blocking` if both define them) and preroll `visible` state before the first blocking cue runs.
+7. **Entity ID mismatch**: Entity keys in `shots[].entities` must match the declared entity `id` (case-insensitive; unlike `blocking:`, `shots[].entities` does not match entity `label`).
+8. **Shots shorter than 0.1s**: The engine clamps all `shots:` and `observer_shots:` durations to $\Delta t \ge 0.1\text{s}$ (while `blocking:` cues clamp to $\Delta t \ge 0.016\text{s}$).
 
 ---
 
@@ -294,7 +295,7 @@ This chapter defines scene-level metadata, video source binding, stage metric di
 | **`shots`** | `array` | `[]` | `score` | Mandatory array of film coverage shots. |
 | **`blocking`** | `array` | `undefined` | — | Optional decoupled actor/prop movement timeline. |
 | **`observer_shots`** | `array` | `undefined` | `observerShots` | Optional decoupled diorama viewport movement timeline. |
-| **`optics`** | `object` | `undefined` | *(Flat root keys also supported)* | Optional scene-wide optical defaults (`dof_blur: true` [aliases: `dofBlur`, `blur`], `dof: "shallow"`, `aperture: "f/2.8"`). |
+| **`optics`** | `object` | `undefined` | *(Flat root keys also supported)* | Optional scene-wide optical defaults (`dof_blur: true` [aliases: `dofBlur`, `blur`], `dof: "shallow"` [aliases: `depth_of_field`, `depthOfField`], `aperture: "f/2.8"` [aliases: `f_stop`, `fStop`]). Note: `dof_blur: true` turns viewfinder blur on when loading a score, whereas `false`/omitted preserves the current UI toggle. |
 
 ### 3.1.1 Scene Metadata & Production Notes (metadata:)
 
@@ -348,16 +349,16 @@ stage:
   grid_step: 1         # Major metric grid division in meters (default: 1; alias: gridStep)
   show_rigs: true      # Global toggle for 3D camera tripod stands and dolly tracks (default: true; alias: showRigs, or at score root)
 
-  # Baseline pose for Viewport Camera (used before Shot 1 or when unscripted)
+  # Baseline pose for Viewport Camera (used before Shot 1 or when unscripted; alias: observerCamera)
   observer_camera:
     target: [0, 1.0, 0]
     distance: 7.5
     pitch: 26
     yaw: 38
-    roll: 0
+    roll: 0              # Alias: dutch, tilt_roll
     lens: 35mm
 
-  # Baseline pose for Illustrative Stage Camera
+  # Baseline pose for Illustrative Stage Camera (alias: stageCamera)
   stage_camera:
     target: "actor_a"
     distance: 3.2
@@ -391,6 +392,9 @@ entities:
     style: "mannequin"         # "mannequin" (default) | "edges" | "silhouette" | "wireframe"
     position: [-1.2, 0, 0]     # [x, y, z] in meters (Y=0 is floor plane)
     rotation: 90               # Facing +90° (toward +X Stage Right; alias: yaw)
+    pitch: 0                   # Optional forward/back tilt in degrees (+90 = prone toward +Z, -90 = supine)
+    roll: 0                    # Optional lateral bank in degrees (+ = CW from behind entity)
+    pivot: "base"              # Optional vertical rotation pivot: "base" (0.0, default) | "center" (0.5) | "top" (1.0) | 0..1 (aliases: pivot_ratio, pivotRatio)
     size: [0.55, 1.82, 0.45]   # [w, h, d] 3D dimensions in meters (or explicit width, height, depth)
     color: "#38bdf8"           # Hex token for proxy, badge, and floor ring
 
@@ -443,9 +447,10 @@ Entities support full 3-dimensional control ($X, Y, Z$) to author realistic char
 
 | Authoring Syntax | Syntax Description & Behavior | Examples |
 | :--- | :--- | :--- |
-| **`size: [w, h, d]`** | 3-element vector specifying metric **width**, **height**, and **depth** in meters. | `size: [2.2, 0.78, 0.9]` *(conference table)*<br>`size: [0.55, 1.82, 0.45]` *(character proportions)* |
+| **`size: [w, h, d]`** | 3-element vector (or object `{width, height, depth}` / `{x, y, z}`; alias: `dimensions`) specifying metric **width**, **height**, and **depth** in meters. | `size: [2.2, 0.78, 0.9]` *(conference table)*<br>`size: [0.55, 1.82, 0.45]` *(character proportions)* |
 | **`size: [w, d]`** | 2-element vector specifying horizontal floor footprint (**width** and **depth**). Preserves default height. | `size: [2.0, 3.0]` *(area rug footprint)*<br>`size: [0.6, 0.6]` *(square column)* |
-| **`width`, `height`, `depth`** | Explicit scalar properties in meters. Override any values in `size`. `length` is accepted as an alias for `depth`. | `width: 2.4, height: 0.8, depth: 1.0`<br>`width: 1.5, height: 1.0` *(square box prop: depth defaults to width)* |
+| **`width`, `height`, `depth`** | Explicit scalar properties in meters. Override any values in `size`. `length` is accepted as an alias for `depth`. Omitting `depth` falls back symmetrically to `width` (and `width` to `depth`) across all entity kinds. | `width: 2.4, height: 0.8, depth: 1.0`<br>`width: 1.5, height: 1.0` *(square footprint: depth defaults to width)* |
+| **`scale`** | Multiplicative scaling factor relative to base dimensions (`s`, `[sx, sy, sz]`, `[sx, sz]`, or `{sx, sy, sz}` / `{x, y, z}`). | `scale: 1.25` *(uniform +25%)*<br>`scale: [1.5, 1.0, 0.8]` |
 | **`radius` derivation** | When `radius` is omitted, bounding radius is automatically derived as $r = \frac{\max(w, d)}{2}$. When `width` and `depth` are omitted, both default strictly to $2r$. | `radius: 0.35` $\implies w = 0.70\text{m}, d = 0.70\text{m}$ |
 
 - **Ground-Pinned Base Invariant**: Character feet and prop bases remain strictly pinned to floor elevation $Y = 0$. Adjusting `height` scales exclusively upward into $+Y$.
@@ -486,34 +491,62 @@ StageFlow uses a unified spherical camera model across both the Illustrative Sta
 | **`lens`** | `number \| string` | `mm` | Both | `focal_length`, `focalLengthMm` | Full-frame prime focal length. Swaps immediately and holds constant. |
 | **`lens_start`** | `number \| string` | `mm` | Both | — | Starting focal length for motorized zoom. |
 | **`lens_end`** | `number \| string` | `mm` | Both | — | Ending focal length for motorized zoom. |
-| **`direction`** | `"cw" \| "ccw"` | — | Both | `clockwise`, `counterclockwise` | Azimuthal direction for `orbit`, `sweep`, and `spiral`. Default: `cw`. |
+| **`direction`** | `"cw" \| "ccw"` | — | Both | `clockwise`, `counterclockwise` (ignores `-`/`_`/spaces) | Azimuthal direction for `orbit`, `sweep`, and `spiral` (e.g. `"counter-clockwise"`). Default: `cw`. |
 | **`revolutions`** | `number` | turns | Both | — | Number of full $360^\circ$ revolutions for `orbit` or `spiral`. |
-| **`orbit_speed`** | `number` | `deg/s` | Both | `orbitSpeed` | Angular velocity in degrees per second for `orbit`. |
+| **`orbit_speed`** | `number \| string` | `deg/s` | Both | `orbitSpeed` | Angular velocity in degrees per second for `orbit` (also accepts `"90deg"`, `"1.57rad"`). |
 | **`breathe`** | `number` | ratio | Both | — | Distance breathing multiplier for `arc`/`swoop` (default: `1.12`) and impulse kick multiplier for `recoil` (default: `1.25`). |
 | **`waypoints`** | `array` | — | Both | — | List of intermediate control poses for `maneuver: "spline"`. |
 | **`frustum_depth`**| `number` | `m` | Stage only | `cone_length` | Depth of 3D gate frustum. `0` or omitted auto-matches distance to target. |
 | **`frustum_color`**| `string` | hex | Stage only | — | Hex color token for frustum lines and focus frame (default: `"#f59e0b"`). |
 | **`show_path`** | `boolean` | — | Stage only | `showPath` | Renders 3D dashed trajectory ribbon in diorama (default: `true`). |
-| **`rig`** | `object` | — | Both | — | Physical camera mount (`tripod`, `track`, `spline_track`). See §4.9. |
-| **`show_rig`** | `boolean` | — | Stage only | `showRig` | Toggles rendering of 3D tripod legs or floor rails and dolly cart in diorama (default: `true`). |
+| **`rig`** | `object` | — | Both | — | Physical camera mount (`tripod`, `track`, `spline_track`). Supports nested `show: false`. See §4.9. |
+| **`show_rig`** | `boolean` | — | Stage only | `showRig`, `rig.show` | Toggles rendering of 3D tripod legs or floor rails and dolly cart in diorama (default: `true`). |
 | **`focus`** | `string \| number \| array` | `m` | Stage only | `focus_target`, `focusTarget` | Subject entity ID/label, multi-entity array `["a", "b"]`, 3D coordinate `[x,y,z]`, or manual metric focus distance (`3.5` or `"3.5m"`). |
 | **`focus_start`** | `string \| number \| array` | `m` | Stage only | `focusStart` | Starting focus target (single, multi-entity array, or coordinate) or metric distance for a rack focus pull. |
 | **`focus_end`** | `string \| number \| array` | `m` | Stage only | `focusEnd` | Ending focus target (single, multi-entity array, or coordinate) or metric distance for a rack focus pull. |
 | **`focus_distance`** | `number \| string` | `m` | Stage only | `focusDistance`, `focus_dist` | Explicit manual focus distance in meters (`0.4m` to `100.0m`). |
 | **`focus_distance_start`** | `number \| string` | `m` | Stage only | `focusDistanceStart` | Starting manual focus distance in meters for a rack focus pull. |
 | **`focus_distance_end`** | `number \| string` | `m` | Stage only | `focusDistanceEnd` | Ending manual focus distance in meters for a rack focus pull. |
-| **`dof`** | `"shallow" \| "medium" \| "deep"` | — | Stage only | `depth_of_field`, `depthOfField` | Semantic Depth-of-Field preset (`shallow` = $f/2.8$, `medium` = $f/5.6$, `deep` = $\infty$). |
-| **`aperture`** | `number \| string` | $f$-stop | Stage only | `f_stop`, `fStop`, `t_stop` | Numeric or string lens aperture $f$-stop (e.g. `2.8` or `"f/2.8"`, clamped to $[0.7, 64.0]$). |
+| **`dof`** | `"shallow" \| "medium" \| "deep" \| boolean \| number` | — | Stage only | `depth_of_field`, `depthOfField` | Semantic Depth-of-Field preset (`shallow` [`narrow`, `thin`, `bokeh`, `portrait`] = $f/2.8$, `medium` [`normal`, `moderate`] = $f/5.6$, `deep` [`infinite`, `infinity`, `off`, `none`, `crisp`, `false`] = $\infty$); also accepts numeric/string $f$-stops (e.g. `2.8`). |
+| **`aperture`** | `number \| string` | $f$-stop | Stage only | `f_stop`, `fStop`, `t_stop` | Numeric or string lens aperture $f$-stop (e.g. `2.8` or `"f/2.8"`, clamped to $[0.7, 64.0]$); also accepts semantic DoF preset strings. |
 | **`aperture_start`** | `number \| string` | $f$-stop | Stage only | `apertureStart`, `f_stop_start`, `dof_start` | Starting lens aperture $f$-stop for an iris ramp. |
 | **`aperture_end`** | `number \| string` | $f$-stop | Stage only | `apertureEnd`, `f_stop_end`, `dof_end` | Ending lens aperture $f$-stop for an iris ramp. |
 
 ### 4.2 Aiming & Anchors (`target`, `from`, `target_offset`)
 
 A camera look-at anchor $\vec{T}$ resolves in one of four ways:
-1. **Entity Identifier or Label**: Automatically binds to the entity's intrinsic anchor (eye-level `0.90h` for characters; center-volume `0.50h` for props/markers). As the entity moves across the stage, the camera dynamically tracks their position.
-2. **Multi-Entity Centroid Array (`["actor_a", "actor_b"]`)**: Computes the exact 3D world-space midpoint (centroid) across two or more active entities for dynamic two-shots and group framing.
-3. **Stage Presets (`"center"`, `"origin"`, `"stage"`)**: Resolves to the stage center chest level: `[0.0, 1.0, 0.0]`.
+1. **Entity Identifier, Label, or Dot-Notation Sub-Anchor (`"actor"`, `"actor.chest"`)**: Automatically binds to the entity's intrinsic anchor (eye-level `0.90h` for characters; center-volume `0.50h` for props/markers) or a named body-space sub-anchor rotated with the entity's `yaw`, `pitch`, and `roll`. As the entity moves, crouches, or tilts across the stage, the camera dynamically tracks that body part.
+2. **Multi-Entity Centroid Array (`["actor_a", "actor_b"]` or `["actor_a.eyes", "actor_b.chest"]`)**: Computes the exact 3D world-space midpoint (centroid) across two or more active entity anchors for dynamic two-shots and group framing.
+3. **Stage Presets (`"center"`, `"origin"`, `"stage"`)**: Resolves to the stage center chest level `[0.0, 1.0, 0.0]` for cameras (and floor origin `[0.0, 0.0, 0.0]` for entity `look_at`).
 4. **Explicit 3D Vector**: Authored as `[x, y, z]` or `{x, y, z}` in world meters.
+
+#### Dot-Notation Entity Sub-Anchors (`<entity>.<part>`)
+Append a sub-anchor suffix to any entity `id` or `label` inside `target`, `from`, `focus`, `focus_start`/`focus_end`, multi-entity arrays, or entity `look_at`. Sub-anchors evaluate in entity-local space against live `width` and `height` **before** applying `yaw`, `pitch`, and `roll`:
+
+| Suffix | Local Offset `(x, y, z)` | Common Framing Use |
+| :--- | :--- | :--- |
+| **`.head` / `.eyes` / `.eye`** | `(0, 0.90 * h, 0)` | Tight eye-line framing (matches bare character default) |
+| **`.shoulder` / `.chest`** | `(0, 0.75 * h, 0)` | Medium close-up / sternum framing (even when prone) |
+| **`.shoulder_l` / `.shoulder_r`** | `(±0.40 * w, 0.77 * h, 0)` | Anatomical left (`+X`) / right (`-X`) over-the-shoulder framing |
+| **`.waist` / `.center`** | `(0, 0.50 * h, 0)` | Cowboy / medium-wide center of mass |
+| **`.feet` / `.base`** | `(0, 0.05 * h, 0)` | Shoe-level / ground-contact inserts |
+| **`.top`** | `(0, 1.00 * h, 0)` | Crown or top surface of a prop/character |
+
+*Exact IDs/labels containing dots (e.g. `"dr.smith"`) are matched first; unrecognized suffixes gracefully fall back to the entity's default anchor.*
+
+```yaml
+  - id: "ots-chest-focus"
+    start: 0.0
+    end: 4.0
+    stage_camera:
+      target: ["detective.shoulder_l", "witness.chest"]
+      distance: 2.2
+      pitch: 4
+      yaw: 155
+      lens: 50mm
+      focus: "witness.eyes"
+      dof: "shallow"
+```
 
 #### World Target Offsets (`target_offset`)
 The `target_offset: [dx, dy, dz]` vector displaces the resolved look-at anchor in world space:
@@ -552,10 +585,10 @@ $$\vec{T}_{\text{centroid}}(t) = \frac{1}{K} \sum_{i=1}^K \vec{A}_i(t)$$
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **`cut`** | `static`, `hold` | Instantaneous destination hold | `target`, `distance`, `pitch`, `yaw`, `roll`, `lens` | `show_path` | Cuts immediately to destination pose and suppresses trajectory ribbon. |
 | **`dolly`** | `straight`, `linear`, `push`, `pull` | Linear 3D interpolation | `target`, `from`, `distance_*`, `pitch_*`, `yaw_*`, `roll_*`, `lens_*` | `revolutions`, `orbit_speed`, `breathe` | Direct linear translation between start and destination poses. |
-| **`arc`** | — | Quadratic Bezier curve | `yaw_start`, `yaw_end`, `breathe` | `revolutions`, `orbit_speed` | Bows outward by $14\%$ of chord with $16\%$ $+Y$ lift and mid-shot distance breathing (default `breathe: 1.12`). |
-| **`swoop`** | — | Bezier curve with elevation crest | `yaw_start`, `yaw_end`, `breathe` | `revolutions`, `orbit_speed` | Same as `arc` plus a $+4.58^\circ$ mid-shot pitch elevation crest. |
-| **`orbit`** | `turntable` | Turntable revolution | `direction`, `revolutions`, `orbit_speed`, `yaw_delta`, `yaw_*` | `from` | Revolves around target azimuthally following 7-step priority (§4.5). |
-| **`sweep`** | `pan` | Sector sweep | Same as `orbit` | `from` | Azimuthal sweep sharing `orbit` kinematics. |
+| **`arc`** | — | Quadratic Bezier curve | `target`, `from`, `distance_*`, `pitch_*`, `yaw_*`, `roll_*`, `lens_*`, `breathe` | `revolutions`, `orbit_speed` | Bows outward by $14\%$ of chord with $16\%$ $+Y$ lift and mid-shot distance breathing (default `breathe: 1.12`). |
+| **`swoop`** | — | Bezier curve with elevation crest | `target`, `from`, `distance_*`, `pitch_*`, `yaw_*`, `roll_*`, `lens_*`, `breathe` | `revolutions`, `orbit_speed` | Same as `arc` plus a $+4.58^\circ$ mid-shot pitch elevation crest. |
+| **`orbit`** | `turntable` | Turntable revolution | `target`, `from`, `direction`, `revolutions`, `orbit_speed`, `yaw_delta`, `yaw_*`, `distance_*`, `pitch_*`, `roll_*`, `lens_*` | `breathe` | Revolves around target azimuthally following 7-step priority (§4.5) while interpolating `target` from `from`. |
+| **`sweep`** | `pan` | Sector sweep | Same as `orbit` | `breathe` | Azimuthal sweep sharing `orbit` kinematics. |
 | **`spiral`** | `corkscrew` | Helical corkscrew | `direction`, `revolutions`, `distance_*`, `pitch_*` | `yaw`, `yaw_end` | Continuous azimuthal revolution (default `revolutions: 0.5`) while translating distance and pitch. |
 | **`dive`** | `flyby` | Sinusoidal perigee dip | `distance_*`, `pitch_*` | `revolutions`, `breathe` | Dips $14\%$ closer at first quarter, pulls back at three quarters, and dips pitch by $-6.88^\circ$ at mid-shot. |
 | **`recoil`** | `punch` | Impact shockwave damper | `breathe`, `distance_*` | `revolutions` | Default `breathe: 1.25`. Executes an immediate impulse kick backward before settling onto destination pose. |
@@ -652,18 +685,21 @@ The `spline` maneuver smoothly chains through an array of 3D control waypoints:
         - { target: "desk", distance: 1.6, pitch: 18, yaw: 0, lens: 85mm }
 ```
 
+- **Supported waypoint fields**: Each waypoint accepts `target`, `target_offset` (`targetOffset`), `distance`, `pitch`, `yaw`, `roll` (`dutch`), `lens` (`focal_length`; note `focalLengthMm` is not supported on waypoints), `focus` (`focus_target`, `focusTarget`), and `focus_distance` (`focusDistance`, `focus_dist`).
 - **Waypoint pose inheritance**: Omitted fields inside a waypoint inherit from the preceding waypoint in the list (or from starting pose $P_0$ for the first waypoint).
 - **Shortest-arc angle unwrapping**: Consecutive yaw and roll values are unwrapped across all waypoints to prevent full $360^\circ$ spins across boundary transitions.
 - **Timing allocation**: Normalized progress $u \in [0, 1]$ is distributed evenly across all waypoint segments.
 
 ### 4.8 Parsed Fields with No Runtime Effect
 
-The following fields are parsed by `cameraCueParser.ts` for schema compatibility but currently have no active engine consumer:
+The following fields are parsed by `cameraCueParser.ts` (or typed on AST interfaces) for schema compatibility / future reservations, and currently have no active engine consumer:
 
 | Field | Parsed In | Stored As | Current Engine Behavior | Recommended Workaround |
 | :--- | :--- | :--- | :--- | :--- |
 | **`track:`** | `CameraCueSpec` | `trackTarget` | Ignored. Camera targets that reference an entity always dynamically track their live coordinates. | To frame a static coordinate where an entity started, author an explicit `[x, y, z]` vector. |
 | **`at:`** | `CameraWaypointSpec` | `at` | Ignored. Spline waypoints are partitioned into equal temporal intervals across the duration. | To alter waypoint duration, adjust overall shot duration or insert intermediate bridge waypoints. |
+| **`waypoints[].dof` / `waypoints[].aperture`** | `CameraWaypointSpec` | `dof`, `apertureFStop` | Parsed onto each waypoint for future support, but ignored by `dofEvaluator.ts` (only `focus` / `focus_distance` are interpolated across waypoints). | Declare `dof`, `aperture`, or `aperture_start`/`aperture_end` at the parent cue level instead. |
+| **`waypoints[].from`** | `CameraWaypointSpec` (TS type only) | `from` | Declared on `CameraWaypointSpec`, not parsed from YAML or consumed by `shotPoseEvaluator.ts`. | Author `target:` on each waypoint (or `from:` on the parent cue). |
 
 ### 4.9 Physical Camera Rigs (Tripod, Dolly Track & Spline Track)
 
@@ -680,7 +716,9 @@ StageFlow solves this with the declarative `rig:` mount block.
 | :--- | :--- | :--- | :--- |
 | **`tripod`** | `position: [x, y, z]` (`pos`, `at`, `eye`) | $\vec{E}(t) \equiv \vec{P}_{\text{tripod}}$ (strictly stationary in world space). | Tubular 3-legged tripod stand with floor pucks and vertical column. |
 | **`track`** (`dolly`, `rail`, `slider`, `linear`) | `from: [x, y, z]` (`start`), `to: [x, y, z]` (`end`) | Linear translation along the rail: $\vec{E}(u) = (1 - u)\vec{A} + u\vec{B}$ via shot easing $u = E(\tau)$. | Parallel steel rails ($0.42\text{m}$ gauge) with orthogonal sleepers + 4-wheeled cart. |
-| **`spline_track`** (`spline-track`, `curved_track`, `spline`) | `points: [[x,y,z], ...]` (`waypoints`) | Smooth Catmull-Rom curve along rail waypoints with uniform segment-index parameterization ($u \cdot N_{\text{seg}}$). | Curved floor rails with sleepers and wheeled cart following the path. |
+| **`spline_track`** (`spline-track`, `curved_track`, `curved-track`, `spline`) | `points: [[x,y,z], ...]` (`waypoints`) | Uniform segment-index standard Catmull-Rom curve along rail waypoints ($u \cdot N_{\text{seg}}$ at eased progress $u = E(\tau)$). | Curved floor rails with sleepers and wheeled cart following the path. |
+
+*(Omitting `type:` auto-infers `'track'` when `from`/`to` are present, or `'spline_track'` when `points`/`waypoints` are present.)*
 
 #### 4.9.2 Target-Tracking vs. Fixed-Gaze Framing
 
@@ -689,7 +727,7 @@ StageFlow solves this with the declarative `rig:` mount block.
 
 #### 4.9.3 Continuous Rig Chaining (`continuous: true`)
 
-On continuous linear dolly tracks (`continuous: true`), omitting `from:` automatically inherits the previous shot's terminal eye position $\vec{E}_{\text{prev}}$:
+On continuous camera rigs (`continuous: true`), omitting `from:` on a `track` (or omitting `position:` on `tripod` / single-point `spline_track`) inherits the preceding shot's terminal world-space eye position $\vec{E}_{\text{prev}}$ seamlessly across cuts, even if the destination `target:` changes or moves:
 
 ```yaml
 shots:
@@ -736,8 +774,8 @@ The `shots:` array defines the film camera cuts, lens mounts, and editorial cove
 | **`description`** | `string` | `""` | `note` | Directorial staging summary displayed in top-left HUD. |
 | **`start`** | `number` | `0.0` | `_start` | Cue start timestamp in seconds. |
 | **`end`** | `number` | `start + 5.0` | `_end` | Cue end timestamp in seconds (clamped to $\ge \text{start} + 0.1$). |
-| **`continuous`** | `boolean` | Inherits root | — | When `true`, auto-chains start time and camera kinematics from previous shot. |
-| **`stage_camera`**| `object` | Baseline | `stageCamera`, `camera` | Physical camera choreography within the diorama (optical/rig fields `focus*`, `dof`, `aperture*`, `rig`, `show_rig` may also be authored flat at the shot root). |
+| **`continuous`** | `boolean` | Inherits root | — | When `true`, auto-chains start time and camera kinematics from previous shot (`stage_camera.continuous` / `observer_camera.continuous` also propagate to shot start-time chaining). |
+| **`stage_camera`**| `object` | Baseline | `stageCamera`, `camera` | Physical camera choreography within the diorama. Optical/rig fields (`focus*`, `dof*`, `aperture*`, `f_stop_*`, `rig`, `show_rig`) may also be authored flat at shot root (falling back when omitted inside `stage_camera:`; if `stage_camera:` is completely omitted alongside any flat optical/rig field, all camera fields on the shot root are parsed into `stage_camera`). |
 | **`observer_camera`**| `object` | Baseline | `observerCamera` | Legacy per-shot viewport camera choreography. |
 | **`entities`** | `object` | `{}` | — | Per-shot actor movement overrides and focus tags (see §6.4). |
 
@@ -842,13 +880,17 @@ Root-level `blocking:` cues define physical translation and gaze rotation indepe
 ```yaml
 blocking:
   - id: "hero-cross"
-    entity: "detective"        # Entity ID or label (alias: actor, subject, entity_id)
-    start: 0.0
-    duration: 9.0              # Duration in seconds (alias: dur; or specify end: 9.0)
-    from: [-1.2, 0, 0]         # Optional starting position (defaults to previous cue end)
+    label: "Hero Crosses"        # Optional human label (alias: name)
+    entity: "detective"        # Entity ID or label (alias: entity_id, entityId, actor, subject)
+    start: 0.0                 # Start time in seconds (alias: _start)
+    duration: 9.0              # Duration in seconds (alias: dur; or specify end / _end; min 0.016s)
+    from: [-1.2, 0, 0]         # Optional starting position (alias: from_position; defaults to previous cue end)
     position: [2.5, 0, 0.4]    # Destination position at end of cue
-    height: 1.15               # Dynamic crouching posture over cue duration (alias: size)
+    height: 1.15               # Dynamic crouching posture over cue duration (supports size, dimensions, scale, width/depth/radius + from_*/*_start/*_end)
     rotation: 45               # Explicit destination facing angle in degrees (alias: yaw)
+    pitch: 0                   # Optional destination X-axis tilt in degrees (+90 = prone / head-first flight)
+    roll: 0                    # Optional destination Z-axis bank in degrees (+ = CW from behind)
+    pivot: "base"              # Optional vertical rotation pivot override ("base" | "center" | "top" | 0..1)
     look_at: "witness"         # Dynamic continuous gaze tracking (alias: lookAt)
     easing: "cruise"           # Movement easing curve
     highlighted: true          # Active focus ring and tag (alias: highlight)
@@ -865,15 +907,18 @@ blocking:
     easing: "smooth"
     entities:
       detective: { rotation: 0, look_at: "witness", height: 1.75 }
-      witness: { rotation: 180, highlighted: true }
+      witness: { rotation: 180, highlighted: true, note: "Waits at desk" } # Also supports from_position, dimensions, scale, description, cut, continuous
 ```
 
-#### Dynamic Posture & Dimension Transformations
-Actors and props can dynamically transform dimensions during `blocking:` cues:
+- **Supported Cue Dimension & Scale Aliases**: Both Format A and Format B `blocking:` cues (as well as `shots[].entities`) accept `size` / `dimensions` / `from_size` / `fromSize` / `size_start` / `sizeStart` / `size_end` / `sizeEnd`, `scale` / `from_scale` / `fromScale` / `scale_start` / `scaleStart` / `scale_end` / `scaleEnd`, and per-axis scalars `from_width` / `fromWidth` / `width_start` / `widthStart` / `width` / `width_end` / `widthEnd`, `from_height` / `fromHeight` / `height_start` / `heightStart` / `height` / `height_end` / `heightEnd`, `from_depth` / `fromDepth` / `depth_start` / `depthStart` / `from_length` / `depth` / `length` / `depth_end` / `depthEnd`, and `from_radius` / `fromRadius` / `radius_start` / `radiusStart` / `radius` / `radius_end` / `radiusEnd`.
+
+#### Dynamic Posture, Tilt & Dimension Transformations
+Actors and props can dynamically transform dimensions and 3D mesh tilt (`pitch`, `roll`, `pivot`) during `blocking:` cues:
+- **3D Mesh Tilt & Vertical Pivot (`pitch`, `roll` & `pivot`)**: Entities pivot around their vertical pivot `pivot` (`"base"` / `"bottom"` / `"feet"` $= 0.0$ default at $Y = 0$; `"center"` / `"middle"` / `"waist"` $= 0.5$; `"top"` / `"head"` / `"crown"` $= 1.0$; or any numeric ratio clamped to `[0, 1]`; aliases `pivot_ratio`, `pivotRatio`) in intrinsic `YXZ` order (`yaw -> pitch -> roll`). Use `"base"` for floor-standing/prone transitions (`y: 0.18` at `pitch: 90`), and `"center"` for mid-air flight, flips, banking drones, or rolling/tumbling props. Only the 3D mesh tilts; ground footprints stay flat while kind-aware badges track the rotated head (characters) or highest rotated extent above center (props/markers). `pitch` and `roll` interpolate along the shortest arc using the cue's `easing`, preserve across `look_at` / walking auto-facing cues when omitted, and snap immediately on `cut: true`. Per-cue `pivot` overrides forward-chain cleanly: locking immediately when starting upright or on `cut: true` (zero jump) and easing smoothly when already tilted.
 - **Animated Posture Changes**: Authoring `height: 1.15` causes an actor to smoothly crouch down or sit in a chair over the cue duration using the specified easing curve. Specifying `from_height` or `from_size` explicitly sets starting bounds; omitting them glides smoothly from the preceding cue's terminal dimensions.
 - **Rigid Anatomical Proportions (Telescoping Torso)**: When lowering an actor's height to sit on a chair or crouch behind cover (e.g. `height: 1.15`), StageFlow automatically protects anatomical proportions: the head sphere ($r = 0.14\text{m}$) and eye-visor cone remain perfectly spherical ($Y \equiv 1.0$) and the shoulder bar maintains standard thickness ($0.08\text{m}$). The torso column telescopes cleanly between the floor and shoulders without squashing the head or neck into a pancake.
 - **Per-Axis Forward Chaining**: Overriding one dimension (e.g. `height: 1.15`) does not reset other dimensions (`width`, `depth`) back to default; each axis preserves its active state across cues.
-- **Dynamic Look-At & Focus Tracking**: The Stage Camera's look-at target and thin-lens DoF focus plane dynamically follow the entity's moving anchor ($\vec{A}_i(t) = (x_i(t), y_i(t) + \text{ratio} \cdot h_i(t), z_i(t))$). As an actor crouches, the camera smoothly lowers its framing and maintains sharp optical focus on the actor's head.
+- **Dynamic Look-At & Focus Tracking**: The Stage Camera's look-at target and thin-lens DoF focus plane dynamically follow the entity's moving and tilting anchor around its active vertical pivot ($\vec{A}_i(t) = \vec{p}_i(t) + (0,\; p_i(t) h_i(t),\; 0)^T + R_y(\psi_i(t))\,R_x(\theta_i(t))\,R_z(\phi_i(t))\,(0,\; (\text{ratio} - p_i(t)) h_i(t),\; 0)^T$). When upright ($\theta_i = 0, \phi_i = 0$), `pivot` cancels out completely and this reduces identically to $(x_i(t), y_i(t) + \text{ratio} \cdot h_i(t), z_i(t))$. As an actor crouches, lies prone, or banks in flight, the camera smoothly tracks their 3D anchor and maintains sharp optical focus.
 
 ```yaml
 blocking:
@@ -932,9 +977,9 @@ When evaluating root `blocking:` cues at timestamp $t$, the engine executes a de
 ### 6.3 Blocking Precedence & Hybrid Overlays
 
 When root `blocking:` is declared in a score:
-1. `blocking:` claims **exclusive authority** over entity translation, facing rotation, and floor trails.
-2. Per-shot entity overrides in `shots[].entities` for `position`, `from`, `rotation`, and `look_at` are **ignored**.
-3. Per-shot focus flags (`highlighted: true`) and staging notes (`note: "..."`) in `shots[].entities` layer non-destructively on top of the physical blocking movement.
+1. `blocking:` claims **exclusive authority** over entity translation, facing rotation, dimensions/scale, and floor trails.
+2. Per-shot entity overrides in `shots[].entities` for `position`, `from`, `rotation`, `pitch`, `roll`, `pivot`, `look_at`, and dimension fields (`size`, `dimensions`, `scale`, `width`, `height`, `depth`, `from_*`) are **ignored**.
+3. Per-shot focus flags (`highlighted: true`) and staging notes (`note: "..."`) in `shots[].entities` layer non-destructively on top of the physical blocking movement (with an active `blocking:` cue's own `highlighted` or `note` taking precedence when both are set), while `shots[].entities[].visible` applies during preroll before the entity's first blocking cue begins.
 
 ### 6.4 Legacy Per-Shot Entity Overrides (`shots[].entities`)
 
@@ -950,16 +995,21 @@ shots:
         from: [-1.2, 0, 0]     # Start position for this shot (alias: from_position)
         position: [0.5, 0, 0]  # Destination position by end of this shot
         rotation: 45           # Facing angle in degrees
+        pitch: 0               # Optional destination X-axis tilt in degrees
+        roll: 0                # Optional destination Z-axis bank in degrees
+        pivot: "base"          # Optional vertical rotation pivot override ("base" | "center" | "top" | 0..1)
         look_at: "witness"     # Continuous gaze tracking
         easing: "smooth"
-        highlighted: true
-        visible: true
+        highlighted: true      # Alias: highlight
+        visible: true          # Defaults to true whenever entity is listed (set false to hide)
         note: "Approaches desk"
+        cut: false             # Optional instant placement without interpolation
+        continuous: true       # Optional continuous pose chaining flag
 ```
 
-- Motion spans the complete duration of the shot ($[t_{\text{start}}, t_{\text{end}}]$).
-- Entities inherit their terminal position and facing angle into the subsequent shot unless overridden with `from:`.
-- `highlighted:` defaults to `false` for each shot unless explicitly re-declared.
+- Motion spans the complete duration of the shot ($[t_{\text{start}}, t_{\text{end}}]$), matching entity keys against declared `entities[].id` case-insensitively.
+- Entities inherit their terminal position, facing angle (`rotation`), `pitch`, `roll`, `pivot`, and dimensions into the subsequent shot unless overridden (or relocated via `from:` / `cut: true`).
+- `highlighted:` defaults to `false` for each shot unless explicitly re-declared (whereas listing an entity in `shots[].entities` without `visible: false` sets `visible: true`).
 
 ### 6.5 Decoupled Diorama Viewport Moves (`observer_shots:`)
 
@@ -968,6 +1018,8 @@ The Observer Camera (user viewport diorama view) resolves via a strict 3-tier hi
 1. **Tier 1 (Root `observer_shots:`)**: If declared and non-empty, the viewport camera evaluates exclusively across these cues. Per-shot `observer_camera:` blocks inside `shots:` are ignored.
 2. **Tier 2 (Per-Shot `shots[].observer_camera`)**: Evaluated when root `observer_shots:` is omitted.
 3. **Tier 3 (Baseline Default)**: Holds static at `stage.observer_camera`.
+
+*(Supports `label` alias `name`, `start`/`_start`, `end`/`_end`, and nested `observer_camera` / `observerCamera` / `camera` sub-blocks.)*
 
 ```yaml
 observer_shots:
@@ -1149,7 +1201,7 @@ shots:
       direction: "cw"
       lens: 35mm
 ```
-*(Reference Blueprint: `blueprint_04_cinematography_tutorial.yaml` in Score Library)*
+*(Reference Blueprint: `blueprint_05_two_rooms.yaml` demonstrates `revolutions:` orbit in Shot 06; `blueprint_04_cinematography_tutorial.yaml` demonstrates `observer_shots:` orbital panning)*
 
 ---
 
@@ -1314,7 +1366,7 @@ shots:
       yaw: 220
       lens: 35mm
 ```
-*(Reference Blueprint: `blueprint_04_cinematography_tutorial.yaml` in Score Library)*
+*(Reference Scores: `the-expansion.yaml` demonstrates root-level `continuous: true`; `blueprint_06_optics_dof.yaml` demonstrates cue-level `continuous: true`)*
 
 ---
 
@@ -1380,3 +1432,38 @@ shots:
     stage_camera: { target: "arthur", maneuver: "orbit", distance: 2.0, pitch: 4, yaw_start: 25, yaw_end: 0, lens: 85mm }
 ```
 *(Reference Blueprint: `blueprint_05_two_rooms.yaml` in Score Library)*
+
+---
+
+## 8. YAML DSL Release History
+
+Chronological summary of **YAML authoring features, syntax additions, and evaluator behaviors** from the earliest release (`v0.1.0`) through the upcoming `v1.2.0` release. All scores remain backward-compatible across versions. For non-YAML Studio UI, WebCodecs export, and rendering changes, see [`CHANGELOG.md`](../CHANGELOG.md).
+
+### 8.1 `v0.1.0` (2026-11-03) — Core Score & Dual-Timeline Foundation
+
+- **Declarative Score Anatomy** ([§1.5](#section-1-5), [§3](#section-3)): Root metadata (`version`, `id`, `title`, `video`, `aspect_ratio`, `duration`, `offset`), `stage:` geometry (`width`, `depth`, `grid_step`), `entities:` (`character`, `prop`, `marker` with `position`, `rotation`, `radius`, `height`, `color`), `shots:`, and decoupled `observer_shots:`.
+- **Metric & Degree Units** ([§1.2](#section-1-2)): World positions in meters (`1 unit = 1m`) and camera/entity angles in degrees (`pitch`, `yaw`, `rotation`, plus `"rad"` string support) with shortest-arc unwrapping.
+- **Camera Maneuvers, Easings & Full-Frame Lenses** ([§4](#section-4), [§5](#section-5)): `maneuver` moves (`cut`, `dolly`, `truck`, `pedestal`, `pan`, `tilt`, `arc`, `orbit`, `swoop`, `spline`, `recoil`), `easing` curves, `lens` / `lens_start` / `lens_end` (`mm` full-frame `36mm × 24mm` optics), and `waypoints:` for `spline` shots.
+
+### 8.2 `v1.0.0` (2026-11-10) — Kinematics, Optics, Rigs & Blocking
+
+- **Camera Roll (`roll`, `dutch`) & Target Framing Offsets (`target_offset`)** ([§4.1](#section-4-1), [§4.2](#section-4-2), [§5.3](#section-5-3)): Added `roll`, `roll_start`, `roll_end`, `roll_delta`, `dutch` alias, and `target_offset` / `target_offset_start` / `target_offset_end` with Option A shot-boundary neutral resets (`0°` roll, `[0, 0, 0]` offset) unless continuous mode is active.
+- **Continuous Oner Mode (`continuous: true`) & Directed Orbits (`direction`)** ([§4.5](#section-4-5), [§5.2](#section-5-2), [§6.5](#section-6-5)): Added root-level and cue-level `continuous: true` / `false` chaining across `shots:`, `observer_shots:`, and `blocking:` (auto-chaining omitted `start:` timestamps and smoothly gliding camera poses, Dutch roll, and `target_offset`), plus `direction: "cw" | "ccw"` and `revolutions:` on circular orbits.
+- **Decoupled Blocking Timeline (`blocking:`)** ([§6.1](#section-6-1), [§6.3](#section-6-3)): Added Format A (single-entity) and Format B (multi-entity beat) root `blocking:` cues with `duration:` / `dur:` syntax, `from:` overrides, dynamic `look_at:` gaze tracking, `cut: true` instant placement, and non-destructive `shots[].entities` `highlighted` / `note` overlays.
+- **Thin-Lens Depth of Field & Focus Tracking** ([§3.1](#section-3-1), [§4.6](#section-4-6)): Added root `optics:` (`dof_blur`), `focus`, `focus_start`, `focus_end` (entity targets or metric distances), `dof` (`shallow` | `medium` | `deep`), and numeric/string `aperture` (`2.8`, `"f/2.8"`).
+- **Physical Camera Rigs (`rig:`) & Stage Preset Targets** ([§3.3](#section-3-3), [§4.9](#section-4-9)): Added `rig:` (`tripod`, `track`, `spline_track` with `from`, `to`, `waypoints`, `height`, `fixed_gaze`), `show_rig:` / `stage.show_rigs`, and `"center"` / `"origin"` / `"stage"` baseline stage camera target presets.
+- **Two-Shot Multi-Subject Centroid Arrays** ([§4.2](#section-4-2)): Enabled array targets (`["actor_a", "actor_b"]`) on `target`, `from`, `focus`, and `look_at`.
+- **3D Entity Dimensions, Styles, Shapes & Kind Aliases** ([§3.1.1](#section-3-1-1), [§3.4](#section-3-4), [§6.1](#section-6-1)): Added `width`, `height`, `depth`, `size`, `dimensions`, `scale` (and `from_*` / `*_start` / `*_end` animated cue overrides), `style:` (`mannequin`, `edges`, `silhouette`, `glass`, `solid`, `wireframe`, `tape`, `glow`, `beacon`), `shape:` (`box`, `sphere`, `cylinder`, `capsule`, `x`, `t`, `circle`, `puck`), kind aliases (`actor`/`person`, `set`/`furniture`/`item`/`object`, `spike`/`mark`), eye-level default look-at anchor (`0.90h`), `100m` max camera distance, and root `metadata:` blocks.
+
+### 8.3 `v1.1.0` – `v1.1.2` (2026-11-14 – 2026-11-15) — Studio Parity (No Schema Changes)
+
+- **100% YAML Compatibility**: `v1.1.0`, `v1.1.1`, and `v1.1.2` introduced no new or breaking YAML score fields; all `v1.0.0` scores run unchanged.
+- **Live `duration:` Editing Behavior (`v1.1.1`)**: Editing root `duration:` in the live YAML editor updates the media clock in-place without resetting the playhead or free-orbit camera pose.
+
+### 8.4 `v1.2.0` (2026-11-16) — 3D Orientation, Pivot, Sub-Anchors & Rig Continuity
+
+- **Entity 3D Tilt (`pitch`, `roll`)** ([§3.4](#section-3-4), [§6.1](#section-6-1), [§6.4](#section-6-4)): Added per-entity `pitch` and `roll` (degrees or `"rad"`) across `entities[]`, `blocking:` (Format A/B), and `shots[].entities` with intrinsic `YXZ` rotation, shortest-arc easing, `cut: true` snapping, and independence from yaw `look_at`.
+- **Optional Entity Rotation Pivot (`pivot`)** ([§3.4](#section-3-4), [§6.1](#section-6-1), [§6.4](#section-6-4)): Added `pivot` (`"base"` = `0.0`, `"center"` = `0.5`, `"top"` = `1.0`, or clamped `0..1`; aliases `pivot_ratio`, `pivotRatio`) across `entities[]`, `blocking:`, and `shots[].entities` for ground-pinned leans vs. mid-air flips/banking, with $C^0$ forward chaining across tilted cues.
+- **Dot-Notation Entity Target Sub-Anchors (`<entityKey>.<part>`)** ([§4.2](#section-4-2), [§6.1](#section-6-1)): Target specific body regions (`.head`/`.eyes`/`.eye`, `.shoulder`/`.chest`, `.shoulder_l`, `.shoulder_r`, `.waist`/`.center`, `.feet`/`.base`, `.top`) across `target`, `from`, `focus`, `focus_start`/`focus_end`, multi-entity arrays, `waypoints`, baseline `stage` cameras, and order-independent `look_at` (with exact-first ID matching for dotted entity IDs).
+- **Continuous Rig Eye Inheritance (`E_prev`)** ([§4.9](#section-4-9), [§5.2](#section-5-2)): Continuous `track`, 1-point `spline_track`, and `tripod` camera rigs that omit `rig.from`/`rig.position` now inherit the previous shot's terminal eye position $\vec{E}_{\text{prev}}$ even when `target:` changes or moves.
+- **Parser & Alias Parity** ([§3.1](#section-3-1), [§3.3](#section-3-3), [§4.6](#section-4-6)): Added `stage.gridStep` camelCase alias, flat root `optics` aliases (`blur`, `depth_of_field`/`depthOfField`, `f_stop`/`fStop`), and flat shot-root optical overrides (`f_stop_start`, `dof_start`, `f_stop_end`, `dof_end`).

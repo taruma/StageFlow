@@ -8,7 +8,9 @@
  *   - Evaluates the exact Gaussian thin-lens Circle of Confusion (CoC) formula matching
  *     Layer 1 `opticsMath.ts` ([D_near, D_far] stay crisp; out-of-focus foreground and
  *     background regions blur smoothly via a 29-tap concentric bokeh disc kernel).
- *   - Bypasses the FBO pass completely when `dof.enabled === false` (`dof: 'deep'`).
+ *   - On `dof: 'deep'` (`f/∞`) shots, sets `uOpticalScale = 0.0` to take the 1-tap passthrough
+ *     branch (skipping depth & 28-tap bokeh samples) so `shallow` <-> `deep` shot cuts share
+ *     identical Stage Cam color and contrast when Blur is ON.
  */
 
 import React, { useEffect, useMemo, useRef } from 'react';
@@ -52,6 +54,9 @@ const DOF_FRAGMENT_SHADER = /* glsl */ `
   }
 
   float computeCocRadius(const in float depthM) {
+    if (uOpticalScale <= 0.0) {
+      return 0.0;
+    }
     if (depthM >= uNearLimitM && depthM <= uFarLimitM) {
       return 0.0;
     }
@@ -64,6 +69,11 @@ const DOF_FRAGMENT_SHADER = /* glsl */ `
   }
 
   void main() {
+    if (uOpticalScale <= 0.0) {
+      gl_FragColor = texture2D(tColor, vUv);
+      return;
+    }
+
     float centerDepth = getLinearDepthM(vUv);
     float centerCoc = computeCocRadius(centerDepth);
 
@@ -239,30 +249,32 @@ export const StageCamDofEffect: React.FC<StageCamDofEffectProps> = ({
     lastSyncedStageCamRef.current = stageCam;
     const dof = stageCam.dof;
 
-    // Fast path: if current shot has infinite DoF ('deep'), render directly to screen
-    if (!dof || !dof.enabled || !Number.isFinite(dof.apertureFStop)) {
-      gl.setRenderTarget(null);
-      gl.render(scene, camera);
-      return;
+    const isDeepDof =
+      !dof || !dof.enabled || !Number.isFinite(dof.apertureFStop);
+
+    if (isDeepDof) {
+      // Keep deep/infinity shots on the same FBO + composite pass (with 0 blur)
+      // so shallow <-> deep cuts maintain identical Stage Cam color and contrast.
+      material.uniforms.uOpticalScale.value = 0.0;
+    } else {
+      const persp = camera as THREE.PerspectiveCamera;
+      const aspectRatio = Math.max(0.1, stageCam.transform.aspectRatio);
+      const sensorHeightMm = FULL_FRAME_SENSOR_WIDTH_MM / aspectRatio;
+
+      material.uniforms.uNearClip.value = persp.near || 0.1;
+      material.uniforms.uFarClip.value = persp.far || 250.0;
+      material.uniforms.uFocusDistanceM.value = dof.focusDistanceM;
+      material.uniforms.uNearLimitM.value = dof.nearLimitM;
+      material.uniforms.uFarLimitM.value = Number.isFinite(dof.farLimitM)
+        ? dof.farLimitM
+        : 1000.0;
+      material.uniforms.uOpticalScale.value = computeDofOpticalScale(
+        dof.focusDistanceM,
+        dof.apertureFStop,
+        sensorHeightMm,
+        stageCam.transform.pose.focalLengthMm
+      );
     }
-
-    const persp = camera as THREE.PerspectiveCamera;
-    const aspectRatio = Math.max(0.1, stageCam.transform.aspectRatio);
-    const sensorHeightMm = FULL_FRAME_SENSOR_WIDTH_MM / aspectRatio;
-
-    material.uniforms.uNearClip.value = persp.near || 0.1;
-    material.uniforms.uFarClip.value = persp.far || 250.0;
-    material.uniforms.uFocusDistanceM.value = dof.focusDistanceM;
-    material.uniforms.uNearLimitM.value = dof.nearLimitM;
-    material.uniforms.uFarLimitM.value = Number.isFinite(dof.farLimitM)
-      ? dof.farLimitM
-      : 1000.0;
-    material.uniforms.uOpticalScale.value = computeDofOpticalScale(
-      dof.focusDistanceM,
-      dof.apertureFStop,
-      sensorHeightMm,
-      stageCam.transform.pose.focalLengthMm
-    );
 
     // 1. Render scene color & hardware depth into offscreen target
     gl.setRenderTarget(renderTarget);

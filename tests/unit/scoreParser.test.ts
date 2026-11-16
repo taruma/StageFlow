@@ -7,6 +7,7 @@ import {
   normalizeEntityShape,
   normalizeEntityStyle,
   parseAngleToRad,
+  parseEntityPivotRatio,
   parseLensFocalLengthMm,
   parseOptionalVec3,
   parseTargetOrVec3,
@@ -1439,6 +1440,419 @@ shots:
       const res3 = parseStageScore(yamlScalarMeta);
       expect(res3.error).toBeNull();
       expect(res3.score?.metadata).toBeUndefined();
+    });
+  });
+
+  describe('Entity pitch and roll rotation parsing', () => {
+    it('parses pitch and roll across entities, shots[].entities, and blocking Format A & B with 0 defaults', () => {
+      const yaml = `
+version: "1.0"
+id: "entity-tilt-parse"
+title: "Entity Tilt Parse"
+entities:
+  - id: "hero"
+    kind: "character"
+    pitch: 90
+    roll: "-15deg"
+  - id: "upright"
+    kind: "prop"
+blocking:
+  - id: "cue-single"
+    entity: "hero"
+    start: 0
+    end: 2
+    pitch: 0
+    roll: "0.5rad"
+  - id: "cue-multi"
+    start: 2
+    end: 4
+    entities:
+      hero: { pitch: 65, roll: 25 }
+      upright: { pitch: -30 }
+shots:
+  - id: "shot-1"
+    start: 0
+    end: 4
+    entities:
+      hero: { pitch: 45, roll: -20 }
+      upright: { roll: 15 }
+`;
+      const { score, error } = parseStageScore(yaml);
+      expect(error).toBeNull();
+      expect(score).not.toBeNull();
+
+      const heroDef = score!.entities.find((e) => e.id === 'hero')!;
+      const uprightDef = score!.entities.find((e) => e.id === 'upright')!;
+      expect(radToDeg(heroDef.pitchRad!)).toBeCloseTo(90, 4);
+      expect(radToDeg(heroDef.rollRad!)).toBeCloseTo(-15, 4);
+      expect(uprightDef.pitchRad).toBe(0);
+      expect(uprightDef.rollRad).toBe(0);
+
+      const b0 = score!.blocking![0];
+      expect(b0.pitchRad).toBe(0);
+      expect(b0.rollRad).toBeCloseTo(0.5, 4);
+
+      const b1Hero = score!.blocking![1];
+      const b1Upright = score!.blocking![2];
+      expect(radToDeg(b1Hero.pitchRad!)).toBeCloseTo(65, 4);
+      expect(radToDeg(b1Hero.rollRad!)).toBeCloseTo(25, 4);
+      expect(radToDeg(b1Upright.pitchRad!)).toBeCloseTo(-30, 4);
+      expect(b1Upright.rollRad).toBeUndefined();
+
+      const shotHero = score!.shots[0].entities['hero'];
+      const shotUpright = score!.shots[0].entities['upright'];
+      expect(radToDeg(shotHero.pitchRad!)).toBeCloseTo(45, 4);
+      expect(radToDeg(shotHero.rollRad!)).toBeCloseTo(-20, 4);
+      expect(shotUpright.pitchRad).toBeUndefined();
+      expect(radToDeg(shotUpright.rollRad!)).toBeCloseTo(15, 4);
+    });
+
+    it('parses degree symbol & negative rad strings and handles invalid/NaN/null/Infinity pitch/roll values', () => {
+      const yaml = `
+version: "1.0"
+id: "entity-tilt-edge-parse"
+title: "Entity Tilt Edge Parse"
+entities:
+  - id: "deg-sym"
+    kind: "character"
+    pitch: "45°"
+    roll: "-0.5 rad"
+  - id: "bad-def"
+    kind: "prop"
+    pitch: null
+    roll: "not-an-angle"
+  - id: "nan-def"
+    kind: "prop"
+    pitch: .nan
+    roll: .inf
+blocking:
+  - id: "b-single"
+    entity: "deg-sym"
+    start: 0
+    end: 2
+    pitch: .nan
+    roll: null
+  - id: "b-multi"
+    start: 2
+    end: 4
+    entities:
+      deg-sym: { pitch: "bad", roll: .inf }
+shots:
+  - id: "s1"
+    start: 0
+    end: 4
+    entities:
+      deg-sym: { pitch: null, roll: "invalid" }
+      bad-def: { pitch: "45°", roll: "-0.5 rad" }
+`;
+      const { score, error } = parseStageScore(yaml);
+      expect(error).toBeNull();
+      expect(score).not.toBeNull();
+
+      const degSym = score!.entities.find((e) => e.id === 'deg-sym')!;
+      expect(radToDeg(degSym.pitchRad!)).toBeCloseTo(45, 4);
+      expect(degSym.rollRad).toBeCloseTo(-0.5, 4);
+
+      const badDef = score!.entities.find((e) => e.id === 'bad-def')!;
+      expect(badDef.pitchRad).toBe(0);
+      expect(badDef.rollRad).toBe(0);
+
+      const nanDef = score!.entities.find((e) => e.id === 'nan-def')!;
+      expect(nanDef.pitchRad).toBe(0);
+      expect(nanDef.rollRad).toBe(0);
+
+      const bSingle = score!.blocking![0];
+      expect(bSingle.pitchRad).toBeUndefined();
+      expect(bSingle.rollRad).toBeUndefined();
+
+      const bMulti = score!.blocking![1];
+      expect(bMulti.pitchRad).toBeUndefined();
+      expect(bMulti.rollRad).toBeUndefined();
+
+      const shotDegSym = score!.shots[0].entities['deg-sym'];
+      expect(shotDegSym.pitchRad).toBeUndefined();
+      expect(shotDegSym.rollRad).toBeUndefined();
+
+      const shotBadDef = score!.shots[0].entities['bad-def'];
+      expect(radToDeg(shotBadDef.pitchRad!)).toBeCloseTo(45, 4);
+      expect(shotBadDef.rollRad).toBeCloseTo(-0.5, 4);
+    });
+
+    it('rotates baseline stage.stage_camera.target when pointing to an entity with base pitch/roll', () => {
+      const yaml = `
+version: "1.0"
+id: "baseline-tilted-target"
+title: "Baseline Tilted Target"
+stage:
+  stage_camera:
+    target: "prone_hero"
+    distance: 4
+    pitch: 15
+    yaw: 0
+entities:
+  - id: "prone_hero"
+    kind: "character"
+    position: [1.0, 0.2, -0.5]
+    height: 1.8
+    rotation: 90
+    pitch: 90
+    roll: 0
+shots:
+  - id: "s1"
+    start: 0
+    end: 2
+`;
+      const { score, error } = parseStageScore(yaml);
+      expect(error).toBeNull();
+      expect(score).not.toBeNull();
+
+      // Anchor offset (0, 1.8 * 0.9 = 1.62, 0) tilted pitch=+90deg -> local (0, 0, 1.62), rotated yaw=+90deg -> world (+1.62, 0, 0)
+      const target = score!.stage.defaultStageCameraPose.target;
+      expect(target.x).toBeCloseTo(1.0 + 1.62, 4);
+      expect(target.y).toBeCloseTo(0.2, 4);
+      expect(target.z).toBeCloseTo(-0.5, 4);
+    });
+
+    it('resolves dot-notation sub-anchors on baseline stage.stage_camera and stage.observer_camera (#19)', () => {
+      const yaml = `
+version: "1.0"
+id: "baseline-sub-anchor"
+title: "Baseline Sub-Anchor"
+stage:
+  stage_camera:
+    target: "hero_a.shoulder_l"
+    distance: 3.0
+    pitch: 10
+    yaw: 0
+  observer_camera:
+    target: ["hero_a.feet", "crate.top"]
+    distance: 6.0
+    pitch: 25
+    yaw: 30
+entities:
+  - id: "hero_a"
+    kind: "character"
+    position: [2.0, 0.0, 1.0]
+    width: 0.6
+    height: 2.0
+    rotation: 0
+  - id: "crate"
+    kind: "prop"
+    position: [-2.0, 0.0, -1.0]
+    height: 1.0
+shots:
+  - id: "s1"
+    start: 0
+    end: 2
+`;
+      const { score, error } = parseStageScore(yaml);
+      expect(error).toBeNull();
+      expect(score).not.toBeNull();
+
+      // hero_a.shoulder_l: [2.0 + 0.40 * 0.6, 0.77 * 2.0, 1.0] = [2.24, 1.54, 1.0]
+      const stageTarget = score!.stage.defaultStageCameraPose.target;
+      expect(stageTarget.x).toBeCloseTo(2.24, 4);
+      expect(stageTarget.y).toBeCloseTo(1.54, 4);
+      expect(stageTarget.z).toBeCloseTo(1.0, 4);
+
+      // observer_camera centroid of hero_a.feet [2.0, 0.1, 1.0] and crate.top [-2.0, 1.0, -1.0] = [0.0, 0.55, 0.0]
+      const obsTarget = score!.stage.defaultObserverPose.target;
+      expect(obsTarget.x).toBeCloseTo(0.0, 4);
+      expect(obsTarget.y).toBeCloseTo(0.55, 4);
+      expect(obsTarget.z).toBeCloseTo(0.0, 4);
+    });
+
+    it('applies target_offset on baseline stage.stage_camera for sub-anchors, arrays, and unmatched strings (#19)', () => {
+      const yaml = `
+version: "1.0"
+id: "baseline-offset-sub-anchor"
+title: "Baseline Offset Sub-Anchor"
+stage:
+  stage_camera:
+    target: "hero_a.chest"
+    target_offset: [0.3, 0.2, -0.4]
+  observer_camera:
+    target: "nonexistent_target"
+    target_offset: [1.0, 0.5, -1.0]
+entities:
+  - id: "hero_a"
+    kind: "character"
+    position: [2.0, 0.0, 1.0]
+    width: 0.6
+    height: 2.0
+    rotation: 0
+shots:
+  - id: "s1"
+    start: 0
+    end: 2
+`;
+      const { score, error } = parseStageScore(yaml);
+      expect(error).toBeNull();
+      expect(score).not.toBeNull();
+
+      // hero_a.chest = [2.0, 1.5, 1.0] + offset [0.3, 0.2, -0.4] = [2.3, 1.7, 0.6]
+      const stageTarget = score!.stage.defaultStageCameraPose.target;
+      expect(stageTarget.x).toBeCloseTo(2.3, 4);
+      expect(stageTarget.y).toBeCloseTo(1.7, 4);
+      expect(stageTarget.z).toBeCloseTo(0.6, 4);
+
+      // Unmatched observer target falls back to DEFAULT_OBSERVER_POSE.target [0, 1.0, 0] + offset [1.0, 0.5, -1.0]
+      const obsTarget = score!.stage.defaultObserverPose.target;
+      expect(obsTarget.x).toBeCloseTo(1.0, 4);
+      expect(obsTarget.y).toBeCloseTo(1.5, 4);
+      expect(obsTarget.z).toBeCloseTo(-1.0, 4);
+    });
+
+    it('parses stage.gridStep, flat root optics aliases, and flat shot-root f_stop/dof start/end ramps', () => {
+      const yamlA = `
+version: "1.0"
+id: "alias-parity-a"
+title: "Alias Parity A"
+blur: true
+depth_of_field: "shallow"
+f_stop: 2.0
+stage:
+  width: 12
+  depth: 12
+  gridStep: 0.5
+shots:
+  - id: "s1"
+    start: 0
+    end: 4
+    f_stop_start: 1.4
+    f_stop_end: 8.0
+`;
+      const resA = parseStageScore(yamlA);
+      expect(resA.error).toBeNull();
+      expect(resA.score?.stage.gridStep).toBe(0.5);
+      expect(resA.score?.optics).toEqual({
+        dofBlur: true,
+        defaultDof: 'shallow',
+        defaultApertureFStop: 2.0,
+      });
+      expect(resA.score?.shots[0].stageCamera?.apertureStartFStop).toBeCloseTo(1.4, 4);
+      expect(resA.score?.shots[0].stageCamera?.apertureEndFStop).toBeCloseTo(8.0, 4);
+
+      const yamlB = `
+version: "1.0"
+id: "alias-parity-b"
+title: "Alias Parity B"
+depthOfField: "medium"
+fStop: "f/4"
+shots:
+  - id: "s1"
+    start: 0
+    end: 4
+    dof_start: "shallow"
+    dof_end: "deep"
+    stage_camera:
+      target: [0, 1, 0]
+      aperture_end: 11.0
+`;
+      const resB = parseStageScore(yamlB);
+      expect(resB.error).toBeNull();
+      expect(resB.score?.optics).toEqual({
+        dofBlur: false,
+        defaultDof: 'medium',
+        defaultApertureFStop: 4.0,
+      });
+      // dof_start ("shallow" -> f/2.8) inherited from flat shot root, while nested aperture_end (11.0) takes precedence over dof_end
+      expect(resB.score?.shots[0].stageCamera?.apertureStartFStop).toBeCloseTo(2.8, 4);
+      expect(resB.score?.shots[0].stageCamera?.apertureEndFStop).toBeCloseTo(11.0, 4);
+    });
+
+    it('parses entity rotation pivot presets, aliases, numeric ratios, and clamping across all 3 authoring tiers (#20)', () => {
+      // Direct primitive normalizer coverage
+      expect(parseEntityPivotRatio(undefined)).toBeUndefined();
+      expect(parseEntityPivotRatio(undefined, 0)).toBe(0);
+      expect(parseEntityPivotRatio('base')).toBe(0);
+      expect(parseEntityPivotRatio(' BOTTOM ')).toBe(0);
+      expect(parseEntityPivotRatio('Feet')).toBe(0);
+      expect(parseEntityPivotRatio('floor')).toBe(0);
+      expect(parseEntityPivotRatio('ground')).toBe(0);
+      expect(parseEntityPivotRatio('center')).toBe(0.5);
+      expect(parseEntityPivotRatio('centre')).toBe(0.5);
+      expect(parseEntityPivotRatio('Middle')).toBe(0.5);
+      expect(parseEntityPivotRatio('mid')).toBe(0.5);
+      expect(parseEntityPivotRatio('waist')).toBe(0.5);
+      expect(parseEntityPivotRatio('top')).toBe(1);
+      expect(parseEntityPivotRatio('HEAD')).toBe(1);
+      expect(parseEntityPivotRatio('crown')).toBe(1);
+      expect(parseEntityPivotRatio('apex')).toBe(1);
+      expect(parseEntityPivotRatio(0.25)).toBe(0.25);
+      expect(parseEntityPivotRatio('0.75')).toBe(0.75);
+      expect(parseEntityPivotRatio(-0.4)).toBe(0);
+      expect(parseEntityPivotRatio(1.6)).toBe(1);
+      expect(parseEntityPivotRatio('invalid', 0)).toBe(0);
+      expect(parseEntityPivotRatio(true)).toBeUndefined();
+
+      const pivotYaml = `
+version: "1.0"
+id: "pivot-parse-test"
+title: "Pivot Parse Test"
+stage:
+  stage_camera:
+    target: "drone"
+entities:
+  - id: "ground_actor"
+    kind: "character"
+  - id: "drone"
+    kind: "prop"
+    shape: "box"
+    position: [1.0, 2.0, 0.0]
+    height: 1.0
+    pitch: 90
+    pivot: "center"
+  - id: "pendulum"
+    kind: "prop"
+    pivot_ratio: "top"
+  - id: "custom_ratio"
+    kind: "character"
+    pivotRatio: 0.72
+blocking:
+  - id: "b-format-b"
+    entity: "ground_actor"
+    start: 0
+    end: 4
+    pivot: "center"
+  - id: "b-format-a"
+    start: 4
+    end: 8
+    pivot: 0.25
+    entities:
+      ground_actor:
+        pitch: 45
+      pendulum:
+        pivot: "base"
+shots:
+  - id: "s1"
+    start: 0
+    end: 8
+    entities:
+      ground_actor:
+        pivot: "top"
+`;
+      const { score, error } = parseStageScore(pivotYaml);
+      expect(error).toBeNull();
+      expect(score).not.toBeNull();
+
+      expect(score!.entities[0].pivotRatio).toBe(0);
+      expect(score!.entities[1].pivotRatio).toBe(0.5);
+      expect(score!.entities[2].pivotRatio).toBe(1);
+      expect(score!.entities[3].pivotRatio).toBeCloseTo(0.72, 6);
+
+      // Baseline stage_camera targeting center-pivoted tilted drone stays at center (1.0, 2.5, 0.0)
+      expect(score!.stage.defaultStageCameraPose.target.x).toBeCloseTo(1.0, 5);
+      expect(score!.stage.defaultStageCameraPose.target.y).toBeCloseTo(2.5, 5);
+      expect(score!.stage.defaultStageCameraPose.target.z).toBeCloseTo(0.0, 5);
+
+      // Blocking Format B & Format A (including scoped child inheritance & override)
+      expect(score!.blocking![0].pivotRatio).toBe(0.5);
+      expect(score!.blocking![1].pivotRatio).toBe(0.25);
+      expect(score!.blocking![2].pivotRatio).toBe(0);
+
+      // Shot-level entity override
+      expect(score!.shots[0].entities.ground_actor.pivotRatio).toBe(1);
     });
   });
 });

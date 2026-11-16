@@ -43,6 +43,7 @@ export interface WorkspaceHeaderProps {
   onUploadFiles: (files: FileList) => void;
   onExportActiveScore: () => void;
   onOpenVideoExport?: () => void;
+  onOpenStoryboard?: () => void;
   onOpenLibrary: (tab?: FilterTab) => void;
   onOpenInfo?: () => void;
   onResetLayout?: () => void;
@@ -68,6 +69,7 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
   onUploadFiles,
   onExportActiveScore,
   onOpenVideoExport,
+  onOpenStoryboard,
   onOpenLibrary,
   onOpenInfo,
   onResetLayout,
@@ -144,6 +146,7 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
             onUploadFiles={onUploadFiles}
             onExportActiveScore={onExportActiveScore}
             onOpenVideoExport={onOpenVideoExport}
+            onOpenStoryboard={onOpenStoryboard}
             onCreateBlankScore={onCreateBlankProject}
             onOpenLibrary={onOpenLibrary}
           />

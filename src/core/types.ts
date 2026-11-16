@@ -15,7 +15,7 @@ export interface Vec3 {
 export interface SphericalPose {
   target: Vec3;
   distance: number;      // meters
-  pitch: number;         // radians (-PI/2 to +PI/2)
+  pitch: number;         // radians (clamped to [-85 deg, +85 deg])
   yaw: number;           // radians
   roll: number;          // radians (0 = level horizon, + = CW camera tilt from operator POV)
   focalLengthMm: number; // e.g., 24, 35, 50, 85
@@ -105,6 +105,9 @@ export interface SceneEntityDef {
   style?: EntityStyle;
   position: Vec3;       // Base position in meters (Y=0 is floor)
   rotationYRad: number; // Base facing yaw in radians (0 = +Z, PI = -Z)
+  pitchRad?: number;    // Base X-axis tilt in radians (0 = upright, +PI/2 = prone toward +Z)
+  rollRad?: number;     // Base Z-axis bank in radians (0 = level, + = CW from behind entity)
+  pivotRatio?: number;  // Normalized vertical rotation pivot ratio in [0, 1] (0 = base, 0.5 = center, 1 = top)
   height: number;       // Height in meters (default 1.75m for character, 0.85m for prop)
   width?: number;       // Lateral breadth in meters (X axis, default 2 * radius)
   depth?: number;       // Sagittal depth in meters (Z axis, default 2 * radius)
@@ -116,6 +119,9 @@ export interface EntityCueOverride {
   fromPosition?: Vec3;
   position?: Vec3;
   rotationYRad?: number;
+  pitchRad?: number;
+  rollRad?: number;
+  pivotRatio?: number;
   lookAt?: TargetAnchor; // Entity ID, multiple entity IDs, or world Vec3 to face toward
   fromWidth?: number;
   fromHeight?: number;
@@ -145,6 +151,9 @@ export interface BlockingCueSpec {
   fromPosition?: Vec3;
   position?: Vec3;
   rotationYRad?: number;
+  pitchRad?: number;
+  rollRad?: number;
+  pivotRatio?: number;
   lookAt?: TargetAnchor;
   fromWidth?: number;
   fromHeight?: number;
@@ -166,6 +175,9 @@ export interface EvaluatedEntityState {
   cueId?: string | null;
   position: Vec3;
   rotationYRad: number;
+  pitchRad?: number;
+  rollRad?: number;
+  pivotRatio?: number;
   size?: Vec3;          // Live evaluated { x: width, y: height, z: depth } in meters at time t
   highlighted: boolean;
   visible: boolean;
@@ -390,7 +402,7 @@ export interface ParseScoreResult {
 /**
  * Provenance category for StageFlow choreography scores.
  * - 'study': Authentic directorial scene studies authored by Taruma Sakti (e.g. Vector Field).
- * - 'blueprint': Synthetic educational camera-blocking presets and testbeds (BP 01–05).
+ * - 'blueprint': Synthetic educational camera-blocking presets and testbeds (BP 01–07).
  * - 'custom': User-authored, imported, or forked projects persisted in browser IndexedDB.
  */
 export type ScoreCategory = 'study' | 'blueprint' | 'custom';

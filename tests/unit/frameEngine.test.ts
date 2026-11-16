@@ -2250,5 +2250,366 @@ blocking:
       expect(frameEnd.stageCamera.dof.focusTargetPoint?.y).toBeCloseTo(0.90, 3);
       expect(frameEnd.stageCamera.dof.focusDistanceM).toBeCloseTo(5.0, 3);
     });
+
+    it('tracks a tilted entity rotated getEntityLookAnchor in stageCamera.transform.target and dof.focusDistanceM', () => {
+      const tiltTrackYaml = `
+version: "1.0"
+id: "tilt-anchor-dof-tracking"
+title: "Tilted Entity Look-At and DoF Focus Tracking"
+duration: 8.0
+entities:
+  - id: "actor"
+    label: "Actor"
+    kind: "character"
+    position: [0, 0.18, 0]
+    rotation: 0
+    pitch: 90
+    height: 1.80
+blocking:
+  - id: "wake-up"
+    entity: "actor"
+    start: 0
+    end: 4
+    position: [0, 0, 0]
+    pitch: 0
+    easing: "linear"
+  - id: "fall-prone"
+    entity: "actor"
+    start: 4
+    end: 8
+    position: [0, 0.18, 0]
+    pitch: 90
+    easing: "linear"
+shots:
+  - id: "s1-target-actor"
+    shot: 1
+    start: 0
+    end: 4
+    stage_camera:
+      target: "actor"
+      focus: "actor"
+      dof: "shallow"
+      distance: 5.0
+      pitch: 0
+      yaw: 0
+      lens: 50mm
+  - id: "s2-focus-actor"
+    shot: 2
+    start: 4
+    end: 8
+    stage_camera:
+      target: [0, 1.0, 0]
+      focus: "actor"
+      dof: "shallow"
+      distance: 5.0
+      pitch: 0
+      yaw: 0
+      lens: 50mm
+`;
+      const { score, error } = parseStageScore(tiltTrackYaml);
+      expect(error).toBeNull();
+      expect(score).not.toBeNull();
+
+      // At t = 0s: actor is prone toward +Z (pitch=90, y=0.18, eye offset=1.62) -> anchor at [0, 0.18, 1.62]
+      const f0 = computeStageFrame(0.0, score!);
+      expect(f0.stageCamera.transform.target.x).toBeCloseTo(0, 4);
+      expect(f0.stageCamera.transform.target.y).toBeCloseTo(0.18, 4);
+      expect(f0.stageCamera.transform.target.z).toBeCloseTo(1.62, 4);
+      expect(f0.stageCamera.dof.focusTargetPoint?.z).toBeCloseTo(1.62, 4);
+
+      // At t = 4s (Shot 2 start): actor is upright at [0, 0, 0] -> anchor at [0, 1.62, 0];
+      // camera eye at [0, 1.0, 5.0] looking along -Z -> orthogonal focusDistanceM = 5.0m
+      const f4 = computeStageFrame(4.0, score!);
+      expect(f4.stageCamera.dof.focusTargetPoint?.y).toBeCloseTo(1.62, 4);
+      expect(f4.stageCamera.dof.focusTargetPoint?.z).toBeCloseTo(0, 4);
+      expect(f4.stageCamera.dof.focusDistanceM).toBeCloseTo(5.0, 3);
+
+      // At t = 8s (Shot 2 end): actor returns prone (pitch=90, y=0.18) -> anchor at [0, 0.18, 1.62];
+      // orthogonal projection onto -Z sightline from eye [0, 1.0, 5.0] = 5.0 - 1.62 = 3.38m
+      const f8 = computeStageFrame(8.0, score!);
+      expect(f8.stageCamera.dof.focusTargetPoint?.y).toBeCloseTo(0.18, 4);
+      expect(f8.stageCamera.dof.focusTargetPoint?.z).toBeCloseTo(1.62, 4);
+      expect(f8.stageCamera.dof.focusDistanceM).toBeCloseTo(3.38, 3);
+    });
+
+    it('resolves dot-notation entity sub-anchors across rotated, tilted, custom-sized, dotted-ID, and multi-entity targets (#19)', () => {
+      const subAnchorYaml = `
+version: "1.0"
+id: "sub-anchor-suite"
+title: "Dot-Notation Entity Sub-Anchors"
+duration: 10.0
+entities:
+  - id: "actor_a"
+    label: "Actor A"
+    kind: "character"
+    position: [1.0, 0.0, 0.0]
+    width: 0.60
+    height: 2.00
+    rotation: 90
+  - id: "dr.smith"
+    label: "Dr. Smith"
+    kind: "character"
+    position: [-2.0, 0.18, 0.0]
+    width: 0.52
+    height: 1.80
+    rotation: 0
+    pitch: 90
+  - id: "crate"
+    label: "Wooden Crate"
+    kind: "prop"
+    position: [0.0, 0.0, -3.0]
+    width: 1.00
+    height: 1.20
+blocking:
+  - id: "crouch-a"
+    entity: "actor_a"
+    start: 6.0
+    end: 10.0
+    height: 1.00
+    easing: "linear"
+shots:
+  - id: "s1-ots-left"
+    shot: 1
+    start: 0.0
+    end: 2.0
+    stage_camera:
+      target: "actor_a.shoulder_l"
+      focus: "actor_a.eyes"
+      dof: "shallow"
+      distance: 4.0
+      pitch: 0
+      yaw: 0
+      lens: 50mm
+  - id: "s2-prone-feet"
+    shot: 2
+    start: 2.0
+    end: 4.0
+    stage_camera:
+      target: "dr.smith.chest"
+      focus: "dr.smith.feet"
+      dof: "shallow"
+      distance: 4.0
+      pitch: 0
+      yaw: 0
+  - id: "s3-centroid-and-exact-dot"
+    shot: 3
+    start: 4.0
+    end: 6.0
+    stage_camera:
+      target: ["dr.smith", "crate.top"]
+      distance: 5.0
+      pitch: 10
+      yaw: 0
+  - id: "s4-crouch-and-typo-fallback"
+    shot: 4
+    start: 6.0
+    end: 10.0
+    stage_camera:
+      from: "actor_a.chest"
+      target: "actor_a.unknown_part"
+      distance: 4.0
+      pitch: 0
+      yaw: 0
+`;
+      const { score, error } = parseStageScore(subAnchorYaml);
+      expect(error).toBeNull();
+      expect(score).not.toBeNull();
+
+      // Shot 1 (t=0): actor_a at [1,0,0], w=0.60, h=2.00, yaw=+90deg (+Z -> +X; +X -> -Z)
+      // .shoulder_l local = (+0.40 * 0.60 = +0.24, 0.77 * 2.00 = 1.54, 0)
+      // rotated yaw=+90deg -> world (1 + 0, 0 + 1.54, 0 - 0.24) = (1.0, 1.54, -0.24)
+      const f0 = computeStageFrame(0.0, score!);
+      expect(f0.stageCamera.transform.target.x).toBeCloseTo(1.0, 4);
+      expect(f0.stageCamera.transform.target.y).toBeCloseTo(1.54, 4);
+      expect(f0.stageCamera.transform.target.z).toBeCloseTo(-0.24, 4);
+      // focus: "actor_a.eyes" -> (1.0, 1.80, 0.0); eye at (1.0, 1.54, -0.24 + 4.0 = 3.76)
+      expect(f0.stageCamera.dof.focusTargetPoint?.x).toBeCloseTo(1.0, 4);
+      expect(f0.stageCamera.dof.focusTargetPoint?.y).toBeCloseTo(1.8, 4);
+      expect(f0.stageCamera.dof.focusTargetPoint?.z).toBeCloseTo(0.0, 4);
+
+      // Shot 2 (t=2): dr.smith at [-2, 0.18, 0], h=1.80, pitch=90deg (+Y -> +Z)
+      // .chest local = (0, 0.75 * 1.80 = 1.35, 0) -> world (-2.0, 0.18, 1.35)
+      // .feet local = (0, 0.05 * 1.80 = 0.09, 0) -> world (-2.0, 0.18, 0.09)
+      const f2 = computeStageFrame(2.0, score!);
+      expect(f2.stageCamera.transform.target.x).toBeCloseTo(-2.0, 4);
+      expect(f2.stageCamera.transform.target.y).toBeCloseTo(0.18, 4);
+      expect(f2.stageCamera.transform.target.z).toBeCloseTo(1.35, 4);
+      expect(f2.stageCamera.dof.focusTargetPoint?.z).toBeCloseTo(0.09, 4);
+
+      // Shot 3 (t=4): ["dr.smith", "crate.top"]
+      // dr.smith bare = (-2.0, 0.18, 1.62); crate.top = (0.0, 1.20, -3.0)
+      // midpoint = (-1.0, 0.69, -0.69)
+      const f4 = computeStageFrame(4.0, score!);
+      expect(f4.stageCamera.transform.target.x).toBeCloseTo(-1.0, 4);
+      expect(f4.stageCamera.transform.target.y).toBeCloseTo(0.69, 4);
+      expect(f4.stageCamera.transform.target.z).toBeCloseTo(-0.69, 4);
+
+      // Shot 4 (t=6..10): from actor_a.chest (t=6: h=2.0 -> 1.50m) to actor_a.unknown_part (t=10: h=1.0 -> default 0.90m)
+      const f6 = computeStageFrame(6.0, score!);
+      expect(f6.stageCamera.transform.target.y).toBeCloseTo(1.5, 4);
+      const f10 = computeStageFrame(10.0, score!);
+      expect(f10.stageCamera.transform.target.y).toBeCloseTo(0.9, 4);
+    });
+
+    it('resolves target_offset + sub-anchor, label-based sub-anchors, observer_shots, and spline waypoint sub-anchors (#19)', () => {
+      const yaml = `
+version: "1.0"
+id: "sub-anchor-advanced"
+title: "Sub-Anchor Advanced Coverage"
+duration: 8.0
+entities:
+  - id: "doc"
+    label: "  Dr. Smith  "
+    kind: "character"
+    position: [1.0, 0.0, 0.0]
+    width: 0.60
+    height: 2.00
+    rotation: 0
+  - id: "crate"
+    label: "Crate"
+    kind: "prop"
+    position: [-1.0, 0.0, -2.0]
+    width: 1.00
+    height: 1.20
+observer_shots:
+  - id: "obs-1"
+    start: 0
+    end: 8
+    camera:
+      target: "Dr. Smith.shoulder_l"
+      distance: 6.0
+      pitch: 20
+      yaw: 0
+shots:
+  - id: "s1-label-offset"
+    start: 0
+    end: 4
+    stage_camera:
+      target: "Dr. Smith.chest"
+      target_offset: [0.25, 0.15, -0.5]
+      distance: 4.0
+      pitch: 0
+      yaw: 0
+  - id: "s2-spline-sub-anchors"
+    start: 4
+    end: 8
+    stage_camera:
+      maneuver: "spline"
+      easing: "linear"
+      waypoints:
+        - target: "Dr. Smith.chest"
+          distance: 4.0
+          pitch: 0
+          yaw: 0
+        - target: "crate.top"
+          distance: 4.0
+          pitch: 0
+          yaw: 0
+`;
+      const { score, error } = parseStageScore(yaml);
+      expect(error).toBeNull();
+      expect(score).not.toBeNull();
+
+      // Shot 1 (t=2): "Dr. Smith.chest" = (1.0, 1.5, 0.0) + target_offset (0.25, 0.15, -0.5)
+      const f2 = computeStageFrame(2.0, score!);
+      expect(f2.stageCamera.transform.target.x).toBeCloseTo(1.25, 4);
+      expect(f2.stageCamera.transform.target.y).toBeCloseTo(1.65, 4);
+      expect(f2.stageCamera.transform.target.z).toBeCloseTo(-0.5, 4);
+
+      // observer_shots: "Dr. Smith.shoulder_l" = (1.0 + 0.40 * 0.60, 0.77 * 2.00, 0.0) = (1.24, 1.54, 0.0)
+      expect(f2.observerCamera.transform.target.x).toBeCloseTo(1.24, 4);
+      expect(f2.observerCamera.transform.target.y).toBeCloseTo(1.54, 4);
+      expect(f2.observerCamera.transform.target.z).toBeCloseTo(0.0, 4);
+
+      // Shot 2 spline start (t=4): "Dr. Smith.chest" = (1.0, 1.5, 0.0); end (t=8): "crate.top" = (-1.0, 1.2, -2.0)
+      const f4 = computeStageFrame(4.0, score!);
+      expect(f4.stageCamera.transform.target.x).toBeCloseTo(1.0, 4);
+      expect(f4.stageCamera.transform.target.y).toBeCloseTo(1.5, 4);
+      expect(f4.stageCamera.transform.target.z).toBeCloseTo(0.0, 4);
+
+      const f8 = computeStageFrame(8.0, score!);
+      expect(f8.stageCamera.transform.target.x).toBeCloseTo(-1.0, 4);
+      expect(f8.stageCamera.transform.target.y).toBeCloseTo(1.2, 4);
+      expect(f8.stageCamera.transform.target.z).toBeCloseTo(-2.0, 4);
+    });
+
+    it('tracks center-pivoted banking/pitching entities with live height scaling and thin-lens focus (#20)', () => {
+      const yaml = `
+version: "1.0"
+id: "pivot-frame-test"
+title: "Pivot Frame Test"
+duration: 4.0
+entities:
+  - id: "drone"
+    kind: "prop"
+    shape: "box"
+    position: [0.0, 2.0, 0.0]
+    size: [1.0, 1.0, 1.0]
+    pivot: "center"
+    pitch: 90
+    roll: 45
+  - id: "flyer"
+    kind: "character"
+    position: [2.0, 0.0, 0.0]
+    size: [0.5, 2.0, 0.5]
+blocking:
+  - id: "drone-grow"
+    entity: "drone"
+    start: 0.0
+    end: 4.0
+    size: [1.0, 3.0, 1.0]
+    easing: "linear"
+  - id: "flyer-flight"
+    entity: "flyer"
+    start: 0.0
+    end: 4.0
+    position: [2.0, 4.0, 0.0]
+    pitch: 90
+    pivot: "center"
+    easing: "linear"
+shots:
+  - id: "s1"
+    start: 0.0
+    end: 2.0
+    stage_camera:
+      target: "drone"
+      focus: "drone"
+      dof: "shallow"
+      distance: 4.0
+      pitch: 0
+      yaw: 0
+  - id: "s2"
+    start: 2.0
+    end: 4.0
+    stage_camera:
+      target: "flyer"
+      focus: "flyer.feet"
+      dof: "shallow"
+      distance: 5.0
+      pitch: 0
+      yaw: 90
+`;
+      const { score, error } = parseStageScore(yaml);
+      expect(error).toBeNull();
+      expect(score).not.toBeNull();
+
+      // Shot 1 at t=1.0s: drone live height = 1.5m -> center-pivoted target stays at (0, 2.0 + 0.5*1.5 = 2.75, 0)
+      const f1 = computeStageFrame(1.0, score!);
+      expect(f1.stageCamera.transform.target.x).toBeCloseTo(0.0, 4);
+      expect(f1.stageCamera.transform.target.y).toBeCloseTo(2.75, 4);
+      expect(f1.stageCamera.transform.target.z).toBeCloseTo(0.0, 4);
+      expect(f1.stageCamera.dof.focusTargetPoint?.y).toBeCloseTo(2.75, 4);
+
+      // Shot 2 at t=4.0s: flyer at [2.0, 4.0, 0.0], h=2.0, pivot=0.5 -> pivot at y=5.0m, pitch=90deg
+      // default eye anchor (0.9h -> +0.8m from pivot) rotates forward to (2.0, 5.0, +0.8)
+      // focus flyer.feet (0.05h -> -0.9m from pivot) rotates backward to (2.0, 5.0, -0.9)
+      const f4 = computeStageFrame(4.0, score!);
+      expect(f4.stageCamera.transform.target.x).toBeCloseTo(2.0, 4);
+      expect(f4.stageCamera.transform.target.y).toBeCloseTo(5.0, 4);
+      expect(f4.stageCamera.transform.target.z).toBeCloseTo(0.8, 4);
+      expect(f4.stageCamera.dof.focusTargetPoint?.x).toBeCloseTo(2.0, 4);
+      expect(f4.stageCamera.dof.focusTargetPoint?.y).toBeCloseTo(5.0, 4);
+      expect(f4.stageCamera.dof.focusTargetPoint?.z).toBeCloseTo(-0.9, 4);
+    });
   });
 });

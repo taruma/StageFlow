@@ -46,7 +46,9 @@ import { useAppShellTheme } from '../hooks/useAppShellTheme';
 import { useWorkspaceLayout } from '../hooks/useWorkspaceLayout';
 import { useStudioDisplaySettings } from '../hooks/useStudioDisplaySettings';
 import { useToastNotifications } from '../hooks/useToastNotifications';
+import { useStageCamSnapshot } from '../hooks/useStageCamSnapshot';
 import { DioramaCanvas } from '../stage/DioramaCanvas';
+import { CleanStageCamExportCanvas } from '../stage/CleanStageCamExportCanvas';
 import { WorkspaceHeader } from './WorkspaceHeader';
 import { ResizableSplitWorkspace } from './ResizableSplitWorkspace';
 import { UniversalVideoViewport } from './UniversalVideoViewport';
@@ -61,6 +63,7 @@ import { ScoreLibraryModal, type FilterTab } from './ScoreLibraryModal';
 import { MobileScoreLibraryModal } from './library/MobileScoreLibraryModal';
 import { AppInfoModal } from './AppInfoModal';
 import { CleanVideoExportModal } from './CleanVideoExportModal';
+import { StoryboardModal } from './StoryboardModal';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { ToastContainer } from './ToastContainer';
 import { DirectorialTransportBar } from './DirectorialTransportBar';
@@ -72,6 +75,7 @@ export const InteractiveStudioApp: React.FC = () => {
   const layout = useWorkspaceLayout({ onNotify: showToast });
   const display = useStudioDisplaySettings();
   const isMobile = useIsMobile();
+  const stageCamSnapshot = useStageCamSnapshot({ onNotify: showToast });
   const [subpanelViewMode, setSubpanelViewMode] =
     useState<SubpanelViewMode>('brief');
 
@@ -109,6 +113,9 @@ export const InteractiveStudioApp: React.FC = () => {
 
   // In-browser Clean Stage Cam MP4 Export Modal state
   const [isVideoExportOpen, setIsVideoExportOpen] = useState(false);
+
+  // Storyboard Contact Sheet Modal state
+  const [isStoryboardOpen, setIsStoryboardOpen] = useState(false);
 
   // Global '?' shortcut to open Info / Shortcuts Modal
   useEffect(() => {
@@ -767,6 +774,22 @@ export const InteractiveStudioApp: React.FC = () => {
     [mediaClock]
   );
 
+  const { captureSnapshot } = stageCamSnapshot;
+  const handleCaptureStageCamSnapshot = useCallback(() => {
+    captureSnapshot({
+      score: activeScore,
+      timestampSec: stageLoop.frameRef.current.timestampSec,
+      dofBlurEnabled: display.dofBlurEnabled,
+      themeCategory: theme.effectiveDioramaCategory,
+    });
+  }, [
+    captureSnapshot,
+    activeScore,
+    stageLoop.frameRef,
+    display.dofBlurEnabled,
+    theme.effectiveDioramaCategory,
+  ]);
+
   return (
     <div
       onDragOver={fileDrop.handleDragOver}
@@ -809,6 +832,11 @@ export const InteractiveStudioApp: React.FC = () => {
           mediaClock.pause();
           stageLoop.forceSyncUi();
           setIsVideoExportOpen(true);
+        }}
+        onOpenStoryboard={() => {
+          mediaClock.pause();
+          stageLoop.forceSyncUi();
+          setIsStoryboardOpen(true);
         }}
         onOpenLibrary={(tab) => {
           setLibraryInitialTab(tab);
@@ -955,6 +983,7 @@ export const InteractiveStudioApp: React.FC = () => {
         playbackRate={mediaClock.playbackRate}
         isMuted={mediaClock.isMuted}
         loopActiveShot={mediaClock.loopActiveShot}
+        isCapturingSnapshot={stageCamSnapshot.isCapturing}
         onTogglePlay={mediaClock.togglePlay}
         onPause={mediaClock.pause}
         onSeek={handleSeekAndSync}
@@ -962,6 +991,7 @@ export const InteractiveStudioApp: React.FC = () => {
         onSetPlaybackRate={mediaClock.setPlaybackRate}
         onToggleMute={mediaClock.toggleMute}
         onToggleLoopActiveShot={mediaClock.toggleLoopActiveShot}
+        onCaptureStageCamSnapshot={handleCaptureStageCamSnapshot}
       />
 
       {/* Reset Confirmation Dialog Modal */}
@@ -1099,6 +1129,29 @@ export const InteractiveStudioApp: React.FC = () => {
         onNotify={showToast}
         onClose={() => setIsVideoExportOpen(false)}
       />
+
+      {/* Storyboard Contact Sheet Generator & Viewer Modal */}
+      <StoryboardModal
+        isOpen={isStoryboardOpen}
+        score={activeScore}
+        dofBlurEnabled={display.dofBlurEnabled}
+        onNotify={showToast}
+        onClose={() => setIsStoryboardOpen(false)}
+      />
+
+      {/* Temporary Offscreen Stage Cam Snapshot Canvas (mounted strictly during 1-frame capture) */}
+      {stageCamSnapshot.pendingRequest && (
+        <CleanStageCamExportCanvas
+          ref={stageCamSnapshot.canvasRef}
+          score={stageCamSnapshot.pendingRequest.score}
+          initialFrame={stageCamSnapshot.pendingRequest.frame}
+          width={stageCamSnapshot.pendingRequest.width}
+          height={stageCamSnapshot.pendingRequest.height}
+          dofBlurEnabled={stageCamSnapshot.pendingRequest.dofBlurEnabled}
+          themeCategory={stageCamSnapshot.pendingRequest.themeCategory}
+          targetCamera="stage-cam"
+        />
+      )}
 
       {/* Floating Toast Notification Container */}
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />

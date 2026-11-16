@@ -10,10 +10,13 @@ import type {
   SceneEntityDef,
   SphericalPose,
   StageCameraCueSpec,
-  Vec3,
 } from './types';
-import { BLUEPRINT_PALETTE, ENTITY_DEFAULTS } from './constants';
+import { BLUEPRINT_PALETTE } from './constants';
 import { clampSphericalPose } from './sphericalMath';
+import {
+  getEntityDefLookAnchor,
+  resolveTargetPoint3DWithAdapter,
+} from './cameraTargetResolver';
 import { parseCameraRigSpec } from './cameraRigEvaluator';
 import {
   normalizeCameraEasing,
@@ -29,6 +32,15 @@ import {
   parseVec3,
 } from './scorePrimitives';
 
+function isStringTargetAnchor(rawTarget: unknown): rawTarget is string | string[] {
+  return (
+    typeof rawTarget === 'string' ||
+    (Array.isArray(rawTarget) &&
+      rawTarget.length > 0 &&
+      rawTarget.every((item) => typeof item === 'string'))
+  );
+}
+
 export function parseBaseSphericalPose(
   raw: unknown,
   fallback: SphericalPose
@@ -42,7 +54,7 @@ export function parseBaseSphericalPose(
     : { ...fallback.target };
   const offset = parseOptionalVec3(obj.target_offset ?? obj.targetOffset);
   const target =
-    offset && typeof obj.target !== 'string'
+    offset && !isStringTargetAnchor(obj.target)
       ? {
           x: rawTarget.x + offset.x,
           y: rawTarget.y + offset.y,
@@ -80,69 +92,22 @@ export function resolveStageCamEntityTarget(
 ): void {
   if (!rawCam || typeof rawCam !== 'object') return;
   const camObj = rawCam as Record<string, unknown>;
+  if (!isStringTargetAnchor(camObj.target)) return;
+
   const offset = parseOptionalVec3(
     camObj.target_offset ?? camObj.targetOffset
   );
-
-  if (Array.isArray(camObj.target) && camObj.target.length > 0 && camObj.target.every((item) => typeof item === 'string')) {
-    const anchors: Vec3[] = [];
-    for (const item of camObj.target) {
-      const clean = String(item).trim().toLowerCase();
-      if (clean === 'center' || clean === 'origin' || clean === 'stage') {
-        anchors.push({ x: 0, y: 1.0, z: 0 });
-      } else {
-        const matched = entities.find(
-          (e) => e.id.toLowerCase() === clean || e.label.toLowerCase() === clean
-        );
-        if (matched) {
-          const anchorRatio =
-            matched.kind === 'character' ? ENTITY_DEFAULTS.CHARACTER_LOOK_ANCHOR_RATIO : 0.5;
-          anchors.push({
-            x: matched.position.x,
-            y: matched.position.y + matched.height * anchorRatio,
-            z: matched.position.z,
-          });
-        }
-      }
-    }
-    if (anchors.length > 0) {
-      const count = anchors.length;
-      pose.target = {
-        x: anchors.reduce((sum, a) => sum + a.x, 0) / count + (offset?.x ?? 0),
-        y: anchors.reduce((sum, a) => sum + a.y, 0) / count + (offset?.y ?? 0),
-        z: anchors.reduce((sum, a) => sum + a.z, 0) / count + (offset?.z ?? 0),
-      };
-    }
-    return;
-  }
-
-  if (typeof camObj.target !== 'string') return;
-  const tgtName = camObj.target.trim().toLowerCase();
-
-  if (tgtName === 'center' || tgtName === 'origin' || tgtName === 'stage') {
-    pose.target = {
-      x: offset?.x ?? 0,
-      y: 1.0 + (offset?.y ?? 0),
-      z: offset?.z ?? 0,
-    };
-    return;
-  }
-
-  const matched = entities.find(
-    (e) =>
-      e.id.toLowerCase() === tgtName || e.label.toLowerCase() === tgtName
+  pose.target = resolveTargetPoint3DWithAdapter(
+    camObj.target,
+    {
+      items: entities,
+      getId: (e) => e.id,
+      getLabel: (e) => e.label,
+      getAnchor: getEntityDefLookAnchor,
+    },
+    pose.target,
+    offset
   );
-  if (matched) {
-    const anchorRatio =
-      matched.kind === 'character'
-        ? ENTITY_DEFAULTS.CHARACTER_LOOK_ANCHOR_RATIO
-        : 0.5;
-    pose.target = {
-      x: matched.position.x + (offset?.x ?? 0),
-      y: matched.position.y + matched.height * anchorRatio + (offset?.y ?? 0),
-      z: matched.position.z + (offset?.z ?? 0),
-    };
-  }
 }
 
 export function parseCameraCueSpec(
@@ -415,8 +380,12 @@ export function applyFlatShotCameraOverrides(
     shotObj.t_stop !== undefined ||
     shotObj.aperture_start !== undefined ||
     shotObj.apertureStart !== undefined ||
+    shotObj.f_stop_start !== undefined ||
+    shotObj.dof_start !== undefined ||
     shotObj.aperture_end !== undefined ||
     shotObj.apertureEnd !== undefined ||
+    shotObj.f_stop_end !== undefined ||
+    shotObj.dof_end !== undefined ||
     shotObj.rig !== undefined ||
     shotObj.show_rig !== undefined ||
     shotObj.showRig !== undefined;

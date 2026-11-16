@@ -33,6 +33,7 @@ import {
   parseApertureFStop,
   parseBlockingCues,
   parseDofPreset,
+  parseEntityPivotRatio,
   parseFocusTargetOrDistance,
   parseLensFocalLengthMm,
   parseMetricDistanceM,
@@ -61,6 +62,7 @@ export {
   parseApertureFStop,
   parseBlockingCues,
   parseDofPreset,
+  parseEntityPivotRatio,
   parseFocusTargetOrDistance,
   parseLensFocalLengthMm,
   parseMetricDistanceM,
@@ -191,9 +193,12 @@ export function parseStageScore(
     typeof rawStage.depth === 'number' && rawStage.depth > 0
       ? rawStage.depth
       : 10;
+  const rawGridStep = rawStage.grid_step ?? rawStage.gridStep;
   const gridStep =
-    typeof rawStage.grid_step === 'number' && rawStage.grid_step > 0
-      ? rawStage.grid_step
+    typeof rawGridStep === 'number' &&
+    Number.isFinite(rawGridStep) &&
+    rawGridStep > 0
+      ? rawGridStep
       : 1;
 
   const rawShowRigs =
@@ -250,6 +255,13 @@ export function parseStageScore(
         style,
         position: parseVec3(ent.position, { x: 0, y: 0, z: 0 }),
         rotationYRad: parseAngleToRad(ent.rotation ?? ent.yaw, 0) ?? 0,
+        pitchRad: parseAngleToRad(ent.pitch, 0) ?? 0,
+        rollRad: parseAngleToRad(ent.roll, 0) ?? 0,
+        pivotRatio:
+          parseEntityPivotRatio(
+            ent.pivot ?? ent.pivot_ratio ?? ent.pivotRatio,
+            0
+          ) ?? 0,
         height,
         width,
         depth,
@@ -375,6 +387,11 @@ export function parseStageScore(
               : undefined,
             position: ov.position ? parseVec3(ov.position) : undefined,
             rotationYRad: parseAngleToRad(ov.rotation ?? ov.yaw),
+            pitchRad: parseAngleToRad(ov.pitch),
+            rollRad: parseAngleToRad(ov.roll),
+            pivotRatio: parseEntityPivotRatio(
+              ov.pivot ?? ov.pivot_ratio ?? ov.pivotRatio
+            ),
             lookAt: parseTargetOrVec3(ov.look_at ?? ov.lookAt),
             ...dimOverrides,
             easing: normalizeCameraEasing(ov.easing),
@@ -461,20 +478,25 @@ export function parseStageScore(
     rawOptics?.dofBlur ??
     rawOptics?.blur ??
     root.dof_blur ??
-    root.dofBlur;
+    root.dofBlur ??
+    root.blur;
   const dofBlur =
     rawDofBlur === true || rawDofBlur === 'true' || rawDofBlur === 'yes';
   const defaultDof = parseDofPreset(
     rawOptics?.dof ??
       rawOptics?.depth_of_field ??
       rawOptics?.depthOfField ??
-      root.dof
+      root.dof ??
+      root.depth_of_field ??
+      root.depthOfField
   );
   const defaultApertureFStop = parseApertureFStop(
     rawOptics?.aperture ??
       rawOptics?.f_stop ??
       rawOptics?.fStop ??
-      root.aperture
+      root.aperture ??
+      root.f_stop ??
+      root.fStop
   );
   const optics: ScoreOpticsConfig | undefined =
     rawOptics !== undefined ||

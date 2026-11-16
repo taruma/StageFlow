@@ -61,14 +61,14 @@ flowchart TD
     - Standing human: `height: 1.7m`, `radius: 0.25m` (or `size: [0.5, 1.7, 0.3]`).
     - Seated human: `height: 1.2m`.
     - Conference / interrogation desk: `size: [2.0, 0.75, 1.0]`.
-  - Initial position `[x, y, z]` and facing rotation `rotation: 0deg` ($0^\circ$ faces downstage $+Z$).
+  - Initial position `[x, y, z]`, facing rotation `rotation: 0deg` ($0^\circ$ faces downstage $+Z$), optional 3D mesh tilt `pitch: 0` (`+90` = prone/head-first flight, `-90` = supine) and `roll: 0` (`+` = bank CW from behind), and optional vertical rotation pivot `pivot: "base"` (default `0.0` for floor/prone blocking; `"center"` / `0.5` for flying characters, rolling spheres, or tumbling mid-air props; `"top"` / `1.0` or any `0..1` ratio). For prone floor poses (`pitch: 90` with `pivot: "base"`), set `y: 0.18` so the torso rests cleanly atop `Y = 0`.
 
 ### Step 2: Decoupled Actor Kinematics (`blocking:`)
 - **Golden Rule**: Always stage continuous actor movement in the root `blocking:` block, **not** inside `shots[].entities`.
 - **Why**: Putting actor paths in root `blocking:` gives actors Option A continuous ground movement trails and lets them walk smoothly across multiple camera cuts without resetting or stopping.
 - Author cues with:
   - Explicit timing (`start: 0.0`, `end: 8.0` or `duration: 8.0`).
-  - Target destination `position: [x, y, z]`.
+  - Target destination `position: [x, y, z]` and optional destination tilt `pitch` / `roll` in degrees and vertical rotation hinge `pivot` (`"base"`, `"center"`, `"top"`, or `0..1`; e.g. `pitch: 65, roll: 25, pivot: "center"` for banked mid-air flight; inherited when omitted and preserved under `look_at`).
   - Dynamic facing (`look_at: "witness"` or `look_at: ["actor_a", "actor_b"]` for conversational midpoint).
   - Easing curve (`cruise` or `smooth` for natural walking momentum).
   - For jump cuts or immediate relocations without ground trails, set `cut: true`.
@@ -81,12 +81,12 @@ flowchart TD
   - `85mm`: Intimate portraits, compressed space, shallow depth of field.
 - **Orthogonal Focus Tracking**:
   - Use `focus: "<entity_id>"` or `focus: ["actor_a", "actor_b"]` so the engine projects $(\vec{P}_{\text{focus}} - \vec{E}) \cdot \hat{F}$ orthogonally onto the optical axis, keeping the subject pin-sharp even off-axis.
-  - Set thin-lens DoF via `dof: shallow` ($f/2.0$), `medium` ($f/4.0$), or `deep` ($f/8.0$), or explicit `aperture: 2.8`.
+  - Set thin-lens DoF via `dof: shallow` ($f/2.8$), `medium` ($f/5.6$), or `deep` ($\infty$), or explicit `aperture: 2.8`.
 - **Aiming & Anchors**:
-  - `target: "<id>"`: Follows an entity.
-  - `target: ["actor_a", "actor_b"]`: Dynamic two-shot centroid tracking midpoint.
-  - `from: "<id>"`: Smooth look-at pan/transition from one subject to another.
-  - `target_offset: [x, y, z]`: Metric framing adjustments (e.g. `[0, 1.4, 0]` for head height).
+  - `target: "<id>"` or `"<id>.<part>"`: Follows an entity or body-space sub-anchor (`.head`/`.eyes`, `.chest`/`.shoulder`, `.shoulder_l`/`.shoulder_r`, `.waist`/`.center`, `.feet`/`.base`, `.top`), rotating cleanly with `yaw`/`pitch`/`roll`.
+  - `target: ["actor_a", "actor_b"]` (or `["actor_a.eyes", "actor_b.chest"]`): Dynamic two-shot centroid tracking midpoint.
+  - `from: "<id>"`: Smooth look-at pan/transition from one subject (or sub-anchor) to another.
+  - `target_offset: [x, y, z]`: World-space metric framing adjustments (e.g. `[0, 0.25, 0]` for headroom).
 - **Maneuvers & Continuous Kinematics**:
   - `static`: Stationary locked camera.
   - `pan`, `tilt`, `push`, `pull`, `truck`, `pedestal`: Linear single-axis moves.
@@ -120,7 +120,7 @@ Refer directly to these sections in the SSOT documentation for full details with
 | **Pose Inheritance (`continuous: true`)** | [`docs/YAML_AUTHORING_GUIDE.md §5.2`](../../../docs/YAML_AUTHORING_GUIDE.md#52-pose-inheritance-standard-vs-continuous-mode) |
 | **Decoupled Actor Blocking (`blocking:`)**| [`docs/YAML_AUTHORING_GUIDE.md §6.1`](../../../docs/YAML_AUTHORING_GUIDE.md#61-decoupled-actor--prop-blocking-blocking) |
 | **8 Production Recipes (OTS, Dolly-Zoom, etc.)** | [`docs/YAML_AUTHORING_GUIDE.md §7`](../../../docs/YAML_AUTHORING_GUIDE.md#7-directors-cookbook-8-production-recipes) |
-| **Formal AST Normalized Schema Contract** | [`docs/STAGEFLOW_SCRIPT_SPECIFICATION.md §7.2`](../../../docs/STAGEFLOW_SCRIPT_SPECIFICATION.md#72-normalized-ast-schema-contract) |
+| **Formal AST Normalized Schema Contract** | [`docs/STAGEFLOW_SCRIPT_SPECIFICATION.md §7.2`](../../../docs/STAGEFLOW_SCRIPT_SPECIFICATION.md#72-normalized-ast-interface-contract-typests) |
 
 ---
 

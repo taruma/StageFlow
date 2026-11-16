@@ -70,11 +70,14 @@ $$d = \sqrt{\Delta x^2 + \Delta y^2 + \Delta z^2}, \quad d_{xz} = \sqrt{\Delta x
 When a camera cue mounts onto a physical studio rig (`CameraRigSpec`), camera eye position $\vec{E}(t)$ is constrained directly in world space rather than calculated as a spherical offset from the subject:
 1. **Stationary Tripod (`type: "tripod"`)**: Eye position is held stationary at the authored world coordinate:
    $$\vec{E}(t) \equiv \vec{P}_{\text{tripod}} = (x_0, y_0, z_0)$$
+   If `position` is omitted, $\vec{P}_{\text{tripod}}$ falls back to the preceding shot's terminal eye position $\vec{E}_{\text{prev}}$ when `continuous: true` (for cue index $i > 0$ and `maneuver !== 'cut'`, even when `target:` changes), or otherwise to the cue's start spherical eye $\text{sphericalToCartesian}(P_0)$.
 2. **Linear Dolly Track (`type: "track"`)**: Camera cart glides along a linear rail from $\vec{A}$ to $\vec{B}$ with eased progress $u = E(\tau)$:
    $$\vec{E}(u) = (1 - u)\vec{A} + u\vec{B}$$
-   When `continuous: true` is active on a track and `from:` is omitted, $\vec{A}$ automatically inherits the preceding shot's terminal eye position $\vec{E}_{\text{prev}}$ to prevent spatial cuts.
-3. **Curved Spline Dolly Track (`type: "spline_track"`)**: Camera cart glides along a multi-point Catmull-Rom rail:
-   $$\vec{E}(u) = \operatorname{CatmullRom}\left(\mathbf{P}_0, \mathbf{P}_1, \mathbf{P}_2, \mathbf{P}_3, \tau\right)$$
+   When `from:` is omitted (`to:` also defaults to $\vec{A}$ if omitted), $\vec{A}$ inherits the preceding shot's terminal eye position $\vec{E}_{\text{prev}}$ when `continuous: true` ($i > 0$, `maneuver !== 'cut'`, even if `target:` changes), or otherwise $\text{sphericalToCartesian}(P_0)$.
+3. **Curved Spline Dolly Track (`type: "spline_track"`)**: Camera cart glides along a multi-point uniform piecewise standard Catmull-Rom rail evaluated at eased progress $u = E(\tau)$ over $m \ge 2$ control points:
+   $$s_{\text{scaled}} = u(m - 1), \quad i = \min(m - 2,\; \lfloor s_{\text{scaled}} \rfloor), \quad s = s_{\text{scaled}} - i$$
+   $$\vec{E}(u) = \operatorname{CatmullRom}\left(\mathbf{P}_{\max(0, i-1)},\; \mathbf{P}_i,\; \mathbf{P}_{\min(m-1, i+1)},\; \mathbf{P}_{\min(m-1, i+2)},\; s\right)$$
+   *(If `points` contains 1 point, it prepends the fallback eye as `[E_fallback, points[0]]`; if empty, it holds `[E_fallback, E_fallback]`, where `E_fallback` inherits $\vec{E}_{\text{prev}}$ when `continuous: true` with $i > 0$ and `maneuver !== 'cut'`, even if `target:` changes, or otherwise $\text{sphericalToCartesian}(P_0)$.)*
 4. **Inverse Look-At Orientation**:
    - **Target-Tracking Mode (`target:` present)**: With evaluated eye $\vec{E}(u)$ and target anchor $\vec{T}(u)$, orientation is resolved via inverse projection $\operatorname{cartesianToSpherical}(\vec{E}(u), \vec{T}(u), f_{\text{mm}}, \gamma)$, automatically panning and tilting the camera head to center the subject.
    - **Fixed / Animated Gaze Mode (`target:` omitted)**: With fixed or eased angles $(\theta(u), \psi(u))$, target $\vec{T}(u)$ is projected forward along the sightline at distance $d$:
@@ -106,39 +109,57 @@ StageFlow models a standard 35mm full-frame sensor with horizontal gate width $W
 5. **Gaussian Thin-Lens Depth of Field ($H, D_{\text{near}}, D_{\text{far}}$)**:
    With focal length $f = f_{\text{mm}} / 1000\text{ m}$, Circle of Confusion $c = 3.0 \times 10^{-5}\text{ m}$ ($0.03\text{ mm}$), and aperture $f$-stop $N \in [0.7, 64.0]$ (`"shallow"` $= 2.8$, `"medium"` $= 5.6$, `"deep"` $= \infty$):
    $$H = \frac{f^2}{N \cdot c} + f, \qquad D_{\text{near}} = \frac{(H - f)\,d_{\text{focus}}}{H + d_{\text{focus}} - 2f}, \qquad D_{\text{far}} = \begin{cases} \frac{(H - f)\,d_{\text{focus}}}{H - d_{\text{focus}}} & d_{\text{focus}} < H \\ \infty & d_{\text{focus}} \ge H \end{cases}$$
-   For a fragment at view-space depth $z > 0$, the physical Circle of Confusion blur radius normalized by sensor height $H_{\text{sensor}}$ is:
-   $$\beta(z) = \min\!\left(0.022,\; \frac{f_{\text{mm}}^2}{N \cdot H_{\text{sensor}} \cdot (1000\,d_{\text{focus}} - f_{\text{mm}})} \cdot \frac{|z - d_{\text{focus}}|}{z}\right)$$
+   For a fragment at view-space depth $z > 0$, the physical Circle of Confusion blur radius normalized by sensor height $H_{\text{sensor}}$ (`computeNormalizedBlurCircleFraction` in `opticsMath.ts`) is:
+   $$\beta(z) = \min\!\left(0.022,\; \frac{f_{\text{mm}}^2}{N \cdot H_{\text{sensor}} \cdot \max(1,\; 1000\,d_{\text{focus}} - f_{\text{mm}})} \cdot \frac{|z - d_{\text{focus}}|}{z}\right)$$
+   *(In the live WebGL2 viewfinder shader `StageCamDofEffect.tsx`, pixels inside $[D_{\text{near}}, D_{\text{far}}]$ clamp strictly to $0.0$ blur, while out-of-focus regions apply a `smoothstep(0.0, 0.25, distFromBracket) * 2.2` ramp over $\beta(z)$ clamped to `0.022`.)*
 
 ---
 
 ## 4. Entities, Anchors & Orientation
 
-Each entity $i$ declared in `entities` has a normalized kind $k_i \in \{\text{"character"}, \text{"prop"}, \text{"marker"}\}$ (normalizing aliases: $\text{"actor"}/\text{"person"} \to \text{"character"}$, $\text{"set"}/\text{"furniture"}/\text{"item"}/\text{"object"} \to \text{"prop"}$, $\text{"spike"}/\text{"mark"} \to \text{"marker"}$), an optional geometric shape $s_i$ (for props: $\text{"box"}$, $\text{"sphere"}$, $\text{"cylinder"}$, $\text{"capsule"}$; for markers: $\text{"x"}$, $\text{"t"}$, $\text{"circle"}$, $\text{"puck"}$), presentation style (character: $\text{"mannequin"}$, $\text{"edges"}$, $\text{"silhouette"}$, $\text{"wireframe"}$; prop: $\text{"edges"}$, $\text{"glass"}$, $\text{"solid"}$, $\text{"wireframe"}$; marker: $\text{"tape"}$, $\text{"glow"}$, $\text{"beacon"}$), floor/base coordinate $\vec{p}_i = (x_i, y_i, z_i)$, height $h_i$, radius $r_i$, and horizontal facing angle $\psi_{\text{entity}, i}$.
+Each entity $i$ declared in `entities` has a normalized kind $k_i \in \{\text{"character"}, \text{"prop"}, \text{"marker"}\}$ (normalizing aliases: $\text{"actor"}/\text{"person"} \to \text{"character"}$, $\text{"set"}/\text{"furniture"}/\text{"item"}/\text{"object"} \to \text{"prop"}$, $\text{"spike"}/\text{"mark"} \to \text{"marker"}$), an optional geometric shape $s_i$ (for props: $\text{"box"}$, $\text{"sphere"}$, $\text{"cylinder"}$, $\text{"capsule"}$; for markers: $\text{"x"}$, $\text{"t"}$, $\text{"circle"}$, $\text{"puck"}$), presentation style (character: $\text{"mannequin"}$, $\text{"edges"}$, $\text{"silhouette"}$, $\text{"wireframe"}$; prop: $\text{"edges"}$, $\text{"glass"}$, $\text{"solid"}$, $\text{"wireframe"}$; marker: $\text{"tape"}$, $\text{"glow"}$, $\text{"beacon"}$), floor/base coordinate $\vec{p}_i = (x_i, y_i, z_i)$, height $h_i$, radius $r_i$, horizontal facing yaw $\psi_{\text{entity}, i}$, optional 3D mesh tilt angles `pitch` ($\theta_{\text{entity}, i}$) and `roll` ($\phi_{\text{entity}, i}$), and optional normalized vertical rotation pivot ratio `pivot` ($p_i \in [0, 1]$, default $0$ `"base"`).
 
 ### 4.1 Default Geometry & Intrinsic Look-At Anchor ($\vec{A}_i$)
 When a camera `target` or `from` references an entity by `id` or `label` (in either baseline `stage` cameras or shot cues), it resolves to the entity's intrinsic 3D anchor $\vec{A}_i$:
 
 | Normalized `kind` | Default `height` ($h$) | Default `radius` ($r$) | Default `width` ($w$) | Default `depth` ($d$) | Anchor Elevation Ratio | Resolved Look-At Anchor $\vec{A}_i$ |
 | :--- | :---: | :---: | :---: | :---: | :---: | :--- |
-| `"character"` | $1.75\text{ m}$ | $0.26\text{ m}$ | $0.52\text{ m}$ | $0.52\text{ m}$ | $0.90 h$ | $(x_i,\; y_i + 0.90 h_i,\; z_i)$ *(default $y = 1.575\text{ m}$ eye level)* |
-| `"prop"` | $0.85\text{ m}$* | $0.35\text{ m}$ | $0.70\text{ m}$ | $0.70\text{ m}$ | $0.50 h$ | $(x_i,\; y_i + 0.50 h_i,\; z_i)$ *(default $y = 0.425\text{ m}$)* |
-| `"marker"` | $0.15\text{ m}$ | $0.25\text{ m}$ | $0.50\text{ m}$ | $0.50\text{ m}$ | $0.50 h$ | $(x_i,\; y_i + 0.50 h_i,\; z_i)$ *(default $y = 0.075\text{ m}$)* |
+| `"character"` | $1.75\text{ m}$ | $0.26\text{ m}$ | $0.52\text{ m}$ | $0.52\text{ m}$ | $0.90 h$ | $\vec{p}_i + (0,\; p_i h_i,\; 0)^T + R_y(\psi_i) R_x(\theta_i) R_z(\phi_i)(0,\; (0.90 - p_i) h_i,\; 0)^T$ *(upright: $y_i + 0.90 h_i$, default $1.575\text{ m}$ eye level; see §4.3)* |
+| `"prop"` | $0.85\text{ m}$* | $0.35\text{ m}$ | $0.70\text{ m}$ | $0.70\text{ m}$ | $0.50 h$ | $\vec{p}_i + (0,\; p_i h_i,\; 0)^T + R_y(\psi_i) R_x(\theta_i) R_z(\phi_i)(0,\; (0.50 - p_i) h_i,\; 0)^T$ *(upright: $y_i + 0.50 h_i$, default $0.425\text{ m}$; see §4.3)* |
+| `"marker"` | $0.15\text{ m}$ | $0.25\text{ m}$ | $0.50\text{ m}$ | $0.50\text{ m}$ | $0.50 h$ | $\vec{p}_i + (0,\; p_i h_i,\; 0)^T + R_y(\psi_i) R_x(\theta_i) R_z(\phi_i)(0,\; (0.50 - p_i) h_i,\; 0)^T$ *(upright: $y_i + 0.50 h_i$, default $0.075\text{ m}$; see §4.3)* |
 
 *\*Sphere Prop Height Rule: When $k_i = \text{"prop"}$ and $s_i = \text{"sphere"}$ with `height` omitted, default height equals the sphere diameter $h_i = 2 r_i$ (default $0.70\text{ m}$, anchor elevation $y = 0.35\text{ m}$).*
 
-- **Stage Preset Anchor**: `target: "center"` (or `"origin"`, `"stage"`) resolves universally in both baseline `stage` cameras and shot cues to $\vec{A}_{\text{center}} = (0,\; 1.0,\; 0)$.
+- **Stage Preset Anchor**: `target: "center"` (or `"origin"`, `"stage"`) resolves universally in both baseline `stage` cameras and shot cues (`target`, `from`, `focus`) to $\vec{A}_{\text{center}} = (0,\; 1.0,\; 0)$. *(For entity `look_at:`, these stage presets resolve to ground origin $(0,\; 0,\; 0)$, yielding identical horizontal XZ yaw.)*
 - **Explicit Coordinate Anchor**: `target: [x, y, z]` resolves directly to $(x,\; y,\; z)$.
-- **Multi-Entity Centroid Anchor**: When `target` or `from` is specified as an array of entity identifiers `["id_1", "id_2", ..., "id_K"]` ($K \ge 2$), the resolved anchor is the pure 3D world-space centroid across all $K$ entities' active intrinsic anchors $\vec{A}_i(t)$:
+- **Multi-Entity Centroid Anchor**: When `target` or `from` is specified as an array of entity identifiers `["id_1", "id_2", ..., "id_K"]` ($K \ge 1$), the resolved anchor is the pure 3D world-space centroid across all resolved entities' active intrinsic anchors $\vec{A}_i(t)$:
   $$\vec{T}_{\text{centroid}}(t) = \frac{1}{K} \sum_{i=1}^K \vec{A}_i(t)$$
   This formulation enables dynamic two-shot framing, group conversation tracking at 60fps, and single-to-two-shot glides without hardcoded coordinates. Unknown entity IDs in the array are gracefully omitted; if all IDs fail to resolve, the anchor falls back to the default stage target. Centroid averaging applies symmetrically to `target`, `from`, `focus` (orthogonal focus plane projection), and entity `look_at`.
 - **Target Offset Displacement**: Adding `target_offset: [dx, dy, dz]` shifts the resolved anchor in world space:
   $$\vec{T}_{\text{effective}} = \vec{A} + (\text{dx},\; \text{dy},\; \text{dz})$$
+- **Dot-Notation Entity Sub-Anchors (`<entityKey>.<part>`)**:
+  Any string inside `target`, `from`, `focus`, `focus_start`/`focus_end`, multi-entity centroid arrays (`["alice.eyes", "bob.chest"]`), or entity `look_at` may append a body-space sub-anchor suffix. The resolver checks exact entity `id`/`label` matches first (protecting dotted IDs like `"dr.smith"`), then splits on the final `.` (`lastIndexOf('.')`). Recognized suffixes evaluate in entity-local space against live dimensions $(w_i(t), h_i(t))$ and vertical pivot ratio $p_i(t) \in [0, 1]$ before intrinsic `YXZ` rotation:
+  $$\vec{A}_i(t; k) = \vec{p}_i(t) + \begin{pmatrix} 0 \\ p_i(t)\, h_i(t) \\ 0 \end{pmatrix} + R_y(\psi_i)\, R_x(\theta_i)\, R_z(\phi_i) \begin{pmatrix} \alpha_x(k)\, w_i(t) \\ \big(\alpha_y(k) - p_i(t)\big)\, h_i(t) \\ 0 \end{pmatrix}$$
+  | Sub-Anchor Suffix (`k`) | $\alpha_x(k)$ (`width`) | $\alpha_y(k)$ (`height`) | Meaning |
+  | :--- | :---: | :---: | :--- |
+  | `.head`, `.eyes`, `.eye` | $0$ | $0.90$ | Eye-line / head center (matches bare character) |
+  | `.shoulder`, `.chest` | $0$ | $0.75$ | Upper torso / sternum framing |
+  | `.shoulder_l` / `.shoulder_r` | $+0.40$ / $-0.40$ | $0.77$ | Anatomical left (`+X`) / right (`-X`) shoulder OTS anchor |
+  | `.waist`, `.center` | $0$ | $0.50$ | Center of volume / waist midpoint |
+  | `.feet`, `.base` | $0$ | $0.05$ | Ground contact / shoe-level framing |
+  | `.top` | $0$ | $1.00$ | Crown / top surface |
+  *(Unrecognized suffixes fall back gracefully to the entity's default intrinsic anchor ratio.)*
 
-### 4.2 Entity Facing Angle (`rotation` & `look_at`)
-- An entity with $\psi_{\text{entity}} = 0^\circ$ faces $+Z$ (downstage). $+90^\circ$ faces $+X$ (stage right). $-90^\circ$ faces $-X$ (stage left). $\pm 180^\circ$ faces $-Z$ (upstage).
-- **Dynamic Gaze (`look_at`)**: When an entity specifies `look_at: "<target_id>"` (or `[x, y, z]`) at position $\vec{p}_{\text{target}}$, its horizontal facing yaw at time $t$ is computed continuously as:
+### 4.2 Entity Orientation (`rotation`, `pitch`, `roll` & `look_at`)
+- **Horizontal Yaw (`rotation` / `yaw`)**: $\psi_{\text{entity}} = 0^\circ$ faces $+Z$ (downstage). $+90^\circ$ faces $+X$ (stage right). $-90^\circ$ faces $-X$ (stage left). $\pm 180^\circ$ faces $-Z$ (upstage).
+- **3D Mesh Tilt & Vertical Pivot (`pitch`, `roll` & `pivot`, Intrinsic `YXZ` Order)**: Evaluated around the entity's vertical pivot $\vec{O}_{\text{pivot}}(t) = (0,\; p_i(t)\, h_i(t),\; 0)^T$ ($p_i \in [0, 1]$; `"base"` $= 0$, `"center"` $= 0.5$, `"top"` $= 1.0$) via $R_y(\psi) R_x(\theta) R_z(\phi)$ on the 3D mesh only (keeping floor footprints and `+Z` facing arrows flat/upright, while kind-aware floating badges track the rotated head for characters and max rotated extent above center for props/markers):
+  - `pitch > 0` tilts forward toward local `+Z` (`+90°` = prone / head-first flight; `-90°` = supine).
+  - `roll > 0` banks clockwise from behind the entity (right shoulder down toward `-X`).
+  - `pitch` and `roll` forward-chain independently of `look_at` and locomotion auto-facing via $\Delta_{\text{short}}$ easing, and snap immediately on `cut: true`.
+  - **Per-Cue `pivot` Continuity (`resolveCueStartEndPivot`)**: `pivot` defaults to `0` (`"base"`) on `entities[]` and forward-chains across cues. When a cue starts upright ($|\theta_{\text{start}}| < 10^{-8} \land |\phi_{\text{start}}| < 10^{-8}$) or sets `cut: true`, $p_{\text{start}}$ adopts $p_{\text{end}}$ immediately with zero world-space jump; when already tilted at cue start without `cut: true`, $p(u) = p_{\text{start}} + u(p_{\text{end}} - p_{\text{start}})$ eases smoothly to preserve $C^0$ continuity.
+- **Dynamic Gaze (`look_at`)**: When an entity specifies `look_at: "<target_id>"` (or `[x, y, z]`) at position $\vec{p}_{\text{target}}$, its horizontal facing yaw at time $t$ is computed continuously (yaw-only, preserving inherited `pitch` and `roll`) as:
   $$\psi_{\text{entity}}(t) = \operatorname{atan2}\!\left(x_{\text{target}}(t) - x_{\text{self}}(t),\; z_{\text{target}}(t) - z_{\text{self}}(t)\right)$$
-- **Automatic Locomotion Heading**: If an entity translates during a cue ($\|\vec{p}_{\text{end}, xz} - \vec{p}_{\text{start}, xz}\| > 0.05\text{ m}$) and neither `rotation` nor `look_at` is specified for that cue, $\psi_{\text{entity}}$ automatically aligns with the displacement vector $\operatorname{atan2}(\Delta x, \Delta z)$.
+- **Automatic Locomotion Heading**: If an entity translates during a cue ($\|\vec{p}_{\text{end}, xz} - \vec{p}_{\text{start}, xz}\| > 0.05\text{ m}$) and neither `rotation` nor `look_at` is specified for that cue, $\psi_{\text{entity}}$ automatically aligns with the displacement vector $\operatorname{atan2}(\Delta x, \Delta z)$ while preserving `pitch` and `roll`.
 
 ### 4.3 3D Spatial Dimensions, Ground Footprints & Blocking Scale Transformations
 Entities in StageFlow can specify custom 3-dimensional extents ($X, Y, Z$) at baseline and dynamically animate them during blocking cues:
@@ -146,12 +167,12 @@ Entities in StageFlow can specify custom 3-dimensional extents ($X, Y, Z$) at ba
 - **Polymorphic Declaration**:
   - `size: [w, h, d]` defines full 3D bounding dimensions in metric meters.
   - `size: [w, d]` sets floor footprint dimensions (width and depth), preserving default height.
-  - Explicit scalar keys `width` ($w$), `height` ($h$), and `depth` / `length` ($d$) override vector components. For box props, omitting `depth` defaults symmetrically to `width` ($d = w$).
+  - Explicit scalar keys `width` ($w$), `height` ($h$), and `depth` / `length` ($d$) override vector components. For any entity, omitting `depth` defaults symmetrically to `width` ($d = w$), and omitting `width` defaults symmetrically to `depth` ($w = d$).
   - When `radius` is omitted, bounding radius is automatically derived as $r = \frac{\max(w, d)}{2}$. When `width` and `depth` are omitted, both default strictly to $2r$.
 - **Ground-Pinned Base Invariant ($Y = 0$) & Rigid Mannequin Anatomy**:
   - Scaling along $Y$ (elevation) scales exclusively upward: character feet and prop bases remain strictly pinned to floor elevation $Y = 0$ ($y_{\text{base}} = y_i$).
   - Scaling along $X$ (lateral) and $Z$ (sagittal) expands symmetrically from the entity's central pivot axis.
-  - **Rigid Anatomical Proportions & Telescoping Torso**: While prop volumes scale uniformly along $Y$, character mannequins enforce strict anatomical preservation: the head sphere ($r = 0.14\text{m}$) and eye-visor cone maintain an un-squashed $Y \equiv 1.0$ aspect ratio at $Y_{\text{head}} = h(t) - 0.16\text{m}$, and the shoulder cross-bar retains $0.08\text{m}$ thickness at $Y_{\text{shoulder}} = h(t) - 0.40\text{m}$. Only the lower capsule torso column telescopes dynamically ($s_{\text{torso}, y} = \frac{h(t) - 0.35}{1.40}$) to bridge the distance from the floor, completely eliminating pancake-head distortion when sitting or crouching.
+  - **Rigid Anatomical Proportions & Telescoping Torso**: While prop volumes scale uniformly along $Y$, character mannequins enforce strict anatomical preservation: the head sphere ($r = 0.14\text{m}$) and eye-visor cone maintain an un-squashed $Y \equiv 1.0$ aspect ratio at $Y_{\text{head}} = \max(0.35,\; h(t) - 0.16)\text{ m}$, and the shoulder cross-bar retains $0.08\text{m}$ thickness at $Y_{\text{shoulder}} = \max(0.25,\; h(t) - 0.40)\text{ m}$. Only the lower capsule torso column telescopes dynamically ($s_{\text{torso}, y} = \frac{\max(0.2,\; h(t) - 0.35)}{\max(0.2,\; h_0 - 0.35)}$, which equals $\frac{h(t) - 0.35}{1.40}$ for default $h_0 = 1.75\text{m}$ and $h(t) \ge 0.55\text{m}$) to bridge the distance from the floor, completely eliminating pancake-head distortion when sitting or crouching.
 - **Shape-Matched Ground Footprints**:
   - Box props render an oriented rectangular polygon footprint $\operatorname{OBB}(\vec{p}_{xz}, w, d, \psi)$ in both 3D diorama and 2D SVG minimap.
   - Non-uniform circular props and mannequins render an elliptical footprint ($r_x = w/2, r_z = d/2$) when $w \ne d$, and a standard circular footprint when $w = d$.
@@ -161,9 +182,10 @@ Entities in StageFlow can specify custom 3-dimensional extents ($X, Y, Z$) at ba
     $$w(t) = w_{\text{start}} + u \cdot (w_{\text{end}} - w_{\text{start}}), \quad h(t) = h_{\text{start}} + u \cdot (h_{\text{end}} - h_{\text{start}}), \quad d(t) = d_{\text{start}} + u \cdot (d_{\text{end}} - d_{\text{start}})$$
   - Individual dimension axes forward-chain independently across cues: modifying `height` in a cue preserves previously overridden `width` and `depth`.
 - **Dynamic Look-At Anchor & Thin-Lens Focus Tracking**:
-  - When an entity scales or crouches during a cue, its intrinsic look-at anchor $\vec{A}_i(t)$ updates dynamically on every frame:
-    $$\vec{A}_i(t) = \left(x_i(t),\; y_i(t) + \text{ratio} \cdot h_i(t),\; z_i(t)\right)$$
-  - Cameras targeting or focusing on entity $i$ smoothly follow changing posture and elevation without visual lag.
+  - When an entity scales, crouches, pitches, or rolls during a cue, its intrinsic look-at anchor $\vec{A}_i(t)$ rotates in world space around its vertical pivot $\vec{p}_i(t) + (0,\; p_i(t)\, h_i(t),\; 0)^T$ using intrinsic `YXZ` rotation:
+    $$\vec{A}_i(t) = \vec{p}_i(t) + \begin{pmatrix} 0 \\ p_i(t)\, h_i(t) \\ 0 \end{pmatrix} + R_y(\psi_i(t))\, R_x(\theta_i(t))\, R_z(\phi_i(t)) \begin{pmatrix} 0 \\ \big(\text{ratio} - p_i(t)\big) h_i(t) \\ 0 \end{pmatrix}$$
+  - When upright ($\theta_i = 0, \phi_i = 0$), $p_i(t)$ cancels algebraically and reduces identically to $(x_i(t),\; y_i(t) + \text{ratio} \cdot h_i(t),\; z_i(t))$.
+  - Cameras targeting or focusing on entity $i$ smoothly follow changing posture, pitch/roll tilt, and elevation without visual lag.
 
 ---
 
@@ -199,15 +221,15 @@ $$f_{\text{mm}}(u) = f_0 + u(f_1 - f_0), \qquad \gamma(u) = \begin{cases} \gamma
 
 | Normalized `maneuver` | Trajectory Equations $P(u)$ for $u \in [0, 1]$ |
 | :--- | :--- |
-| `"cut"` | $P(u) = P_1$ *(instantaneous hold at destination pose; trajectory path line suppressed)* |
+| `"cut"` | $P(u) = P_1$ *(instantaneous hold at destination pose; trajectory path line suppressed. Note: in `evaluateShotCameraPose`, `rig` and `spline` with `waypoints` take dispatch priority if attached, while DoF evaluation treats `cut` as $u = 1$)* |
 | `"dolly"` / `"straight"` | $\vec{T}(u) = (1-u)\vec{T}_0 + u\vec{T}_1$, $\quad d(u) = d_0 + u(d_1 - d_0)$, $\quad \theta(u) = \theta_0 + u(\theta_1 - \theta_0)$, $\quad \psi(u) = \psi_0 + u\,\Delta_{\text{short}}(\psi_1, \psi_0)$ |
-| `"arc"` | Quadratic Bezier target $\vec{T}(u) = (1-u)^2\vec{T}_0 + 2(1-u)u\vec{C} + u^2\vec{T}_1$ where $\vec{C} = \vec{M} + (0.14 L \hat{r}_x,\; 0.16 L,\; 0.14 L \hat{r}_z)$ with chord $L = \|\vec{T}_1 - \vec{T}_0\|$ and midpoint $\vec{M} = \frac{\vec{T}_0 + \vec{T}_1}{2}$. Distance breathes via $d(u) = \big(d_0 + u(d_1 - d_0)\big)\big(1 + (b - 1)\sin(\pi u)\big)$ where $b = \texttt{breathe}$ (default $1.12$). $\theta(u)$ and $\psi(u)$ match `"dolly"`. |
+| `"arc"` | Quadratic Bezier target $\vec{T}(u) = (1-u)^2\vec{T}_0 + 2(1-u)u\vec{C} + u^2\vec{T}_1$ where $\vec{C} = \vec{M} + (0.14 L \hat{r}_x,\; 0.16 L,\; 0.14 L \hat{r}_z)$ with chord $L = \|\vec{T}_1 - \vec{T}_0\|$, midpoint $\vec{M} = \frac{\vec{T}_0 + \vec{T}_1}{2}$, and horizontal radial unit vector $(\hat{r}_x, \hat{r}_z) = \frac{(M_x, M_z)}{\sqrt{M_x^2 + M_z^2}}$ when $\sqrt{M_x^2 + M_z^2} > 0.05\text{m}$ (else $(0, 1)$). Distance breathes via $d(u) = \big(d_0 + u(d_1 - d_0)\big)\big(1 + (b - 1)\sin(\pi u)\big)$ where $b = \texttt{breathe}$ (default $1.12$). $\theta(u)$ and $\psi(u)$ match `"dolly"`. |
 | `"swoop"` | Identical to `"arc"` ($b$ default $1.12$), plus a mid-flight elevation crest: $\theta(u) = \theta_0 + u(\theta_1 - \theta_0) + 0.08\sin(\pi u)\text{ rad}$ ($\approx +4.58^\circ$). |
 | `"orbit"` / `"sweep"` | Linear $\vec{T}(u), d(u), \theta(u)$. Azimuthal rotation $\psi(u) = \psi_{\text{start}} + \Delta\psi(u)$, where $\Delta\psi(u)$ resolves in strict **7-step priority**:<br>(1) $\operatorname{sign}(\texttt{dir}) \cdot 2\pi \cdot \texttt{revolutions} \cdot u$,<br>(2) $\operatorname{sign}(\texttt{dir}) \cdot \omega_{\text{orbit}} \cdot \Delta t \cdot u$,<br>(3) $\Delta\psi_{\text{delta}} \cdot u$,<br>(4) $\Delta_{\text{dir}}(\psi_1, \psi_0, \texttt{dir}) \cdot u$ when explicit `direction` and destination yaw are set,<br>(5) $(\psi_1 - \psi_0) \cdot u$ when both `yaw_start` and `yaw_end` are set,<br>(6) $\Delta_{\text{short}}(\psi_1, \psi_0) \cdot u$ when destination yaw is set without explicit `direction`,<br>(7) $\operatorname{sign}(\texttt{dir}) \cdot \frac{\pi}{4} u$ ($\pm 45^\circ$ default quarter-turn) when no yaw parameter is given.<br>Sign is $-1$ for `"cw"` (default) and $+1$ for `"ccw"`. |
 | `"spiral"` | Helical orbit with $\Delta\psi(u) = \operatorname{sign}(\texttt{dir}) \cdot (\texttt{revolutions} ?? 0.5) \cdot 2\pi u$, combined with linear interpolation of $\vec{T}(u), d(u), \theta(u)$. |
 | `"dive"` | Perigee swoop: $d(u) = \big(d_0 + u(d_1 - d_0)\big)\big(1 - 0.14\sin(2\pi u)\big)$ and $\theta(u) = \theta_0 + u(\theta_1 - \theta_0) - 0.12\sin(\pi u)\text{ rad}$. |
 | `"recoil"` | Impulse damper: $d(u) = d_0 + u(d_1 - d_0) + (b - 1)\,d_0 \cdot 3.5\tau e^{-5\tau}$ where $b = \texttt{breathe}$ (default $1.25$). |
-| `"spline"` | Piecewise $C^1$ Catmull-Rom spline over pose chain $[P_0, W_1, W_2, \dots, W_m]$ defined in `waypoints`, with sequential $\Delta_{\text{short}}$ unwrapping on $\psi$ and $\gamma$: $q(s) = \frac{1}{2}\big(2q_1 + (-q_0 + q_2)s + (2q_0 - 5q_1 + 4q_2 - q_3)s^2 + (-q_0 + 3q_1 - 3q_2 + q_3)s^3\big)$. |
+| `"spline"` | Uniformly parameterized piecewise $C^1$ Catmull-Rom spline over pose chain $[P_0, W_1, W_2, \dots, W_m]$ defined in `waypoints` (`target`, `target_offset`, `distance`, `pitch`, `yaw`, `roll`/`dutch`, `lens`/`focal_length`, `focus`, `focus_distance`), with sequential $\Delta_{\text{short}}$ unwrapping on $\psi$ and $\gamma$: $q(s) = \frac{1}{2}\big(2q_1 + (-q_0 + q_2)s + (2q_0 - 5q_1 + 4q_2 - q_3)s^2 + (-q_0 + 3q_1 - 3q_2 + q_3)s^3\big)$. *(Note: `CameraWaypointSpec.from`, `at`, `dof`, and `apertureFStop` are parsed/reserved fields and are not yet evaluated at runtime; segments use uniform spacing across `waypoints`.)* |
 
 ---
 
@@ -218,11 +240,11 @@ StageFlow is a **stateless functional evaluator** (`Frame_t = f(t, score)`). Eff
 1. **3-Tier Entity Blocking Resolution & State Persistence**:
    - **Tier 1 (Root `blocking`)**: When `blocking` is defined and non-empty at the score root, entity movement and orientation evaluate across these decoupled time windows $[t_{\text{start}, c}, t_{\text{end}, c}]$ in a **Two-Pass Kinematic Evaluator**:
      - **Pass 1 (World Positions & Visibility)**: For each entity $i$, chronological cues $c_{i, 1} \dots c_{i, m}$ forward-chain $\vec{p}_{\text{start}, k} \to \vec{p}_{\text{end}, k}$ and `visible` starting from `entities[i]`. During un-cued gaps or after the final cue, the entity holds its preceding terminal pose $\vec{p}_{\text{end}, k}$.
-     - **Pass 2 (Rotation & $C^0$ Gaze Handoff)**: Once all entity world positions $\vec{P}(j, t)$ are solvable for any $t$, each entity forward-chains $\psi_{\text{start}, k} \to \psi_{\text{end}, k}$. If cue $k$ specifies `look_at`, $\psi_{\text{end}, k}$ is sampled against $\vec{P}(\text{target}, t_{\text{end}, k} - 10^{-6})$, guaranteeing a $0\text{ rad}$ continuous handoff into subsequent holds or turns.
+     - **Pass 2 (Rotation, Tilt, Pivot & $C^0$ Gaze Handoff)**: Once all entity world positions $\vec{P}(j, t)$ are solvable for any $t$, each entity forward-chains horizontal yaw $\psi_{\text{start}, k} \to \psi_{\text{end}, k}$ alongside independent 3D tilt angles $\theta$ (`pitch`), $\phi$ (`roll`) via $\Delta_{\text{short}}$ easing and vertical pivot ratio $p$ (`pivot`, locking immediately when $1 - \cos\theta_{\text{start}}\cos\phi_{\text{start}} < 10^{-8}$ or on `cut: true`, and easing smoothly when already tilted). If cue $k$ specifies `look_at`, $\psi_{\text{end}, k}$ is sampled against $\vec{P}(\text{target}, t_{\text{end}, k} - 10^{-6})$, guaranteeing a $0\text{ rad}$ continuous handoff into subsequent holds or turns while preserving inherited `pitch`, `roll`, and `pivot`.
      - **Option A Ground Movement Trails**: While an entity is inside an active blocking cue ($t \in [t_{\text{start}, k}, t_{\text{end}, k})$) with displacement $> 0.05\text{ m}$, `trailPoints` renders the full 16-segment path of that blocking cue across any camera cuts, and clears (`[]`) during holds/gaps. When `cut: true` is declared on a cue, the entity manifests immediately at `position` at $t_{\text{start}}$ (`startPos = position`), cross-stage sliding is eliminated, the ground trail is suppressed (`trailPoints = []`), and auto-facing toward the old position is disabled.
      - **Continuous Auto-Chaining & Duration**: In `blocking:`, cues support `duration:` / `dur:`. When `continuous: true` is active (at root `continuous: true` or scoped `blocking[k].continuous: true`), omitting `start:` auto-chains sequentially from the previous cue's end timestamp (`startSec = prevBlockEndSec`), with monotonic advancement (`prevBlockEndSec = Math.max(prevBlockEndSec, endSec)`) preventing backward time-drift across interleaved multi-actor cues. Cue-level `continuous: false` explicitly breaks the continuous chain.
      - **Hybrid Per-Shot Focus Layering**: Per-shot `shots[k].entities.<id>.highlighted` and `note` overlay non-destructively onto the continuous blocking state.
-   - **Tier 2 (Per-Shot `shots[].entities`)**: When root `blocking` is omitted, at the start of shot $k$, every entity inherits its terminal position $\vec{p}_{\text{end}, k-1}$, facing angle $\psi_{\text{end}, k-1}$, and `visible` flag from shot $k - 1$, unless overridden by `from` or placed via `cut: true` in `shots[k].entities.<id>`. `highlighted` is evaluated per-shot (defaults to `false` if omitted in shot $k$).
+   - **Tier 2 (Per-Shot `shots[].entities`)**: When root `blocking` is omitted, at the start of shot $k$, every entity inherits its terminal position $\vec{p}_{\text{end}, k-1}$, facing angle $\psi_{\text{end}, k-1}$, tilt angles ($\theta_{\text{end}, k-1}$ `pitch`, $\phi_{\text{end}, k-1}$ `roll`), vertical pivot ratio $p_{\text{end}, k-1}$ (`pivot`), dimensions, and `visible` flag from shot $k - 1$, unless overridden by `from` or placed via `cut: true` in `shots[k].entities.<id>` (which also snaps `pitch`, `roll`, and `pivot` immediately). `highlighted` is evaluated per-shot (defaults to `false` if omitted in shot $k$).
    - **Tier 3 (Static `entities`)**: Holds baseline position and rotation.
 2. **Camera Spatial Chaining (`continuous: false` vs. `continuous: true`)**:
    - **Standard Mode (`continuous: false`, default)**: Each shot explicitly declares `start` and `end`. If a shot specifies single-value `distance`, `pitch`, or `yaw` without `*_start`, the camera starts and ends the shot at that value (unless `*_end` is also provided). Omitting a parameter inherits the previous shot's terminal value. Dutch angle (`roll`) and `target_offset` reset to neutral baselines ($0^\circ$ and $\vec{0}$) at shot boundaries when omitted (Option A).
@@ -298,12 +320,12 @@ StageFlow is a **stateless functional evaluator** (`Frame_t = f(t, score)`). Eff
 | | `fromPosition`, `position` | `Vec3 \| undefined` world positions in $\text{m}$ (when `cut: true`, `startPos = position`) |
 | | `fromWidth`, `fromHeight`, `fromDepth` | `number \| undefined` start dimensions in $\text{m}$ for animated transitions |
 | | `width`, `height`, `depth` | `number \| undefined` destination dimensions in $\text{m}$ |
-| | `rotationYRad`, `lookAt` | Optional facing yaw in radians; anchor identifier or world `Vec3` |
+| | `rotationYRad`, `pitchRad`, `rollRad`, `pivotRatio`, `lookAt` | Optional facing yaw, X-axis pitch, Z-axis roll in radians; clamped vertical pivot ratio $p \in [0, 1]$; gaze target (`TargetAnchor`: `string \| string[] \| Vec3`) |
 | | `easing`, `highlighted`, `visible`, `note` | `CameraEasing` (default `'smooth'`), `boolean`, `boolean`, `string \| undefined` |
 | **`EntityCueOverride`** | `position`, `fromPosition`, `cut` | Optional per-shot entity movement overrides and instant cut flag |
 | | `fromWidth`, `fromHeight`, `fromDepth` | `number \| undefined` start dimensions in $\text{m}$ for per-shot transitions |
 | | `width`, `height`, `depth` | `number \| undefined` destination dimensions in $\text{m}$ |
-| | `rotationYRad`, `lookAt`, `easing` | Optional facing angle, gaze target (`TargetAnchor = string \| string[] \| Vec3`), and velocity easing profile |
+| | `rotationYRad`, `pitchRad`, `rollRad`, `pivotRatio`, `lookAt`, `easing` | Optional facing yaw, X-axis pitch, Z-axis roll, vertical pivot ratio $p \in [0, 1]$, gaze target (`TargetAnchor`), and velocity easing profile |
 | | `highlighted`, `visible`, `note`, `continuous` | Hybrid per-shot highlight badge, visibility toggle, note, and continuity flag |
 | **`SphericalPose`** | `target` | `Vec3` $\{x, y, z\} \in \mathbb{R}^3\text{ m}$ |
 | | `distance` | `number` $d \in [0.4, 100.0]\text{ m}$ |
@@ -311,14 +333,14 @@ StageFlow is a **stateless functional evaluator** (`Frame_t = f(t, score)`). Eff
 | | `focalLengthMm` | `number` $f_{\text{mm}} \in [12, 200]\text{ mm}$ |
 | **`SceneEntityDef`** | `id`, `label`, `color` | `string` unique key, badge label, and hex color token |
 | | `kind`, `shape`, `style` | `EntityKind`, `EntityShape \| undefined`, `EntityStyle` |
-| | `position`, `rotationYRad` | `Vec3` floor position in $\text{m}$; facing yaw $\psi_{\text{entity}} \in \mathbb{R}\text{ rad}$ |
+| | `position`, `rotationYRad`, `pitchRad`, `rollRad`, `pivotRatio` | `Vec3` base position in $\text{m}$; facing yaw $\psi_{\text{entity}}$ and optional base `pitch`/`roll` in $\text{rad}$; normalized vertical pivot ratio $p \in [0, 1]$ (default `0`) |
 | | `height`, `radius` | `number` $h_i > 0\text{ m}$, $r_i > 0\text{ m}$ |
 | | `width`, `depth` | `number \| undefined` $w_i > 0\text{ m}$, $d_i > 0\text{ m}$ (default $2r_i$) |
-| **`EvaluatedEntityState`** | `id`, `def` | Entity ID and immutable definition reference |
-| | `position`, `rotationYRad` | 60fps evaluated world position $\vec{p}(t)$ and facing angle $\psi(t)$ |
+| **`EvaluatedEntityState`** | `id`, `def`, `cueId` | Entity ID, immutable definition reference, and active/held `string \| null \| undefined` cue identifier |
+| | `position`, `rotationYRad`, `pitchRad`, `rollRad`, `pivotRatio` | 60fps evaluated world position $\vec{p}(t)$, facing yaw $\psi(t)$, 3D mesh `pitch`/`roll` in $\text{rad}$, and vertical pivot ratio $p(t) \in [0, 1]$ |
 | | `size` | `Vec3 \| undefined` 60fps evaluated dimensions $\{w(t), h(t), d(t)\}$ in $\text{m}$ |
 | | `trailPoints` | `Vec3[]` 16-segment ground trail path points |
-| | `highlighted`, `visible`, `opacity` | Directorial focus styling and visibility flags |
+| | `highlighted`, `visible`, `note` | Directorial focus styling, visibility flag, and optional `string` staging note |
 | **`CameraCueSpec`** | `continuous`, `maneuver`, `easing` | Optional `boolean` continuity override; `CameraManeuver` (default `'dolly'`), `CameraEasing` (default `'smooth'`) |
 | | `rig`, `showRig` | Optional `CameraRigSpec` (`tripod`, `track`, `spline_track`) and 3D rig visibility toggle |
 | | `target`, `from` | `TargetAnchor = string \| string[] \| Vec3 \| undefined` anchor identifiers, centroid arrays, or world coordinates |
@@ -329,15 +351,24 @@ StageFlow is a **stateless functional evaluator** (`Frame_t = f(t, score)`). Eff
 | | `dof`, `apertureFStop`, `apertureStartFStop`, `apertureEndFStop` | `DofPreset \| undefined` (`'shallow' \| 'medium' \| 'deep'`); aperture $N \in [0.7, 64.0]$ |
 | | `breathe` | `number` ($1.12$ for `arc`/`swoop`, $1.25$ for `recoil`, $1.0$ otherwise) |
 | | `direction`, `hasExplicitDirection` | `'cw' \| 'ccw'` (default `'cw'`), `boolean` |
-| | `revolutions`, `orbitSpeedRad`, `waypoints` | Optional turn count, angular speed ($\text{rad/s}$), and `CameraWaypointSpec[]` |
+| | `revolutions`, `orbitSpeedRad`, `waypoints`, `trackTarget` | Optional turn count, angular speed ($\text{rad/s}$), `CameraWaypointSpec[]`, and `boolean` `trackTarget` (`track !== false`, parsed/reserved) |
+| **`StageCameraCueSpec`** | *(extends `CameraCueSpec`)* | Adds illustrative stage-camera display fields: `frustumDepth` (`number`), `frustumColor` (`string`), `showPath` (`boolean`) |
+| **`CameraWaypointSpec`** | `target`, `targetOffset`, `distance`, `pitchRad`, `yawRad`, `rollRad`, `focalLengthMm` | Per-waypoint pose & lens fields for `spline` maneuvers |
+| | `focus`, `focusDistanceM` | Per-waypoint focus anchor or metric distance $d_{\text{focus}}$ |
+| | `from`, `at`, `dof`, `apertureFStop` | Parsed/reserved waypoint fields (`TargetAnchor`, `number`, `DofPreset`, `number`; not yet evaluated at runtime) |
 | **`CameraRigSpec`** | `type` | `'tripod' \| 'track' \| 'spline_track'` mount category |
 | | `position`, `from`, `to`, `points` | `Vec3 \| undefined` world coordinates for tripod, start/end of track rail, and spline waypoints |
+| **`CameraTransform3D`** | `pose`, `position`, `target`, `up`, `fovDeg`, `aspectRatio` | Derived 3D camera transform: `SphericalPose`, world eye $\vec{E}$, look-at $\vec{T}$, rolled up-vector $\vec{U}_{\text{rolled}}$, vertical FOV ($\text{deg}$), and gate aspect ratio |
+| **`EvaluatedCameraTrack`** | `active`, `isHold`, `shotId`, `maneuver`, `transform` | Evaluated camera track activity, hold flag, active/held cue ID, `CameraManeuver`, and `CameraTransform3D` |
+| | `trajectoryPoints`, `baseTarget`, `targetOffset`, `rig` | Sampled 32-point `Vec3[]` path, unshifted base target, live offset, and optional `EvaluatedCameraRigState` |
 | **`EvaluatedCameraRigState`** | `type`, `progress`, `hasTargetLock` | `'tripod' \| 'track' \| 'spline_track'`; progress $u \in [0, 1]$; `boolean` target-tracking flag |
 | | `eyePosition`, `railPoints` | `Vec3` 60fps nodal point $\vec{E}(t)$; `Vec3[]` floor rail guide coordinates |
 | **`EvaluatedDofState`** | `enabled`, `preset`, `apertureFStop` | `boolean`; `DofPreset`; effective $f$-stop $N \in [0.7, 64.0] \cup \{\infty\}$ |
 | | `focusDistanceM`, `nearLimitM`, `farLimitM` | `number` focus plane depth and thin-lens near/far sharp boundaries in $\text{m}$ |
 | | `hyperfocalDistanceM`, `depthOfFieldM` | `number` hyperfocal distance $H$ and total sharp zone width $\Delta_{\text{DoF}}$ in $\text{m}$ |
 | | `focusTargetPoint`, `hasExplicitFocus` | `Vec3 \| undefined` resolved 3D focus point; `boolean` explicit focus flag |
+| **`StageFrame`** | `timestampSec`, `progress`, `activeShot`, `shotIndex`, `shotProgress` | Clamped timeline timestamp, normalized timeline progress, active `ShotCue \| null`, index, and shot progress |
+| | `observerCamera`, `stageCamera`, `entitiesById`, `entitiesList` | Evaluated `EvaluatedCameraTrack`s (plus `frustumDepth`, `frustumColor`, `showPath`, `showRig`, `dof` on `stageCamera`) and `EvaluatedEntityState` map/list |
 | **`ScoreCategory`** | provenance | `'study' \| 'blueprint' \| 'custom'` (catalog taxonomy) |
 | **`ScoreDiagnostic`** | `line`, `column`, `message`, `severity` | Syntax and schema diagnostic metadata (`severity: 'error' \| 'warning'`) |
 | **`ParseScoreResult`** | `score`, `error`, `warning`, `diagnostics` | Compile result of `parseStageScore(rawYaml)` |

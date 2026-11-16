@@ -32,7 +32,8 @@ stageflow/
 │   │   ├── v1.0.0.md                # Release notes for StageFlow v1.0.0 initial release
 │   │   ├── v1.1.0.md                # Release notes for StageFlow v1.1.0 feature release
 │   │   ├── v1.1.1.md                # Release notes for StageFlow v1.1.1 patch release
-│   │   └── v1.1.2.md                # Release notes for StageFlow v1.1.2 patch release
+│   │   ├── v1.1.2.md                # Release notes for StageFlow v1.1.2 patch release
+│   │   └── v1.2.0.md                # Release notes for StageFlow v1.2.0 feature release
 │   ├── ARCHITECTURE_FILE_MAP.md     # Exhaustive repository file tree & 5-layer module index
 │   ├── STAGEFLOW_SCRIPT_SPECIFICATION.md # Engine SSOT: mathematical model, optics & AST contract
 │   ├── YAML_AUTHORING_GUIDE.md      # Authoring SSOT: quickstart, YAML schema, aliases & cookbook
@@ -71,14 +72,17 @@ stageflow/
 │   │   ├── opticsMath.ts            # Focal length (mm) <-> Vertical FOV (deg), Rectangular Gate & Thin-Lens DoF math
 │   │   ├── exportMath.ts            # Pure even-dimension H.264 bounds, bitrate, time-range & MP4 filename helpers
 │   │   ├── exportScrubberMath.ts    # Pure dual-handle export scrubber quantization & drag clamping math
-│   │   ├── sphericalMath.ts         # Degrees <-> Radians, Spherical <-> Cartesian, shortestAngleDiff
+│   │   ├── storyboardMath.ts        # Pure deterministic shot sampling & grouping helpers
+│   │   ├── storyboardLayout.ts      # Aspect-aware storyboard density layout, DP/AC metadata & sheet summary helpers
+│   │   ├── zipBuilder.ts            # Zero-dependency STORE ZIP + IEEE 802.3 CRC-32 archive builder
+│   │   ├── sphericalMath.ts         # Degrees <-> Radians, Spherical <-> Cartesian, shortestAngleDiff, rotateVec3YXZ
 │   │   ├── maneuvers.ts             # 9 easing curves & 11 3D camera trajectory maneuvers
 │   │   ├── dofEvaluator.ts          # Stateless focus distance, rack-focus interpolation & thin-lens DoF evaluator
 │   │   ├── entityEngine.ts          # Facade: evaluateEntitiesAtTime dispatcher (<50 lines)
 │   │   ├── entityBlockingEvaluator.ts # Tier 1: Decoupled root blocking: timeline kinematics
 │   │   ├── entityLegacyEvaluator.ts # Tier 2: Legacy per-shot shots[].entities kinematics
-│   │   ├── entityKinematicUtils.ts  # 3D dimension parsing, OBB footprint math, look_at target & trail generation
-│   │   ├── cameraTargetResolver.ts  # Multi-subject 3D centroid resolution, target anchors, offsets & roll/offset flow
+│   │   ├── entityKinematicUtils.ts  # 3D dimension parsing, OBB footprint math, lerpAngleShortest, look_at target & trail generation
+│   │   ├── cameraTargetResolver.ts  # Multi-subject 3D centroid resolution, dot-notation sub-anchors, offsets & roll/offset flow
 │   │   ├── cameraRigEvaluator.ts    # Physical camera rig mounts (tripod, track, spline_track) & inverse look-at kinematics
 │   │   ├── shotPoseEvaluator.ts     # Single-shot pose evaluation, Catmull-Rom splines & 3D path sampling
 │   │   ├── trajectoryChain.ts       # Forward pose chaining (P_0 -> P_k) & multi-shot timeline tracks
@@ -107,7 +111,13 @@ stageflow/
 │   │   ├── useToastNotifications.ts # Floating toast notification queue & auto-dismiss timers
 │   │   ├── useIsMobile.ts           # Zero-polling responsive mobile breakpoint tracker (<768px)
 │   │   ├── useAppShellTheme.ts      # SceneFlow theme hook (Auto/Dark/Warm/Light) & transition suppression
-│   │   └── useWebVideoExport.ts     # WebCodecs H.264 VideoEncoder + mp4-muxer deterministic MP4 exporter hook
+│   │   ├── useWebVideoExport.ts     # WebCodecs H.264 VideoEncoder + mp4-muxer deterministic MP4 exporter hook
+│   │   ├── useStageCamSnapshot.ts   # 1-click 1080p clean Stage Cam PNG snapshot capture & download hook
+│   │   ├── storyboardBlobCache.ts   # Bounded LRU WebP Blob cache keyed by WeakMap StageScore identity
+│   │   ├── useStoryboardGenerator.ts # Progressive offscreen 540p Storyboard WebP panel capture & blob lifecycle hook
+│   │   ├── storyboardExportUtils.ts # Shared canvas image encoding, MIME resolution & blob download helpers
+│   │   ├── useStoryboardPanelExport.ts # Single-panel 720p/1080p PNG/WebP/JPEG capture & download hook
+│   │   └── useStoryboardBatchExport.ts # Batch Contact Sheet PNG & All Frames (.zip) export hook
 │   ├── stage/                       # Layer 4: React Three Fiber 3D Blueprint Diorama
 │   │   ├── dioramaTheme.ts          # Adaptive theme clear colors, fog & metric grid line mapping
 │   │   ├── cameraPresets.ts         # Directorial angle presets (Top, Iso, Front, Side) & spherical math
@@ -159,6 +169,7 @@ stageflow/
 │   │   │   ├── ScoreLibraryCard.tsx # Cinematic choreography score card with color tags & telemetry
 │   │   │   ├── ScoreInspectorPane.tsx # Rich master-detail choreography inspector & action bar
 │   │   │   ├── ScoreStageMinimap.tsx # Pure 2D vector SVG top-down stage schematic preview
+│   │   │   ├── scoreMinimapUtils.ts  # Pure Layer 5 minimap target projection, offset & layout math
 │   │   │   └── MobileScoreLibraryModal.tsx # Full-screen touch-optimized mobile score switcher (<768px)
 │   │   ├── transport/               # Modular directorial transport bar submodules
 │   │   │   ├── DirectorialTimelineTrack.tsx # Scrubber track, shot ticks, hover tooltip & emerald loop brackets
@@ -189,6 +200,13 @@ stageflow/
 │   │   ├── CleanVideoExportConfigForm.tsx # Export camera, angle, resolution, fps, range & palette form controls
 │   │   ├── ExportRangeScrubber.tsx  # Dual-handle shot-aware timeline scrubber + inline Start/End decimal inputs
 │   │   ├── ExportRangeScrubberTrack.tsx # Visual scrubber track, shot cut ticks, hover hairline & Start/End thumbs
+│   │   ├── StoryboardModal.tsx      # Storyboard Contact Sheet generator, viewer & export modal
+│   │   ├── StoryboardControlsSidebar.tsx # Storyboard render & instant layout controls sidebar
+│   │   ├── StoryboardGuideOverlay.tsx # Instant CSS/SVG Rule-of-Thirds, Safe-Action & Crosshair guides overlay
+│   │   ├── StoryboardSpecGuidePopover.tsx # Footer "?" Spec Guide popover explaining technical card notation
+│   │   ├── storyboardOverlayBurnIn.ts # 2D canvas compositor for optional 720p/1080p slate & guide export burn-ins
+│   │   ├── storyboardContactSheetRenderer.ts # Clean white-paper 2D canvas Contact Sheet PNG & multi-page compositor
+│   │   ├── StoryboardPanelCard.tsx  # Grouped shot storyboard card (1-up, Start-End 2-col, Start·Mid·End row)
 │   │   ├── StorageStatusBadge.tsx   # Visual status badge (Bundled vs. IndexedDB draft)
 │   │   └── InteractiveStudioApp.tsx # 3D choreography diorama & split workspace orchestrator
 │   ├── App.tsx                      # Code-split root mode switcher & suspense router
@@ -199,6 +217,9 @@ stageflow/
         ├── opticsMath.test.ts
         ├── exportMath.test.ts
         ├── exportScrubberMath.test.ts
+        ├── storyboardMath.test.ts
+        ├── storyboardBlobCache.test.ts
+        ├── zipBuilder.test.ts
         ├── sphericalMath.test.ts
         ├── cameraRigs.test.ts
         ├── entityEngine.test.ts
@@ -209,6 +230,7 @@ stageflow/
         ├── scoreUrlLoader.test.ts
         ├── telemetryYamlFormatter.test.ts
         ├── shotBreakdownUtils.test.ts
+        ├── scoreMinimapUtils.test.ts
         ├── guideUtils.test.ts
         ├── guideSnippets.test.ts
         ├── storage.test.ts

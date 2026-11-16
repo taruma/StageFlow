@@ -357,6 +357,60 @@ export function normalizeEntityStyle(
   return 'mannequin';
 }
 
+/**
+ * Parses an entity vertical rotation pivot preset or normalized ratio in [0, 1].
+ * - Presets: "base" | "bottom" | "feet" | "floor" | "ground" -> 0.0
+ *            "center" | "centre" | "middle" | "mid" | "waist" -> 0.5
+ *            "top" | "head" | "crown" | "apex" -> 1.0
+ * - Numeric values or numeric strings: clamped to [0.0, 1.0]
+ * - Returns `fallback` (or `undefined` when omitted) if `raw` is not a valid pivot value.
+ */
+export function parseEntityPivotRatio(
+  raw: unknown,
+  fallback?: number
+): number | undefined {
+  if (typeof raw === 'number' && Number.isFinite(raw)) {
+    return Math.max(0, Math.min(1, raw));
+  }
+  if (typeof raw === 'string') {
+    const clean = raw.trim().toLowerCase();
+    if (!clean) return fallback;
+    if (
+      clean === 'base' ||
+      clean === 'bottom' ||
+      clean === 'feet' ||
+      clean === 'floor' ||
+      clean === 'ground'
+    ) {
+      return 0;
+    }
+    if (
+      clean === 'center' ||
+      clean === 'centre' ||
+      clean === 'middle' ||
+      clean === 'mid' ||
+      clean === 'waist'
+    ) {
+      return 0.5;
+    }
+    if (
+      clean === 'top' ||
+      clean === 'head' ||
+      clean === 'crown' ||
+      clean === 'apex'
+    ) {
+      return 1;
+    }
+    if (/^[+-]?(\d+(\.\d+)?|\.\d+)$/.test(clean)) {
+      const val = parseFloat(clean);
+      if (Number.isFinite(val)) {
+        return Math.max(0, Math.min(1, val));
+      }
+    }
+  }
+  return fallback;
+}
+
 export function resolveEntityIdentifier(
   rawId: string,
   entities: SceneEntityDef[]
@@ -493,6 +547,16 @@ export function parseBlockingCues(
             : undefined,
           position: ov.position ? parseVec3(ov.position) : undefined,
           rotationYRad: parseAngleToRad(ov.rotation ?? ov.yaw),
+          pitchRad: parseAngleToRad(ov.pitch),
+          rollRad: parseAngleToRad(ov.roll),
+          pivotRatio: parseEntityPivotRatio(
+            ov.pivot ??
+              ov.pivot_ratio ??
+              ov.pivotRatio ??
+              obj.pivot ??
+              obj.pivot_ratio ??
+              obj.pivotRatio
+          ),
           lookAt: parseTargetOrVec3(ov.look_at ?? ov.lookAt),
           ...dimOverrides,
           easing: normalizeCameraEasing(ov.easing ?? obj.easing),
@@ -561,6 +625,11 @@ export function parseBlockingCues(
           : undefined,
         position: obj.position ? parseVec3(obj.position) : undefined,
         rotationYRad: parseAngleToRad(obj.rotation ?? obj.yaw),
+        pitchRad: parseAngleToRad(obj.pitch),
+        rollRad: parseAngleToRad(obj.roll),
+        pivotRatio: parseEntityPivotRatio(
+          obj.pivot ?? obj.pivot_ratio ?? obj.pivotRatio
+        ),
         lookAt: parseTargetOrVec3(obj.look_at ?? obj.lookAt),
         ...dimOverrides,
         easing: normalizeCameraEasing(obj.easing),

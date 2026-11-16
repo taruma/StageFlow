@@ -19,14 +19,16 @@ import { evaluateCameraEasing } from './maneuvers';
 import {
   cloneVec3,
   computeLookAtYawRad,
-  shortestAngleDiff,
 } from './sphericalMath';
 import {
+  type EntityLookAtPose,
   type EntityPoseSnapshot,
   buildGroundTrailPoints,
   getEntityBaseSize,
+  lerpAngleShortest,
+  relaxLookAtPoses,
+  resolveCueStartEndPivot,
   resolveCueStartEndSize,
-  resolveLookAtPoint,
 } from './entityKinematicUtils';
 
 /**
@@ -47,6 +49,9 @@ export function evaluateLegacyEntitiesAtTime(
     baselinePoses.set(def.id, {
       position: cloneVec3(def.position),
       rotationYRad: def.rotationYRad,
+      pitchRad: def.pitchRad ?? 0,
+      rollRad: def.rollRad ?? 0,
+      pivotRatio: def.pivotRatio ?? 0,
       visible: true,
       size: getEntityBaseSize(def),
     });
@@ -61,6 +66,9 @@ export function evaluateLegacyEntitiesAtTime(
     runningPoses.set(id, {
       position: cloneVec3(pose.position),
       rotationYRad: pose.rotationYRad,
+      pitchRad: pose.pitchRad,
+      rollRad: pose.rollRad,
+      pivotRatio: pose.pivotRatio,
       visible: pose.visible,
       size: cloneVec3(pose.size),
     });
@@ -70,9 +78,10 @@ export function evaluateLegacyEntitiesAtTime(
     const startMap = new Map<string, EntityPoseSnapshot>();
     const endMap = new Map<string, EntityPoseSnapshot>();
 
-    // First pass: determine start and end positions for this shot
+    // First pass: determine start and end positions, sizes, and tilt for this shot
     const endPositions = new Map<string, Vec3>();
     const endSizes = new Map<string, Vec3>();
+    const endPoses = new Map<string, EntityLookAtPose>();
     for (const def of score.entities) {
       const prev = runningPoses.get(def.id)!;
       const override = shot.entities[def.id];
@@ -97,48 +106,77 @@ export function evaluateLegacyEntitiesAtTime(
         isCut
       );
 
+      const endPitch = override?.pitchRad ?? prev.pitchRad;
+      const endRoll = override?.rollRad ?? prev.rollRad;
+      const startPitch = isCut ? endPitch : prev.pitchRad;
+      const startRoll = isCut ? endRoll : prev.rollRad;
+      const { startPivot, endPivot } = resolveCueStartEndPivot(
+        override?.pivotRatio,
+        prev.pivotRatio,
+        startPitch,
+        startRoll,
+        isCut
+      );
+      const baselineEndRot =
+        override?.rotationYRad !== undefined
+          ? override.rotationYRad
+          : !override?.cut &&
+            Math.hypot(endPos.x - startPos.x, endPos.z - startPos.z) > 0.05
+          ? computeLookAtYawRad(startPos, endPos)
+          : prev.rotationYRad;
+
       startMap.set(def.id, {
         position: startPos,
         rotationYRad: prev.rotationYRad,
+        pitchRad: startPitch,
+        rollRad: startRoll,
+        pivotRatio: startPivot,
         visible: override?.visible ?? prev.visible,
         size: startSize,
       });
       endPositions.set(def.id, endPos);
       endSizes.set(def.id, endSize);
+      endPoses.set(def.id, {
+        position: endPos,
+        rotationYRad: baselineEndRot,
+        pitchRad: endPitch,
+        rollRad: endRoll,
+        pivotRatio: endPivot,
+        size: endSize,
+      });
     }
 
-    // Second pass: resolve end rotations (including lookAt)
+    // Second pass: resolve end rotations (order-independent Jacobi relaxation) & pitch/roll
+    const resolvedEndLookAts = relaxLookAtPoses(
+      score.entities,
+      endPositions,
+      endPoses,
+      (id) => {
+        const ov = shot.entities[id];
+        return ov?.rotationYRad === undefined ? ov?.lookAt : undefined;
+      }
+    );
+
     for (const def of score.entities) {
       const startSnap = startMap.get(def.id)!;
       const override = shot.entities[def.id];
       const endPos = endPositions.get(def.id)!;
 
-      let endRot = startSnap.rotationYRad;
-      if (override?.rotationYRad !== undefined) {
-        endRot = override.rotationYRad;
-      } else if (override?.lookAt) {
-        const targetPt = resolveLookAtPoint(
-          override.lookAt,
-          endPositions,
-          score.entities
-        );
-        if (targetPt) {
-          endRot = computeLookAtYawRad(endPos, targetPt);
-        }
-      } else if (
-        !override?.cut &&
-        Math.hypot(
-          endPos.x - startSnap.position.x,
-          endPos.z - startSnap.position.z
-        ) > 0.05
+      let endRot = endPoses.get(def.id)!.rotationYRad;
+      if (
+        override?.rotationYRad === undefined &&
+        override?.lookAt &&
+        !resolvedEndLookAts.has(def.id)
       ) {
-        // Automatically face along walking direction if moving without explicit rotation
-        endRot = computeLookAtYawRad(startSnap.position, endPos);
+        endRot = startSnap.rotationYRad;
       }
 
       const endSnap: EntityPoseSnapshot = {
         position: endPos,
         rotationYRad: endRot,
+        pitchRad: override?.pitchRad ?? startSnap.pitchRad,
+        rollRad: override?.rollRad ?? startSnap.rollRad,
+        pivotRatio: endPoses.get(def.id)!.pivotRatio ?? startSnap.pivotRatio,
         visible: override?.visible ?? startSnap.visible,
         size: endSizes.get(def.id)!,
       };
@@ -245,38 +283,39 @@ export function evaluateLegacyEntitiesAtTime(
     }
   }
 
-  // Second pass: resolve live facing angles (including dynamic lookAt) & floor trails
+  // Pre-build live poses across all entities so lookAt sub-anchors see live yaw/pitch/roll/size
+  const livePoses = new Map<string, EntityLookAtPose>();
+  const preLookAtStates = new Map<
+    string,
+    {
+      rotY: number;
+      pitchRad: number;
+      rollRad: number;
+      pivotRatio: number;
+      size: Vec3;
+    }
+  >();
   for (const def of score.entities) {
     const item = rawStates.get(def.id)!;
     const pos = livePositions.get(def.id)!;
-    const override = activeShot?.entities[def.id];
-
-    let rotY =
-      item.startSnap.rotationYRad +
-      item.u *
-        shortestAngleDiff(
-          item.endSnap.rotationYRad,
-          item.startSnap.rotationYRad
-        );
-
-    if (override?.lookAt) {
-      const lookTarget = resolveLookAtPoint(
-        override.lookAt,
-        livePositions,
-        score.entities
-      );
-      if (lookTarget) {
-        rotY = computeLookAtYawRad(pos, lookTarget);
-      }
-    }
-
-    const trailPoints = override?.cut
-      ? []
-      : buildGroundTrailPoints(
-          item.startSnap.position,
-          item.endSnap.position
-        );
-
+    const rotY = lerpAngleShortest(
+      item.startSnap.rotationYRad,
+      item.endSnap.rotationYRad,
+      item.u
+    );
+    const pitchRad = lerpAngleShortest(
+      item.startSnap.pitchRad,
+      item.endSnap.pitchRad,
+      item.u
+    );
+    const rollRad = lerpAngleShortest(
+      item.startSnap.rollRad,
+      item.endSnap.rollRad,
+      item.u
+    );
+    const pivotRatio =
+      item.startSnap.pivotRatio +
+      item.u * (item.endSnap.pivotRatio - item.startSnap.pivotRatio);
     const size: Vec3 = {
       x:
         item.startSnap.size.x +
@@ -288,6 +327,38 @@ export function evaluateLegacyEntitiesAtTime(
         item.startSnap.size.z +
         item.u * (item.endSnap.size.z - item.startSnap.size.z),
     };
+    preLookAtStates.set(def.id, { rotY, pitchRad, rollRad, pivotRatio, size });
+    livePoses.set(def.id, {
+      position: pos,
+      rotationYRad: rotY,
+      pitchRad,
+      rollRad,
+      pivotRatio,
+      size,
+    });
+  }
+
+  // Second pass: resolve live facing angles (order-independent Jacobi lookAt relaxation) & floor trails
+  relaxLookAtPoses(score.entities, livePositions, livePoses, (id) => {
+    const ov = activeShot?.entities[id];
+    return ov?.rotationYRad === undefined ? ov?.lookAt : undefined;
+  });
+
+  for (const def of score.entities) {
+    const item = rawStates.get(def.id)!;
+    const pos = livePositions.get(def.id)!;
+    const override = activeShot?.entities[def.id];
+    const pre = preLookAtStates.get(def.id)!;
+
+    const rotY = livePoses.get(def.id)!.rotationYRad;
+    const { pitchRad, rollRad, pivotRatio, size } = pre;
+
+    const trailPoints = override?.cut
+      ? []
+      : buildGroundTrailPoints(
+          item.startSnap.position,
+          item.endSnap.position
+        );
 
     const state: EvaluatedEntityState = {
       id: def.id,
@@ -295,6 +366,9 @@ export function evaluateLegacyEntitiesAtTime(
       cueId: activeShot?.id ?? null,
       position: pos,
       rotationYRad: rotY,
+      pitchRad,
+      rollRad,
+      pivotRatio,
       size,
       highlighted: item.highlighted,
       visible: item.visible,
