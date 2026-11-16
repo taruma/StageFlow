@@ -4,92 +4,14 @@
  * Layer 5 UI Utilities.
  */
 
-import type { SceneEntityDef, TargetAnchor, Vec3 } from '../core/types';
-import { matchEntityTargetKey } from '../core/cameraTargetResolver';
-import { cleanShotLabel } from '../core/storyboardMath';
+import type { Vec3 } from '../core/types';
+import {
+  cleanShotLabel,
+  resolveShotTargetInfo,
+  type ResolvedTargetInfo,
+} from '../core/storyboardLayout';
 
-export { cleanShotLabel };
-
-export interface ResolvedTargetInfo {
-  label: string;
-  color?: string;
-  isEntity: boolean;
-}
-
-function formatEntityTargetEntry(
-  rawId: string,
-  entities: SceneEntityDef[]
-): ResolvedTargetInfo {
-  const trimmed = rawId.trim();
-  const match = matchEntityTargetKey(
-    trimmed,
-    entities,
-    (e) => e.id,
-    (e) => e.label
-  );
-  if (match) {
-    const baseName = (match.item.label || match.item.id).trim();
-    return {
-      label: match.recognizedPart
-        ? `${baseName} · ${match.recognizedPart}`
-        : baseName,
-      color: match.item.color,
-      isEntity: true,
-    };
-  }
-  return { label: trimmed, isEntity: false };
-}
-
-/**
- * Resolves a shot's Look-At target into a display label and optional entity theme color.
- * Supports entity identifiers, multiple entity arrays, raw 3D vectors, and fallback base targets.
- */
-export function resolveShotTargetInfo(
-  target: TargetAnchor | undefined,
-  entities: SceneEntityDef[] = [],
-  baseTarget?: Vec3
-): ResolvedTargetInfo {
-  if (typeof target === 'string') {
-    return formatEntityTargetEntry(target, entities);
-  }
-
-  if (Array.isArray(target) && target.length > 0) {
-    let firstColor: string | undefined;
-    let matchedCount = 0;
-    const names = target.map((id) => {
-      const entry = formatEntityTargetEntry(String(id), entities);
-      if (entry.isEntity) {
-        matchedCount++;
-        if (!firstColor) {
-          firstColor = entry.color;
-        }
-      }
-      return entry.label;
-    });
-    return {
-      label: names.join(' + '),
-      color: firstColor,
-      isEntity: matchedCount > 0,
-    };
-  }
-
-  if (target && typeof target === 'object' && 'x' in target) {
-    const v = target as Vec3;
-    return {
-      label: `[${v.x.toFixed(1)}, ${v.y.toFixed(1)}, ${v.z.toFixed(1)}]`,
-      isEntity: false,
-    };
-  }
-
-  if (baseTarget) {
-    return {
-      label: `[${baseTarget.x.toFixed(1)}, ${baseTarget.y.toFixed(1)}, ${baseTarget.z.toFixed(1)}]`,
-      isEntity: false,
-    };
-  }
-
-  return { label: 'Center Stage', isEntity: false };
-}
+export { cleanShotLabel, resolveShotTargetInfo, type ResolvedTargetInfo };
 
 /**
  * Formats a 3D vector with explicit sign prefixes: e.g. "Δ [+0.15, -0.12, +0.00]m".

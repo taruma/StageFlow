@@ -1,10 +1,8 @@
 /**
  * Shot card inside the Storyboard Contact Sheet preview.
- * Memoized to avoid re-rendering completed shots as remaining frames stream in.
- * Adapts card orientation automatically:
- * - Landscape (>= 1.0): Frame(s) on top + Eyebrow/Title/Pills footer below
- * - Portrait (< 0.99, annotated): Horizontal [Frame(s) Left | Metadata Right] split
- *   to keep tall vertical frames compact and readable.
+ * Uses a traditional film contact-sheet aesthetic: minimal corner slate overlays
+ * on frames paired with a hairline-ruled technical spec table below (or beside
+ * portrait frames) and directorial action notes.
  */
 
 import React, { memo } from 'react';
@@ -35,23 +33,31 @@ export interface StoryboardPanelCardProps {
   effectiveDensity: StoryboardDensity;
 }
 
-const BEAT_BADGE_CLASS: Record<'START' | 'MID' | 'END', string> = {
-  START: 'bg-emerald-500/90 text-white border-emerald-400/60',
-  MID: 'bg-sky-500/90 text-white border-sky-400/60',
-  END: 'bg-amber-500/90 text-white border-amber-400/60',
+const BEAT_DOT_CLASS: Record<'START' | 'MID' | 'END', string> = {
+  START: 'bg-emerald-400',
+  MID: 'bg-sky-400',
+  END: 'bg-amber-400',
 };
 
 const PORTRAIT_SINGLE_WIDTH_CLASS: Record<StoryboardDensity, string> = {
-  compact: 'w-[104px] sm:w-[114px]',
-  balanced: 'w-[124px] sm:w-[136px]',
-  large: 'w-[152px] sm:w-[168px]',
+  compact: 'w-[110px] sm:w-[120px]',
+  balanced: 'w-[132px] sm:w-[144px]',
+  large: 'w-[158px] sm:w-[176px]',
 };
+
+interface TechSpecItem {
+  label: string;
+  value: string;
+  tooltip: string;
+  spanFull?: boolean;
+}
 
 const FrameTile: React.FC<{
   sample: StoryboardSamplePoint;
   panel?: StoryboardRenderedPanel;
   shotBadge: string;
   label: string;
+  singleTimeStamp: string;
   width: number;
   height: number;
   annotated: boolean;
@@ -63,6 +69,7 @@ const FrameTile: React.FC<{
   panel,
   shotBadge,
   label,
+  singleTimeStamp,
   width,
   height,
   annotated,
@@ -72,7 +79,7 @@ const FrameTile: React.FC<{
 }) => (
   <div
     className={`relative bg-surface-muted overflow-hidden ${className} ${
-      rounded ? 'rounded-lg border border-border-subtle' : ''
+      rounded ? 'rounded-md border border-border-subtle' : ''
     }`}
     style={{ aspectRatio: `${width} / ${height}` }}
   >
@@ -97,14 +104,31 @@ const FrameTile: React.FC<{
 
     <StoryboardGuideOverlay guideMode={guideMode} />
 
-    {annotated && sample.beatTag && (
-      <span
-        className={`absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded text-[9px] font-mono font-bold tracking-wider shadow-xs border ${
-          BEAT_BADGE_CLASS[sample.beatTag]
-        }`}
-      >
-        {sample.beatTag} · {sample.stageTimeSec.toFixed(1)}s
-      </span>
+    {annotated && (
+      <>
+        {/* Top-Left Minimal Slate Stamp */}
+        <span className="absolute top-1.5 left-1.5 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[3px] bg-slate-950/75 backdrop-blur-[2px] border border-white/15 text-[9.5px] font-mono font-bold tracking-wider text-white/95 shadow-2xs pointer-events-none select-none">
+          {sample.beatTag ? (
+            <>
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${BEAT_DOT_CLASS[sample.beatTag]}`}
+              />
+              <span>
+                {shotBadge} · {sample.beatTag}
+              </span>
+            </>
+          ) : (
+            <span>{shotBadge}</span>
+          )}
+        </span>
+
+        {/* Top-Right Timecode Slate Stamp */}
+        <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded-[3px] bg-slate-950/70 backdrop-blur-[2px] border border-white/15 text-[9px] font-mono tracking-tight text-white/90 shadow-2xs pointer-events-none select-none">
+          {sample.beatTag
+            ? `@ ${sample.stageTimeSec.toFixed(1)}s`
+            : singleTimeStamp}
+        </span>
+      </>
     )}
   </div>
 );
@@ -125,6 +149,7 @@ export const StoryboardPanelCard: React.FC<StoryboardPanelCardProps> = memo(
     const meta = formatStoryboardShotMeta(group.samples, targetCamera);
     const shotBadge = `#${String(meta.shotNumber).padStart(2, '0')}`;
     const frameCount = group.samples.length;
+    const singleTimeStamp = `${meta.timeRangeText} (${meta.durationText})`;
 
     const isStartEndPair = layoutMode === 'start-end' && frameCount === 2;
     const isTripleStrip = layoutMode === 'single-row' && frameCount >= 3;
@@ -136,64 +161,81 @@ export const StoryboardPanelCard: React.FC<StoryboardPanelCardProps> = memo(
 
     const cardSpanClass = isStartEndPair ? 'sm:col-span-2' : 'col-span-1';
 
-    const showDuration = isHorizontalSplit;
+    const specItems: TechSpecItem[] = [
+      {
+        label: 'TARGET',
+        value: meta.targetText,
+        tooltip: meta.targetTooltip,
+        spanFull: !meta.rigText,
+      },
+      ...(meta.rigText
+        ? [
+            {
+              label: 'RIG',
+              value: meta.rigText,
+              tooltip: meta.rigTooltip ?? `Physical Camera Mount: ${meta.rigText}`,
+            },
+          ]
+        : []),
+      { label: 'CAM', value: meta.cameraText, tooltip: meta.cameraTooltip },
+      { label: 'MOVE', value: meta.moveText, tooltip: meta.moveTooltip },
+      {
+        label: 'OPTICS',
+        value: meta.opticsText,
+        tooltip: meta.opticsTooltip,
+        spanFull: !meta.focusText,
+      },
+      ...(meta.focusText
+        ? [
+            {
+              label: 'FOCUS',
+              value: meta.focusText,
+              tooltip: meta.focusTooltip ?? `Focus Depth: ${meta.focusText}`,
+            },
+          ]
+        : []),
+    ];
+
     const footerContent = annotated ? (
       <div
-        className={`p-2.5 bg-surface flex-1 min-w-0 flex flex-col ${
+        className={`p-2.5 bg-surface flex-1 min-w-0 flex flex-col gap-2 ${
           isHorizontalSplit
-            ? 'sm:p-3 justify-start gap-2 border-t sm:border-t-0 sm:border-l border-border-subtle'
-            : 'justify-between gap-1.5 border-t border-border-subtle'
+            ? 'sm:p-3 justify-start border-t sm:border-t-0 sm:border-l border-border-subtle'
+            : 'justify-between border-t border-border-subtle'
         }`}
       >
-        <div className="space-y-1 min-w-0">
-          {/* Eyebrow: Shot # + Timecode */}
-          <div className="flex items-baseline justify-between gap-2">
-            <span className="text-[10px] font-mono font-bold text-amber-600 dark:text-amber-400 shrink-0">
-              {shotBadge}
-            </span>
-            <span
-              className="text-[10px] font-mono text-text-faint shrink-0"
-              title={`Duration: ${meta.durationText}`}
+        <div className="space-y-2 min-w-0">
+          {/* Shot Title (+ Shot Window when multi-beat frames show @ timestamps) */}
+          <div className="flex items-baseline justify-between gap-2 min-w-0">
+            <h3
+              className="text-xs font-bold text-text-main truncate"
+              title={meta.label}
             >
-              {showDuration
-                ? `${meta.timeRangeText} (${meta.durationText})`
-                : meta.timeRangeText}
-            </span>
-          </div>
-
-          {/* Dedicated Full-Width Shot Title */}
-          <h3
-            className="text-xs font-bold text-text-main truncate"
-            title={meta.label}
-          >
-            {meta.label}
-          </h3>
-
-          {/* Full-Width Optics & Rig Pills */}
-          <div className="flex flex-wrap items-center gap-1 text-[10px] font-mono text-text-muted pt-0.5">
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-surface-subtle border border-border-subtle text-text-body">
-              {meta.rigText && (
-                <>
-                  <span className="text-sky-600 dark:text-sky-400 font-semibold">
-                    {meta.rigText}
-                  </span>
-                  <span className="text-text-faint">·</span>
-                </>
-              )}
-              <span>{meta.focalLengthText}</span>
-              <span className="text-text-faint">·</span>
-              <span>{meta.maneuverText}</span>
-            </span>
-
-            {(meta.apertureText || meta.focusText) && (
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/25 text-emerald-700 dark:text-emerald-300">
-                {meta.apertureText && <span>{meta.apertureText}</span>}
-                {meta.apertureText && meta.focusText && (
-                  <span className="opacity-50">·</span>
-                )}
-                {meta.focusText && <span>{meta.focusText}</span>}
+              {meta.label}
+            </h3>
+            {frameCount > 1 && (
+              <span className="text-[10px] font-mono text-text-faint shrink-0">
+                {singleTimeStamp}
               </span>
             )}
+          </div>
+
+          {/* Traditional Hairline Technical Spec Table */}
+          <div className="border-y border-border-subtle py-1.5 grid grid-cols-2 gap-x-3 gap-y-1 text-[10px] font-mono">
+            {specItems.map((item) => (
+              <div
+                key={item.label}
+                className={`flex items-baseline gap-1.5 min-w-0 cursor-help ${
+                  item.spanFull ? 'col-span-2' : ''
+                }`}
+                title={item.tooltip}
+              >
+                <span className="text-[8.5px] uppercase tracking-wider text-text-faint shrink-0 w-[38px]">
+                  {item.label}
+                </span>
+                <span className="text-text-body truncate">{item.value}</span>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -210,7 +252,6 @@ export const StoryboardPanelCard: React.FC<StoryboardPanelCardProps> = memo(
       </div>
     ) : null;
 
-    // Portrait media frame container (sits on the left of the split card)
     const renderPortraitFrames = () => {
       if (isTripleStrip) {
         return (
@@ -222,6 +263,7 @@ export const StoryboardPanelCard: React.FC<StoryboardPanelCardProps> = memo(
                 panel={panelsByKey.get(sample.key)}
                 shotBadge={shotBadge}
                 label={meta.label}
+                singleTimeStamp={singleTimeStamp}
                 width={width}
                 height={height}
                 annotated={annotated}
@@ -244,6 +286,7 @@ export const StoryboardPanelCard: React.FC<StoryboardPanelCardProps> = memo(
                 panel={panelsByKey.get(sample.key)}
                 shotBadge={shotBadge}
                 label={meta.label}
+                singleTimeStamp={singleTimeStamp}
                 width={width}
                 height={height}
                 annotated={annotated}
@@ -268,6 +311,7 @@ export const StoryboardPanelCard: React.FC<StoryboardPanelCardProps> = memo(
             panel={panelsByKey.get(group.samples[0].key)}
             shotBadge={shotBadge}
             label={meta.label}
+            singleTimeStamp={singleTimeStamp}
             width={width}
             height={height}
             annotated={annotated}
@@ -290,6 +334,7 @@ export const StoryboardPanelCard: React.FC<StoryboardPanelCardProps> = memo(
                 panel={panelsByKey.get(sample.key)}
                 shotBadge={shotBadge}
                 label={meta.label}
+                singleTimeStamp={singleTimeStamp}
                 width={width}
                 height={height}
                 annotated={annotated}
@@ -311,6 +356,7 @@ export const StoryboardPanelCard: React.FC<StoryboardPanelCardProps> = memo(
                 panel={panelsByKey.get(sample.key)}
                 shotBadge={shotBadge}
                 label={meta.label}
+                singleTimeStamp={singleTimeStamp}
                 width={width}
                 height={height}
                 annotated={annotated}
@@ -335,6 +381,7 @@ export const StoryboardPanelCard: React.FC<StoryboardPanelCardProps> = memo(
             panel={panelsByKey.get(group.samples[0].key)}
             shotBadge={shotBadge}
             label={meta.label}
+            singleTimeStamp={singleTimeStamp}
             width={width}
             height={height}
             annotated={annotated}
@@ -347,13 +394,13 @@ export const StoryboardPanelCard: React.FC<StoryboardPanelCardProps> = memo(
 
     return (
       <article
-        className={`${cardSpanClass} rounded-xl border border-border-main bg-surface overflow-hidden shadow-2xs flex ${
+        className={`${cardSpanClass} rounded-lg border border-border-main bg-surface overflow-hidden shadow-2xs flex ${
           isHorizontalSplit ? 'flex-col sm:flex-row' : 'flex-col'
         }`}
         title={
           annotated
             ? undefined
-            : `${shotBadge} · ${meta.label} (${meta.timeRangeText})`
+            : `${shotBadge} · ${meta.label} (${singleTimeStamp})`
         }
       >
         {isPortraitHorizontalCard

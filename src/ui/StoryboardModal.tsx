@@ -244,60 +244,50 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
                 </div>
 
                 {shotGroups.length > 0 && (
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[10px] font-mono text-text-muted">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-mono text-text-muted">
                     {sheetSummary.lenses.length > 0 && (
-                      <div className="flex flex-wrap items-center gap-1">
-                        <span className="uppercase tracking-wider text-text-faint mr-0.5">
-                          Lenses:
+                      <div className="flex flex-wrap items-baseline gap-x-1.5">
+                        <span className="text-[9px] uppercase tracking-wider text-text-faint">
+                          Lenses
                         </span>
-                        {sheetSummary.lenses.map((item) => (
-                          <span
-                            key={item.label}
-                            className="px-1.5 py-0.5 rounded bg-surface-subtle border border-border-subtle text-text-body"
-                          >
-                            {item.label}{' '}
-                            <span className="text-text-faint">
-                              ({item.count})
-                            </span>
-                          </span>
-                        ))}
+                        <span className="text-text-body">
+                          {sheetSummary.lenses
+                            .map((item) => `${item.label} ×${item.count}`)
+                            .join(' · ')}
+                        </span>
                       </div>
                     )}
 
                     {sheetSummary.maneuvers.length > 0 && (
-                      <div className="flex flex-wrap items-center gap-1">
-                        <span className="uppercase tracking-wider text-text-faint mr-0.5">
-                          Moves:
-                        </span>
-                        {sheetSummary.maneuvers.map((item) => (
-                          <span
-                            key={item.label}
-                            className="px-1.5 py-0.5 rounded bg-surface-subtle border border-border-subtle text-text-body"
-                          >
-                            {item.label}{' '}
-                            <span className="text-text-faint">
-                              ({item.count})
-                            </span>
+                      <>
+                        <span className="text-border-main select-none">|</span>
+                        <div className="flex flex-wrap items-baseline gap-x-1.5">
+                          <span className="text-[9px] uppercase tracking-wider text-text-faint">
+                            Moves
                           </span>
-                        ))}
-                      </div>
+                          <span className="text-text-body">
+                            {sheetSummary.maneuvers
+                              .map((item) => `${item.label} ×${item.count}`)
+                              .join(' · ')}
+                          </span>
+                        </div>
+                      </>
                     )}
 
                     {sheetSummary.rigs.length > 0 && (
-                      <div className="flex flex-wrap items-center gap-1">
-                        <span className="uppercase tracking-wider text-text-faint mr-0.5">
-                          Rigs:
-                        </span>
-                        {sheetSummary.rigs.map((item) => (
-                          <span
-                            key={item.label}
-                            className="px-1.5 py-0.5 rounded bg-sky-500/10 border border-sky-500/25 text-sky-700 dark:text-sky-300"
-                          >
-                            {item.label}{' '}
-                            <span className="opacity-70">({item.count})</span>
+                      <>
+                        <span className="text-border-main select-none">|</span>
+                        <div className="flex flex-wrap items-baseline gap-x-1.5">
+                          <span className="text-[9px] uppercase tracking-wider text-text-faint">
+                            Rigs
                           </span>
-                        ))}
-                      </div>
+                          <span className="text-text-body">
+                            {sheetSummary.rigs
+                              .map((item) => `${item.label} ×${item.count}`)
+                              .join(' · ')}
+                          </span>
+                        </div>
+                      </>
                     )}
                   </div>
                 )}
@@ -315,23 +305,38 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
                   No shots defined in this choreography score yet.
                 </div>
               ) : (
-                <div className={`grid gap-4 ${gridClass}`}>
-                  {shotGroups.map((group) => (
-                    <StoryboardPanelCard
-                      key={group.key}
-                      group={group}
-                      panelsByKey={panelsByKey}
-                      width={dims.width}
-                      height={dims.height}
-                      targetCamera={targetCamera}
-                      annotated={annotated}
-                      guideMode={guideMode}
-                      layoutMode={layoutMode}
-                      isPortrait={layoutSpec.isPortrait}
-                      effectiveDensity={layoutSpec.effectiveDensity}
-                    />
-                  ))}
-                </div>
+                <>
+                  <div className={`grid gap-4 ${gridClass}`}>
+                    {shotGroups.map((group) => (
+                      <StoryboardPanelCard
+                        key={group.key}
+                        group={group}
+                        panelsByKey={panelsByKey}
+                        width={dims.width}
+                        height={dims.height}
+                        targetCamera={targetCamera}
+                        annotated={annotated}
+                        guideMode={guideMode}
+                        layoutMode={layoutMode}
+                        isPortrait={layoutSpec.isPortrait}
+                        effectiveDensity={layoutSpec.effectiveDensity}
+                      />
+                    ))}
+                  </div>
+
+                  {annotated && (
+                    <div className="pt-3 border-t border-border-subtle flex flex-wrap items-center gap-x-3 gap-y-1 text-[9.5px] font-mono text-text-faint">
+                      <span className="uppercase tracking-widest font-semibold text-text-muted">
+                        Spec Key
+                      </span>
+                      <span>TARGET subject · Δ[X, Y, Z]m</span>
+                      <span className="text-border-main select-none">|</span>
+                      <span>CAM dist · Y yaw · P pitch · R roll</span>
+                      <span className="text-border-main select-none">|</span>
+                      <span>FOCUS depth (near–far DoF)</span>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>

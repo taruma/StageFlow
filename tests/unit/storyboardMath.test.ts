@@ -51,7 +51,11 @@ shots:
     stage_camera:
       maneuver: cut
       target: hero
+      target_offset: [0.45, -0.1, 0]
       distance: 6
+      yaw: 82
+      pitch: 4
+      roll: 5
       lens: 35
       dof: shallow
       aperture: 2.8
@@ -179,15 +183,36 @@ describe('storyboardMath', () => {
 
     const staticMeta = formatStoryboardShotMeta(groups[0].samples, 'stage-cam');
     expect(staticMeta.apertureText).toBe('f/2.8');
-    expect(staticMeta.focusText).toMatch(/^F \d+\.\dm$/);
+    expect(staticMeta.opticsText).toBe('35mm · f/2.8');
+    expect(staticMeta.opticsTooltip).toBe('Focal Length: 35mm · Aperture: f/2.8');
+    expect(staticMeta.moveText).toBe('cut');
+    expect(staticMeta.moveTooltip).toBe('Camera Maneuver: cut');
+    expect(staticMeta.focusText).toMatch(/^\d+\.\dm \(\d+\.\d–[\d.]+m|∞\)$/);
+    expect(staticMeta.focusTooltip).toMatch(
+      /^Focus Depth: \d+\.\dm · Sharp DoF Range: \d+\.\dm to [\d.]+m \(Near–Far\)$/
+    );
+    expect(staticMeta.cameraText).toBe('6.0m · Y82° · P+4° · R+5°');
+    expect(staticMeta.cameraTooltip).toBe(
+      'Camera Pose — Distance: 6.0m · Yaw: 82° · Pitch: +4° · Roll: +5°'
+    );
+    expect(staticMeta.targetText).toBe('Hero · Δ[+0.45, -0.1, 0]');
+    expect(staticMeta.targetTooltip).toBe(
+      'Target: Hero · Offset Δ[X: +0.45m, Y: -0.1m, Z: 0m]'
+    );
     expect(staticMeta.rigText).toBeNull();
+    expect(staticMeta.rigTooltip).toBeNull();
 
     const dollyMeta = formatStoryboardShotMeta(groups[1].samples, 'stage-cam');
     expect(dollyMeta.shotNumber).toBe(2);
     expect(dollyMeta.label).toBe('Push In');
-    expect(dollyMeta.focalLengthText).toBe('35mm → 85mm');
+    expect(dollyMeta.focalLengthText).toBe('35mm→85mm');
+    expect(dollyMeta.opticsText).toBe('35mm→85mm');
     expect(dollyMeta.maneuverText).toBe('dolly');
+    expect(dollyMeta.moveText).toMatch(/^dolly \(/);
+    expect(dollyMeta.targetText).toBe('Hero');
+    expect(dollyMeta.targetTooltip).toBe('Target: Hero');
     expect(dollyMeta.rigText).toBe('track');
+    expect(dollyMeta.rigTooltip).toBe('Physical Camera Mount: track');
     expect(dollyMeta.description).toBe('Slow dolly move toward hero.');
 
     const summary = summarizeStoryboardSheet(groups, 'stage-cam');

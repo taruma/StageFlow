@@ -41,9 +41,19 @@ export interface StoryboardPanelMeta {
   durationText: string;
   focalLengthText: string;
   maneuverText: string;
+  opticsText: string;
+  opticsTooltip: string;
+  moveText: string;
+  moveTooltip: string;
+  cameraText: string;
+  cameraTooltip: string;
+  targetText: string;
+  targetTooltip: string;
   rigText: string | null;
+  rigTooltip: string | null;
   apertureText: string | null;
   focusText: string | null;
+  focusTooltip: string | null;
   description: string;
 }
 
