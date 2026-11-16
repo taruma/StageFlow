@@ -1,7 +1,7 @@
 /**
  * Left configuration sidebar for the Storyboard Modal.
  * Separates WebGL render parameters (Sample, Camera, Palette, DoF)
- * from instant client-side sheet layout controls (Columns, Annotations).
+ * from instant client-side sheet layout controls (Columns, Guides, Annotations).
  */
 
 import React from 'react';
@@ -9,6 +9,7 @@ import { Camera, Eye, RefreshCw } from 'lucide-react';
 import type { ExportTargetCamera } from '../core/exportMath';
 import type {
   StoryboardColumns,
+  StoryboardGuideMode,
   StoryboardSampleMode,
 } from '../core/storyboardMath';
 import type { AppThemeCategory } from '../core/types';
@@ -25,17 +26,20 @@ export interface StoryboardControlsSidebarProps {
   onChangeDofBlurEnabled: (enabled: boolean) => void;
   columns: StoryboardColumns;
   onChangeColumns: (cols: StoryboardColumns) => void;
+  guideMode: StoryboardGuideMode;
+  onChangeGuideMode: (mode: StoryboardGuideMode) => void;
   annotated: boolean;
   onChangeAnnotated: (annotated: boolean) => void;
   isGenerating: boolean;
   panelWidth: number;
   panelHeight: number;
+  shotCount: number;
   panelCount: number;
   onRegenerate: () => void;
 }
 
 const SINGLE_ANCHOR_OPTIONS: ReadonlyArray<{
-  id: Exclude<StoryboardSampleMode, 'start-end'>;
+  id: 'start' | 'mid' | 'end';
   label: string;
 }> = [
   { id: 'start', label: 'Start' },
@@ -51,6 +55,14 @@ const PALETTE_OPTIONS: ReadonlyArray<{ id: AppThemeCategory; label: string }> = 
 
 const COLUMN_OPTIONS: ReadonlyArray<StoryboardColumns> = [2, 3, 4];
 
+const GUIDE_OPTIONS: ReadonlyArray<{ id: StoryboardGuideMode; label: string }> =
+  [
+    { id: 'off', label: 'Off' },
+    { id: 'thirds', label: 'Thirds' },
+    { id: 'safe', label: 'Safe' },
+    { id: 'all', label: 'All' },
+  ];
+
 export const StoryboardControlsSidebar: React.FC<
   StoryboardControlsSidebarProps
 > = ({
@@ -64,15 +76,20 @@ export const StoryboardControlsSidebar: React.FC<
   onChangeDofBlurEnabled,
   columns,
   onChangeColumns,
+  guideMode,
+  onChangeGuideMode,
   annotated,
   onChangeAnnotated,
   isGenerating,
   panelWidth,
   panelHeight,
+  shotCount,
   panelCount,
   onRegenerate,
 }) => {
   const isObserver = targetCamera === 'observer';
+  const isSingleRowMode = sampleMode === 'start-mid-end';
+  const isEvenColumnsOnly = sampleMode === 'start-end';
 
   return (
     <aside className="w-full md:w-[232px] shrink-0 border-b md:border-b-0 md:border-r border-border-subtle bg-surface-subtle/50 p-3 space-y-2.5 overflow-y-auto">
@@ -95,17 +112,32 @@ export const StoryboardControlsSidebar: React.FC<
             </button>
           ))}
         </div>
-        <button
-          type="button"
-          onClick={() => onChangeSampleMode('start-end')}
-          className={`w-full justify-center py-1 rounded-xl border text-[10px] font-semibold transition-all cursor-pointer ${
-            sampleMode === 'start-end'
-              ? 'bg-surface text-text-main border-border-main shadow-xs'
-              : 'bg-surface-muted/60 text-text-muted border-border-subtle hover:text-text-main hover:bg-surface'
-          }`}
-        >
-          Start &amp; End (Moving Shots)
-        </button>
+        <div className={`${UI_TOKENS.button.segmentedGroup} w-full`}>
+          <button
+            type="button"
+            onClick={() => onChangeSampleMode('start-end')}
+            title="Moving shots show Start & End in a single grouped card (even columns)"
+            className={`flex-1 justify-center !px-1.5 !text-[10px] ${
+              sampleMode === 'start-end'
+                ? UI_TOKENS.button.segmentedItemActive
+                : UI_TOKENS.button.segmentedItem
+            }`}
+          >
+            Start &amp; End
+          </button>
+          <button
+            type="button"
+            onClick={() => onChangeSampleMode('start-mid-end')}
+            title="Single-row strip per shot showing Start, Mid, and End for moving shots"
+            className={`flex-1 justify-center !px-1.5 !text-[10px] ${
+              sampleMode === 'start-mid-end'
+                ? UI_TOKENS.button.segmentedItemActive
+                : UI_TOKENS.button.segmentedItem
+            }`}
+          >
+            Start·Mid·End
+          </button>
+        </div>
       </div>
 
       {/* Target Camera */}
@@ -202,22 +234,68 @@ export const StoryboardControlsSidebar: React.FC<
           <div className="flex items-center justify-between">
             <span className={UI_TOKENS.input.label}>Columns</span>
             <span className="text-[9px] font-mono uppercase tracking-wider text-text-faint">
+              {isSingleRowMode
+                ? '1 Row/Shot'
+                : isEvenColumnsOnly
+                  ? 'Even Cols'
+                  : 'Instant'}
+            </span>
+          </div>
+          <div
+            className={`${UI_TOKENS.button.segmentedGroup} w-full ${
+              isSingleRowMode ? 'opacity-45' : ''
+            }`}
+          >
+            {COLUMN_OPTIONS.map((col) => {
+              const isColDisabled =
+                isSingleRowMode || (isEvenColumnsOnly && col === 3);
+              return (
+                <button
+                  key={col}
+                  type="button"
+                  disabled={isColDisabled}
+                  title={
+                    isSingleRowMode
+                      ? 'Start·Mid·End uses a single full-width row per shot'
+                      : isEvenColumnsOnly && col === 3
+                        ? 'Start & End grouped cards require even columns (2 or 4)'
+                        : undefined
+                  }
+                  onClick={() => onChangeColumns(col)}
+                  className={`flex-1 justify-center !px-2 font-mono disabled:opacity-35 disabled:cursor-not-allowed ${
+                    !isSingleRowMode && columns === col
+                      ? UI_TOKENS.button.segmentedItemActive
+                      : UI_TOKENS.button.segmentedItem
+                  }`}
+                >
+                  {col}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Composition Guides */}
+        <div className="space-y-1">
+          <div className="flex items-center justify-between">
+            <span className={UI_TOKENS.input.label}>Guides</span>
+            <span className="text-[9px] font-mono uppercase tracking-wider text-text-faint">
               Instant
             </span>
           </div>
           <div className={`${UI_TOKENS.button.segmentedGroup} w-full`}>
-            {COLUMN_OPTIONS.map((col) => (
+            {GUIDE_OPTIONS.map((opt) => (
               <button
-                key={col}
+                key={opt.id}
                 type="button"
-                onClick={() => onChangeColumns(col)}
-                className={`flex-1 justify-center !px-2 font-mono ${
-                  columns === col
+                onClick={() => onChangeGuideMode(opt.id)}
+                className={`flex-1 justify-center !px-1.5 !text-[10px] ${
+                  guideMode === opt.id
                     ? UI_TOKENS.button.segmentedItemActive
                     : UI_TOKENS.button.segmentedItem
                 }`}
               >
-                {col}
+                {opt.label}
               </button>
             ))}
           </div>
@@ -263,7 +341,8 @@ export const StoryboardControlsSidebar: React.FC<
         <div className="px-2.5 py-2 rounded-xl bg-surface border border-border-subtle flex items-center justify-between gap-2 text-[11px] font-mono text-text-muted">
           <div className="min-w-0">
             <div className="text-text-main font-semibold leading-tight">
-              {panelCount} {panelCount === 1 ? 'Panel' : 'Panels'}
+              {shotCount} {shotCount === 1 ? 'Shot' : 'Shots'} · {panelCount}{' '}
+              {panelCount === 1 ? 'Frame' : 'Frames'}
             </div>
             <div className="text-[10px] text-text-faint leading-tight">
               {panelWidth}×{panelHeight} · 540p Preview

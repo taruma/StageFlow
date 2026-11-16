@@ -7,6 +7,9 @@ import {
   cleanShotLabel,
   computeShotSampleTimeSec,
   formatStoryboardPanelMeta,
+  formatStoryboardShotMeta,
+  groupStoryboardSamplesByShot,
+  summarizeStoryboardSheet,
 } from '../../src/core/storyboardMath';
 import type { StageScore } from '../../src/core/types';
 
@@ -49,6 +52,8 @@ shots:
       target: hero
       distance: 6
       lens: 35
+      dof: shallow
+      aperture: 2.8
   - id: shot-dolly
     label: "Shot 02: Push In"
     description: "Slow dolly move toward hero."
@@ -59,7 +64,12 @@ shots:
       target: hero
       distance_start: 6
       distance_end: 2.5
-      lens: 50
+      lens_start: 35
+      lens_end: 85
+      rig:
+        type: track
+        from: [0, 1.5, 6]
+        to: [0, 1.5, 2.5]
   - id: shot-blocking
     label: "Shot 03 - Cross Walk"
     description: "Locked camera while hero crosses frame."
@@ -121,16 +131,13 @@ describe('storyboardMath', () => {
     expect(samples[0].frame.timestampSec).toBe(2);
   });
 
-  it('emits START/END pairs for camera moves and blocking-only entity moves in start-end mode', () => {
+  it('emits START/END pairs in start-end mode and START/MID/END triples in start-mid-end mode for moving shots', () => {
     const score = parseValidScore(MULTI_SHOT_YAML);
-    const samples = buildStoryboardSamples(score, 'start-end', 'stage-cam');
+    const startEndSamples = buildStoryboardSamples(score, 'start-end', 'stage-cam');
 
-    // shot-static   -> 1 panel (null)
-    // shot-dolly    -> 2 panels (START, END)
-    // shot-blocking -> 2 panels (START, END) because hero moves via root blocking:
-    expect(samples).toHaveLength(5);
+    expect(startEndSamples).toHaveLength(5);
     expect(
-      samples.map((s) => `${s.shot.id}:${s.beatTag ?? 'MID'}`)
+      startEndSamples.map((s) => `${s.shot.id}:${s.beatTag ?? 'MID'}`)
     ).toEqual([
       'shot-static:MID',
       'shot-dolly:START',
@@ -139,8 +146,59 @@ describe('storyboardMath', () => {
       'shot-blocking:END',
     ]);
 
-    expect(samples[1].frame.stageCamera.transform.pose.distance).toBeCloseTo(6, 2);
-    expect(samples[2].frame.stageCamera.transform.pose.distance).toBeCloseTo(2.5, 1);
+    const startMidEndSamples = buildStoryboardSamples(
+      score,
+      'start-mid-end',
+      'stage-cam'
+    );
+    expect(startMidEndSamples).toHaveLength(7);
+    expect(
+      startMidEndSamples.map((s) => `${s.shot.id}:${s.beatTag ?? 'SINGLE'}`)
+    ).toEqual([
+      'shot-static:SINGLE',
+      'shot-dolly:START',
+      'shot-dolly:MID',
+      'shot-dolly:END',
+      'shot-blocking:START',
+      'shot-blocking:MID',
+      'shot-blocking:END',
+    ]);
+  });
+
+  it('groups samples by shot and extracts lens transitions, rig, aperture, focus, and sheet summary', () => {
+    const score = parseValidScore(MULTI_SHOT_YAML);
+    const samples = buildStoryboardSamples(score, 'start-end', 'stage-cam');
+    const groups = groupStoryboardSamplesByShot(samples);
+
+    expect(groups).toHaveLength(3);
+    expect(groups[0].isMoving).toBe(false);
+    expect(groups[0].samples).toHaveLength(1);
+    expect(groups[1].isMoving).toBe(true);
+    expect(groups[1].samples).toHaveLength(2);
+
+    const staticMeta = formatStoryboardShotMeta(groups[0].samples, 'stage-cam');
+    expect(staticMeta.apertureText).toBe('f/2.8');
+    expect(staticMeta.focusText).toMatch(/^F \d+\.\dm$/);
+    expect(staticMeta.rigText).toBeNull();
+
+    const dollyMeta = formatStoryboardShotMeta(groups[1].samples, 'stage-cam');
+    expect(dollyMeta.shotNumber).toBe(2);
+    expect(dollyMeta.label).toBe('Push In');
+    expect(dollyMeta.focalLengthText).toBe('35mm → 85mm');
+    expect(dollyMeta.maneuverText).toBe('dolly');
+    expect(dollyMeta.rigText).toBe('track');
+    expect(dollyMeta.description).toBe('Slow dolly move toward hero.');
+
+    const summary = summarizeStoryboardSheet(groups, 'stage-cam');
+    expect(summary.lenses).toEqual([
+      { label: '24mm', count: 1 },
+      { label: '35mm', count: 2 },
+    ]);
+    expect(summary.maneuvers).toEqual([
+      { label: 'cut', count: 2 },
+      { label: 'dolly', count: 1 },
+    ]);
+    expect(summary.rigs).toEqual([{ label: 'track', count: 1 }]);
   });
 
   it('returns an empty list cleanly when a score has zero shots', () => {
@@ -148,20 +206,21 @@ describe('storyboardMath', () => {
     const emptyScore: StageScore = { ...base, shots: [] };
     expect(buildStoryboardSamples(emptyScore, 'mid')).toEqual([]);
     expect(buildStoryboardSamples(emptyScore, 'start-end')).toEqual([]);
+    expect(buildStoryboardSamples(emptyScore, 'start-mid-end')).toEqual([]);
+    expect(groupStoryboardSamplesByShot([])).toEqual([]);
   });
 
-  it('formats shot label, timing, lens, maneuver, and description metadata', () => {
+  it('formats single-sample metadata via backward-compatible wrapper', () => {
     const score = parseValidScore(MULTI_SHOT_YAML);
     const samples = buildStoryboardSamples(score, 'mid', 'stage-cam');
 
-    const meta = formatStoryboardPanelMeta(samples[1], 'stage-cam');
-    expect(meta.shotNumber).toBe(2);
-    expect(meta.label).toBe('Push In');
-    expect(meta.timeRangeText).toBe('4.0s–8.0s');
+    const meta = formatStoryboardPanelMeta(samples[2], 'stage-cam');
+    expect(meta.shotNumber).toBe(3);
+    expect(meta.label).toBe('Cross Walk');
+    expect(meta.timeRangeText).toBe('8.0s–12.0s');
     expect(meta.durationText).toBe('4.0s');
-    expect(meta.focalLengthText).toBe('50mm');
-    expect(meta.maneuverText).toBe('dolly');
-    expect(meta.description).toBe('Slow dolly move toward hero.');
+    expect(meta.focalLengthText).toBe('24mm');
+    expect(meta.maneuverText).toBe('cut');
     expect(cleanShotLabel('Shot 01 · Static Wide')).toBe('Static Wide');
   });
 

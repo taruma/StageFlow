@@ -196,7 +196,8 @@ stageflow/
 │   │   ├── ExportRangeScrubberTrack.tsx # Visual scrubber track, shot cut ticks, hover hairline & Start/End thumbs
 │   │   ├── StoryboardModal.tsx      # Storyboard Contact Sheet generator & viewer modal (Phase 1)
 │   │   ├── StoryboardControlsSidebar.tsx # Storyboard render & instant layout controls sidebar
-│   │   ├── StoryboardPanelCard.tsx  # Individual storyboard <img> panel card with optional shot annotations
+│   │   ├── StoryboardGuideOverlay.tsx # Instant CSS/SVG Rule-of-Thirds, Safe-Action & Crosshair guides overlay
+│   │   ├── StoryboardPanelCard.tsx  # Grouped shot storyboard card (1-up, Start-End 2-col, Start·Mid·End row)
 │   │   ├── StorageStatusBadge.tsx   # Visual status badge (Bundled vs. IndexedDB draft)
 │   │   └── InteractiveStudioApp.tsx # 3D choreography diorama & split workspace orchestrator
 │   ├── App.tsx                      # Code-split root mode switcher & suspense router

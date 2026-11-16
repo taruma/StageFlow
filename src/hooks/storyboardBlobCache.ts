@@ -22,7 +22,7 @@ export interface StoryboardBlobCacheOptions {
 }
 
 const DEFAULT_MAX_ENTRIES = 4;
-const DEFAULT_MAX_TOTAL_BLOBS = 150;
+const DEFAULT_MAX_TOTAL_BLOBS = 180;
 
 export class StoryboardBlobCache {
   private readonly maxEntries: number;

@@ -1,8 +1,8 @@
 /**
  * Storyboard Contact Sheet Generator & Viewer Modal (Phase 1).
  * Renders shot panels progressively offscreen via a single CleanStageCamExportCanvas,
- * displays them as lightweight <img> cards in a configurable 2/3/4-column sheet,
- * and unmounts the WebGL renderer immediately when generation completes.
+ * displays them in configurable grid / Start-End / Start·Mid·End layouts with instant
+ * composition guides, and unmounts WebGL immediately when capture completes.
  */
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -11,16 +11,22 @@ import {
   resolveExportAspectRatio,
   type ExportTargetCamera,
 } from '../core/exportMath';
-import type {
-  StoryboardColumns,
-  StoryboardSampleMode,
+import {
+  groupStoryboardSamplesByShot,
+  summarizeStoryboardSheet,
+  type StoryboardColumns,
+  type StoryboardGuideMode,
+  type StoryboardSampleMode,
 } from '../core/storyboardMath';
 import type { AppThemeCategory, StageScore } from '../core/types';
 import { useStoryboardGenerator } from '../hooks/useStoryboardGenerator';
 import { CleanStageCamExportCanvas } from '../stage/CleanStageCamExportCanvas';
 import { formatFilmGateLabel } from './shotBreakdownUtils';
 import { StoryboardControlsSidebar } from './StoryboardControlsSidebar';
-import { StoryboardPanelCard } from './StoryboardPanelCard';
+import {
+  StoryboardPanelCard,
+  type StoryboardCardLayoutMode,
+} from './StoryboardPanelCard';
 import { UI_TOKENS } from './tokens/ui';
 
 export interface StoryboardModalProps {
@@ -48,7 +54,15 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
   const [themeCategory, setThemeCategory] = useState<AppThemeCategory>('light');
   const [localDofBlur, setLocalDofBlur] = useState<boolean>(dofBlurEnabled);
   const [columns, setColumns] = useState<StoryboardColumns>(3);
+  const [guideMode, setGuideMode] = useState<StoryboardGuideMode>('off');
   const [annotated, setAnnotated] = useState<boolean>(true);
+
+  const handleChangeSampleMode = (nextMode: StoryboardSampleMode) => {
+    setSampleMode(nextMode);
+    if (nextMode === 'start-end' && columns === 3) {
+      setColumns(4);
+    }
+  };
 
   // Sync DoF blur toggle from active Stage Cam state whenever the modal opens
   useEffect(() => {
@@ -90,10 +104,19 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
     dofBlurEnabled: localDofBlur,
   });
 
-  const panelByKey = useMemo(() => {
-    const map = new Map(panels.map((p) => [p.sample.key, p]));
-    return map;
+  const panelsByKey = useMemo(() => {
+    return new Map(panels.map((p) => [p.sample.key, p]));
   }, [panels]);
+
+  const shotGroups = useMemo(
+    () => groupStoryboardSamplesByShot(samples),
+    [samples]
+  );
+
+  const sheetSummary = useMemo(
+    () => summarizeStoryboardSheet(shotGroups, targetCamera),
+    [shotGroups, targetCamera]
+  );
 
   if (!isOpen) return null;
 
@@ -103,6 +126,21 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
   );
   const gateLabel = formatFilmGateLabel(effectiveAspect);
   const initialFrame = samples[0]?.frame;
+
+  const effectiveColumns: StoryboardColumns =
+    sampleMode === 'start-end' && columns === 3 ? 4 : columns;
+
+  const layoutMode: StoryboardCardLayoutMode =
+    sampleMode === 'start-mid-end'
+      ? 'single-row'
+      : sampleMode === 'start-end'
+        ? 'start-end'
+        : 'grid';
+
+  const gridClass =
+    layoutMode === 'single-row'
+      ? 'grid-cols-1'
+      : GRID_COLUMN_CLASS[effectiveColumns];
 
   return (
     <div
@@ -151,20 +189,23 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
         <div className="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden">
           <StoryboardControlsSidebar
             sampleMode={sampleMode}
-            onChangeSampleMode={setSampleMode}
+            onChangeSampleMode={handleChangeSampleMode}
             targetCamera={targetCamera}
             onChangeTargetCamera={setTargetCamera}
             themeCategory={themeCategory}
             onChangeThemeCategory={setThemeCategory}
             dofBlurEnabled={localDofBlur}
             onChangeDofBlurEnabled={setLocalDofBlur}
-            columns={columns}
+            columns={effectiveColumns}
             onChangeColumns={setColumns}
+            guideMode={guideMode}
+            onChangeGuideMode={setGuideMode}
             annotated={annotated}
             onChangeAnnotated={setAnnotated}
             isGenerating={isGenerating}
             panelWidth={dims.width}
             panelHeight={dims.height}
+            shotCount={shotGroups.length}
             panelCount={totalCount}
             onRegenerate={regenerate}
           />
@@ -172,27 +213,90 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
           {/* Scrollable Contact Sheet Preview */}
           <div className="flex-1 min-w-0 overflow-y-auto bg-app/60 p-3.5 sm:p-5">
             <div className="w-full mx-auto rounded-2xl border border-border-main bg-surface p-4 sm:p-5 shadow-sm space-y-4">
-              {/* Contact Sheet Header */}
-              <div className="flex flex-wrap items-end justify-between gap-3 pb-3.5 border-b border-border-subtle">
-                <div className="min-w-0">
-                  <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-text-faint">
-                    Storyboard Contact Sheet
+              {/* Contact Sheet Header + Lens/Rig Summary */}
+              <div className="pb-3.5 border-b border-border-subtle space-y-2.5">
+                <div className="flex flex-wrap items-end justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-text-faint">
+                      Storyboard Contact Sheet
+                    </div>
+                    <h3 className="text-base font-bold text-text-main truncate">
+                      {score.title}
+                    </h3>
                   </div>
-                  <h3 className="text-base font-bold text-text-main truncate">
-                    {score.title}
-                  </h3>
+                  <div className="text-[11px] font-mono text-text-muted text-right">
+                    <div>
+                      {shotGroups.length}{' '}
+                      {shotGroups.length === 1 ? 'Shot' : 'Shots'} · {totalCount}{' '}
+                      {totalCount === 1 ? 'Frame' : 'Frames'} ·{' '}
+                      {targetCamera === 'observer'
+                        ? 'Observer Diorama'
+                        : 'Stage Cam POV'}
+                    </div>
+                    <div className="text-[10px] text-text-faint">
+                      {gateLabel} · {dims.width}×{dims.height}
+                    </div>
+                  </div>
                 </div>
-                <div className="text-[11px] font-mono text-text-muted text-right">
-                  <div>
-                    {totalCount} {totalCount === 1 ? 'Panel' : 'Panels'} ·{' '}
-                    {targetCamera === 'observer'
-                      ? 'Observer Diorama'
-                      : 'Stage Cam POV'}
+
+                {shotGroups.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[10px] font-mono text-text-muted">
+                    {sheetSummary.lenses.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-1">
+                        <span className="uppercase tracking-wider text-text-faint mr-0.5">
+                          Lenses:
+                        </span>
+                        {sheetSummary.lenses.map((item) => (
+                          <span
+                            key={item.label}
+                            className="px-1.5 py-0.5 rounded bg-surface-subtle border border-border-subtle text-text-body"
+                          >
+                            {item.label}{' '}
+                            <span className="text-text-faint">
+                              ({item.count})
+                            </span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {sheetSummary.maneuvers.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-1">
+                        <span className="uppercase tracking-wider text-text-faint mr-0.5">
+                          Moves:
+                        </span>
+                        {sheetSummary.maneuvers.map((item) => (
+                          <span
+                            key={item.label}
+                            className="px-1.5 py-0.5 rounded bg-surface-subtle border border-border-subtle text-text-body"
+                          >
+                            {item.label}{' '}
+                            <span className="text-text-faint">
+                              ({item.count})
+                            </span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {sheetSummary.rigs.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-1">
+                        <span className="uppercase tracking-wider text-text-faint mr-0.5">
+                          Rigs:
+                        </span>
+                        {sheetSummary.rigs.map((item) => (
+                          <span
+                            key={item.label}
+                            className="px-1.5 py-0.5 rounded bg-sky-500/10 border border-sky-500/25 text-sky-700 dark:text-sky-300"
+                          >
+                            {item.label}{' '}
+                            <span className="opacity-70">({item.count})</span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <div className="text-[10px] text-text-faint">
-                    {gateLabel} · {dims.width}×{dims.height}
-                  </div>
-                </div>
+                )}
               </div>
 
               {error && (
@@ -202,21 +306,23 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
                 </div>
               )}
 
-              {samples.length === 0 ? (
+              {shotGroups.length === 0 ? (
                 <div className="py-16 text-center text-xs font-mono text-text-muted">
                   No shots defined in this choreography score yet.
                 </div>
               ) : (
-                <div className={`grid gap-4 ${GRID_COLUMN_CLASS[columns]}`}>
-                  {samples.map((sample) => (
+                <div className={`grid gap-4 ${gridClass}`}>
+                  {shotGroups.map((group) => (
                     <StoryboardPanelCard
-                      key={sample.key}
-                      sample={sample}
-                      panel={panelByKey.get(sample.key)}
+                      key={group.key}
+                      group={group}
+                      panelsByKey={panelsByKey}
                       width={dims.width}
                       height={dims.height}
                       targetCamera={targetCamera}
                       annotated={annotated}
+                      guideMode={guideMode}
+                      layoutMode={layoutMode}
                     />
                   ))}
                 </div>
@@ -232,14 +338,14 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
               <>
                 <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-500" />
                 <span>
-                  Rendering panel {Math.min(progressIndex + 1, totalCount)} of{' '}
+                  Rendering frame {Math.min(progressIndex + 1, totalCount)} of{' '}
                   {totalCount}...
                 </span>
               </>
             ) : (
               <span>
                 {panels.length} / {totalCount}{' '}
-                {totalCount === 1 ? 'panel' : 'panels'} ready · {dims.width}×
+                {totalCount === 1 ? 'frame' : 'frames'} ready · {dims.width}×
                 {dims.height}
               </span>
             )}
