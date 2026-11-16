@@ -30,6 +30,8 @@ export interface StageCamMonitorCanvasProps {
   dofBlurEnabled?: boolean;
   onToggleDofBlur?: () => void;
   themeCategory?: AppThemeCategory;
+  stageSkinUrl?: string | null;
+  stageSkinVisible?: boolean;
 }
 
 const MonitorDemandInvalidator: React.FC<{
@@ -39,6 +41,8 @@ const MonitorDemandInvalidator: React.FC<{
   isPlaying: boolean;
   dofBlurEnabled: boolean;
   themeCategory: AppThemeCategory;
+  stageSkinUrl?: string | null;
+  stageSkinVisible: boolean;
 }> = ({
   score,
   uiFrame,
@@ -46,6 +50,8 @@ const MonitorDemandInvalidator: React.FC<{
   isPlaying,
   dofBlurEnabled,
   themeCategory,
+  stageSkinUrl,
+  stageSkinVisible,
 }) => {
   const invalidate = useThree((state) => state.invalidate);
   const size = useThree((state) => state.size);
@@ -59,6 +65,8 @@ const MonitorDemandInvalidator: React.FC<{
     isPlaying,
     dofBlurEnabled,
     themeCategory,
+    stageSkinUrl,
+    stageSkinVisible,
     size.width,
     size.height,
     invalidate,
@@ -77,6 +85,8 @@ export const StageCamMonitorCanvas: React.FC<StageCamMonitorCanvasProps> = ({
   dofBlurEnabled = false,
   onToggleDofBlur,
   themeCategory = 'light',
+  stageSkinUrl,
+  stageSkinVisible = true,
 }) => {
   const pose = uiFrame.stageCamera.transform.pose;
   const dof = uiFrame.stageCamera.dof;
@@ -107,6 +117,8 @@ export const StageCamMonitorCanvas: React.FC<StageCamMonitorCanvasProps> = ({
           isPlaying={isPlaying}
           dofBlurEnabled={dofBlurEnabled}
           themeCategory={themeCategory}
+          stageSkinUrl={stageSkinUrl}
+          stageSkinVisible={stageSkinVisible}
         />
         <color attach="background" args={[themeColors.bg]} />
         <fog attach="fog" args={[themeColors.fog, 45, 160]} />
@@ -120,6 +132,8 @@ export const StageCamMonitorCanvas: React.FC<StageCamMonitorCanvasProps> = ({
           isPlaying={isPlaying}
           cameraMode="stage-pov"
           themeCategory={themeCategory}
+          stageSkinUrl={stageSkinUrl}
+          stageSkinVisible={stageSkinVisible}
         />
 
         {/* 60fps Stage Camera View Controller (Gated to cut atomically with UI state) */}

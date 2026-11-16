@@ -27,6 +27,7 @@ export interface StageCamSnapshotRequest {
   height: number;
   dofBlurEnabled: boolean;
   themeCategory: AppThemeCategory;
+  stageSkinUrl?: string | null;
   filename: string;
 }
 
@@ -35,6 +36,7 @@ export interface CaptureStageCamSnapshotParams {
   timestampSec: number;
   dofBlurEnabled: boolean;
   themeCategory: AppThemeCategory;
+  stageSkinUrl?: string | null;
 }
 
 export interface UseStageCamSnapshotOptions {
@@ -80,6 +82,7 @@ export function useStageCamSnapshot({
       timestampSec,
       dofBlurEnabled,
       themeCategory,
+      stageSkinUrl,
     }: CaptureStageCamSnapshotParams) => {
       if (isCapturingRef.current) return;
       isCapturingRef.current = true;
@@ -105,6 +108,7 @@ export function useStageCamSnapshot({
         height: dims.height,
         dofBlurEnabled,
         themeCategory,
+        stageSkinUrl,
         filename,
       });
     },

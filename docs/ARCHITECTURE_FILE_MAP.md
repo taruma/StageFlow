@@ -104,7 +104,7 @@ stageflow/
 │   ├── hooks/                       # Layer 3: Dual-Tier State & Bridge Hooks
 │   │   ├── useMediaClock.ts         # Transport controls, frame-stepping ([ / ]), loop-shot, hotkeys
 │   │   ├── useStageFrameLoop.ts     # 60fps ref evaluation tick + ~10Hz throttled React UI sync
-│   │   ├── useFileDropLoader.ts     # Drag-and-drop & file picker loader for .yaml and .mp4 pairs
+│   │   ├── useFileDropLoader.ts     # Drag-and-drop & file picker loader for .yaml, .mp4/.webm, and .glb/.gltf skins
 │   │   ├── useScorePersistence.ts   # Startup hydration, draft auto-saving & confirmed reset
 │   │   ├── useWorkspaceLayout.ts    # Split workspace presets, column percentages & storage sync
 │   │   ├── useStudioDisplaySettings.ts # 3D diorama label modes, guides, DoF blur & 'L'/'G'/'B' hotkeys
@@ -122,7 +122,8 @@ stageflow/
 │   │   ├── dioramaTheme.ts          # Adaptive theme clear colors, fog & metric grid line mapping
 │   │   ├── cameraPresets.ts         # Directorial angle presets (Top, Iso, Front, Side) & spherical math
 │   │   ├── DioramaCanvas.tsx        # Root R3F <Canvas>, lighting, fog, and priority -1 frame ticker
-│   │   ├── BlueprintStageScene.tsx  # Shared lighting, metric floor grid, and mannequins
+│   │   ├── BlueprintStageScene.tsx  # Shared lighting, metric floor grid, optional .glb stage skin, and mannequins
+│   │   ├── StageEnvironmentSkin.tsx # Ephemeral in-memory .glb/.gltf stage environment skin loader with RoomEnvironment IBL
 │   │   ├── BlueprintFloorGrid.tsx   # Metric floor grid (1m / 0.25m), perimeter frame & compass labels
 │   │   ├── stageSyncGate.ts         # Layer 4 boundary desync gate holding last-synced 60fps state across async commits
 │   │   ├── ObserverCameraRig.tsx    # Viewport PerspectiveCamera + OrbitControls handover & POV cuts

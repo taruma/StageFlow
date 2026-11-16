@@ -14,6 +14,7 @@ import type {
 } from '../core/types';
 import { BlueprintFloorGrid } from './BlueprintFloorGrid';
 import { DirectionalMannequin } from './DirectionalMannequin';
+import { StageEnvironmentSkin } from './StageEnvironmentSkin';
 
 export interface BlueprintStageSceneProps {
   score: StageScore;
@@ -23,6 +24,9 @@ export interface BlueprintStageSceneProps {
   isPlaying?: boolean;
   cameraMode?: CameraViewMode;
   themeCategory?: AppThemeCategory;
+  stageSkinUrl?: string | null;
+  stageSkinVisible?: boolean;
+  onStageSkinError?: (error: Error) => void;
 }
 
 export const BlueprintStageScene: React.FC<BlueprintStageSceneProps> = ({
@@ -33,6 +37,9 @@ export const BlueprintStageScene: React.FC<BlueprintStageSceneProps> = ({
   isPlaying = false,
   cameraMode,
   themeCategory = 'light',
+  stageSkinUrl,
+  stageSkinVisible = true,
+  onStageSkinError,
 }) => {
   return (
     <group>
@@ -44,6 +51,15 @@ export const BlueprintStageScene: React.FC<BlueprintStageSceneProps> = ({
         intensity={0.45}
         color={themeCategory === 'dark' ? '#38bdf8' : '#ffffff'}
       />
+
+      {/* Ephemeral Dropped .GLB / .GLTF Stage Environment Skin */}
+      {stageSkinUrl && (
+        <StageEnvironmentSkin
+          url={stageSkinUrl}
+          visible={stageSkinVisible}
+          onError={onStageSkinError}
+        />
+      )}
 
       {/* Metric Blueprint Stage Floor Grid */}
       <BlueprintFloorGrid

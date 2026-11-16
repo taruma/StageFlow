@@ -48,6 +48,7 @@ export interface CleanStageCamExportCanvasProps {
   targetCamera?: ExportTargetCamera;
   observerAngleMode?: ExportObserverAngleMode;
   customObserverPose?: SphericalPose;
+  stageSkinUrl?: string | null;
 }
 
 interface ExportBridgeState {
@@ -184,6 +185,7 @@ export const CleanStageCamExportCanvas = forwardRef<
       targetCamera = 'stage-cam',
       observerAngleMode = 'scripted',
       customObserverPose,
+      stageSkinUrl,
     },
     ref
   ) => {
@@ -298,6 +300,8 @@ export const CleanStageCamExportCanvas = forwardRef<
             isPlaying={true}
             cameraMode={sceneCameraMode}
             themeCategory={themeCategory}
+            stageSkinUrl={stageSkinUrl}
+            stageSkinVisible={Boolean(stageSkinUrl)}
           />
 
           {targetCamera === 'observer' && (

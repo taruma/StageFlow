@@ -7,6 +7,7 @@
  */
 
 import React from 'react';
+import { Box, Eye, EyeOff, X } from 'lucide-react';
 import type {
   CameraViewMode,
   LabelDisplayMode,
@@ -34,6 +35,10 @@ export interface DioramaOverlayContainerProps {
   dofBlurEnabled?: boolean;
   isNarrow: boolean;
   dioramaWidth?: number;
+  stageSkinName?: string | null;
+  isStageSkinVisible?: boolean;
+  onToggleStageSkinVisible?: () => void;
+  onClearStageSkin?: () => void;
   onSetCameraMode: (mode: CameraViewMode) => void;
   onSelectPreset: (preset: CameraPresetType) => void;
   onSelectLabelMode: (mode: LabelDisplayMode) => void;
@@ -52,12 +57,52 @@ export const DioramaOverlayContainer: React.FC<DioramaOverlayContainerProps> = (
   dofBlurEnabled = false,
   isNarrow,
   dioramaWidth,
+  stageSkinName,
+  isStageSkinVisible = true,
+  onToggleStageSkinVisible,
+  onClearStageSkin,
   onSetCameraMode,
   onSelectPreset,
   onSelectLabelMode,
   onToggleGuides,
   onToggleDofBlur,
 }) => {
+  const skinPill = stageSkinName ? (
+    <div className="flex items-center gap-1 p-0.5 pl-2 rounded-xl bg-surface border border-border-main shadow-xs pointer-events-auto select-none max-w-[200px]">
+      <Box className="w-3 h-3 text-emerald-500 shrink-0" />
+      <span
+        className="text-[10px] font-mono text-text-body truncate"
+        title={`3D Stage Skin: ${stageSkinName}`}
+      >
+        {stageSkinName}
+      </span>
+      {onToggleStageSkinVisible && (
+        <button
+          type="button"
+          onClick={onToggleStageSkinVisible}
+          title={isStageSkinVisible ? 'Hide 3D Stage Skin' : 'Show 3D Stage Skin'}
+          className="p-1 rounded-lg text-text-muted hover:text-text-main hover:bg-surface-subtle transition-colors cursor-pointer"
+        >
+          {isStageSkinVisible ? (
+            <Eye className="w-3 h-3" />
+          ) : (
+            <EyeOff className="w-3 h-3" />
+          )}
+        </button>
+      )}
+      {onClearStageSkin && (
+        <button
+          type="button"
+          onClick={onClearStageSkin}
+          title="Remove 3D Stage Skin"
+          className="p-1 rounded-lg text-text-muted hover:text-rose-500 hover:bg-surface-subtle transition-colors cursor-pointer"
+        >
+          <X className="w-3 h-3" />
+        </button>
+      )}
+    </div>
+  ) : null;
+
   return (
     <>
       {/* Stage Camera POV Director's Optical Viewfinder Overlay */}
@@ -71,19 +116,24 @@ export const DioramaOverlayContainer: React.FC<DioramaOverlayContainerProps> = (
 
       {/* Narrow Viewport: Dedicated Unified Compact Header (<768px) */}
       {isNarrow ? (
-        <CompactDioramaHeader
-          score={score}
-          frame={frame}
-          cameraMode={cameraMode}
-          onSetCameraMode={onSetCameraMode}
-          onSelectPreset={onSelectPreset}
-          labelMode={labelMode}
-          onSelectLabelMode={onSelectLabelMode}
-          showGuides={showGuides}
-          onToggleGuides={onToggleGuides}
-          dofBlurEnabled={dofBlurEnabled}
-          onToggleDofBlur={onToggleDofBlur}
-        />
+        <>
+          <CompactDioramaHeader
+            score={score}
+            frame={frame}
+            cameraMode={cameraMode}
+            onSetCameraMode={onSetCameraMode}
+            onSelectPreset={onSelectPreset}
+            labelMode={labelMode}
+            onSelectLabelMode={onSelectLabelMode}
+            showGuides={showGuides}
+            onToggleGuides={onToggleGuides}
+            dofBlurEnabled={dofBlurEnabled}
+            onToggleDofBlur={onToggleDofBlur}
+          />
+          {skinPill && (
+            <div className="absolute bottom-3 right-3 z-20">{skinPill}</div>
+          )}
+        </>
       ) : (
         <>
           {/* 1. TOP-LEFT: Shot & Lens Breakdown HUD (Defaults to 2-line Collapsed Pill) */}
@@ -94,17 +144,20 @@ export const DioramaOverlayContainer: React.FC<DioramaOverlayContainerProps> = (
             isPlaying={isPlaying}
           />
 
-          {/* 2. TOP-RIGHT: 3D Stage Labels, Viewfinder Guides & Optical DoF Blur */}
-          <div className="absolute top-3 right-3 z-10 flex items-center gap-2 pointer-events-auto select-none">
-            <LabelDisplayModeToggle
-              labelMode={labelMode}
-              onSelectLabelMode={onSelectLabelMode}
-              showGuides={showGuides}
-              onToggleGuides={onToggleGuides}
-              dofBlurEnabled={dofBlurEnabled}
-              onToggleDofBlur={onToggleDofBlur}
-              cameraMode={cameraMode}
-            />
+          {/* 2. TOP-RIGHT: 3D Stage Labels, Viewfinder Guides, DoF Blur & Active .GLB Skin */}
+          <div className="absolute top-3 right-3 z-10 flex flex-col items-end gap-1.5 pointer-events-none select-none">
+            <div className="flex items-center gap-2 pointer-events-auto">
+              <LabelDisplayModeToggle
+                labelMode={labelMode}
+                onSelectLabelMode={onSelectLabelMode}
+                showGuides={showGuides}
+                onToggleGuides={onToggleGuides}
+                dofBlurEnabled={dofBlurEnabled}
+                onToggleDofBlur={onToggleDofBlur}
+                cameraMode={cameraMode}
+              />
+            </div>
+            {skinPill}
           </div>
 
           {/* 3. BOTTOM-LEFT: Directorial Camera Workstation Dock (ViewCube Presets + Camera POV Modes) */}

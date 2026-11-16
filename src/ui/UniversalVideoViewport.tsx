@@ -25,6 +25,8 @@ export interface UniversalVideoViewportProps {
   dofBlurEnabled?: boolean;
   onToggleDofBlur?: () => void;
   themeCategory?: AppThemeCategory;
+  stageSkinUrl?: string | null;
+  stageSkinVisible?: boolean;
   onApplyVideoUrlOverride?: (url: string) => void;
 }
 
@@ -41,6 +43,8 @@ export const UniversalVideoViewport: React.FC<UniversalVideoViewportProps> = ({
   dofBlurEnabled = false,
   onToggleDofBlur,
   themeCategory = 'light',
+  stageSkinUrl,
+  stageSkinVisible = true,
 }) => {
   return (
     <div className="relative flex-1 w-full h-full aspect-fit-container bg-app select-none overflow-hidden p-2.5 md:p-3">
@@ -82,6 +86,8 @@ export const UniversalVideoViewport: React.FC<UniversalVideoViewportProps> = ({
             dofBlurEnabled={dofBlurEnabled}
             onToggleDofBlur={onToggleDofBlur}
             themeCategory={themeCategory}
+            stageSkinUrl={stageSkinUrl}
+            stageSkinVisible={stageSkinVisible}
           />
         )}
       </div>

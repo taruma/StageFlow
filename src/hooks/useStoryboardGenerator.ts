@@ -38,6 +38,7 @@ export interface UseStoryboardGeneratorParams {
   sampleMode: StoryboardSampleMode;
   themeCategory: AppThemeCategory;
   dofBlurEnabled: boolean;
+  stageSkinUrl?: string | null;
 }
 
 const STORYBOARD_PREVIEW_TIER = 540;
@@ -94,6 +95,7 @@ export function useStoryboardGenerator({
   sampleMode,
   themeCategory,
   dofBlurEnabled,
+  stageSkinUrl,
 }: UseStoryboardGeneratorParams) {
   const canvasRef = useRef<CleanStageCamExportHandle | null>(null);
   const generationIdRef = useRef(0);
@@ -151,6 +153,7 @@ export function useStoryboardGenerator({
       sampleMode,
       themeCategory,
       dofBlurEnabled,
+      stageSkinUrl,
     };
 
     const forceRegenerate = lastHandledRegenSeqRef.current !== regenSeq;
@@ -276,13 +279,14 @@ export function useStoryboardGenerator({
     dims.height,
     themeCategory,
     dofBlurEnabled,
+    stageSkinUrl,
     regenSeq,
     revokeAllObjectUrls,
   ]);
 
   return {
     canvasRef,
-    canvasKey: `${regenSeq}-${targetCamera}-${themeCategory}-${dofBlurEnabled}-${dims.width}x${dims.height}`,
+    canvasKey: `${regenSeq}-${targetCamera}-${themeCategory}-${dofBlurEnabled}-${stageSkinUrl ?? 'none'}-${dims.width}x${dims.height}`,
     dims,
     samples,
     panels,

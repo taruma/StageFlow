@@ -40,6 +40,9 @@ export interface DioramaCanvasProps {
   } | null>;
   cameraPresetSeq?: number;
   sceneResetSeq?: number;
+  stageSkinUrl?: string | null;
+  stageSkinVisible?: boolean;
+  onStageSkinError?: (error: Error) => void;
 }
 
 const FrameLoopTicker: React.FC<{ onTick: () => void }> = ({ onTick }) => {
@@ -60,6 +63,8 @@ const CanvasDemandInvalidator: React.FC<{
   themeCategory: AppThemeCategory;
   cameraPresetSeq: number;
   sceneResetSeq: number;
+  stageSkinUrl?: string | null;
+  stageSkinVisible?: boolean;
   evaluateTick60fps: () => void;
 }> = ({
   score,
@@ -71,6 +76,8 @@ const CanvasDemandInvalidator: React.FC<{
   themeCategory,
   cameraPresetSeq,
   sceneResetSeq,
+  stageSkinUrl,
+  stageSkinVisible,
   evaluateTick60fps,
 }) => {
   const invalidate = useThree((state) => state.invalidate);
@@ -90,6 +97,8 @@ const CanvasDemandInvalidator: React.FC<{
     themeCategory,
     cameraPresetSeq,
     sceneResetSeq,
+    stageSkinUrl,
+    stageSkinVisible,
     size.width,
     size.height,
     evaluateTick60fps,
@@ -114,6 +123,9 @@ export const DioramaCanvas: React.FC<DioramaCanvasProps> = ({
   cameraPresetActionRef,
   cameraPresetSeq = 0,
   sceneResetSeq = 0,
+  stageSkinUrl,
+  stageSkinVisible = true,
+  onStageSkinError,
 }) => {
   const themeColors = useMemo(
     () => getDioramaThemeColors(themeCategory),
@@ -152,6 +164,8 @@ export const DioramaCanvas: React.FC<DioramaCanvasProps> = ({
           themeCategory={themeCategory}
           cameraPresetSeq={cameraPresetSeq}
           sceneResetSeq={sceneResetSeq}
+          stageSkinUrl={stageSkinUrl}
+          stageSkinVisible={stageSkinVisible}
           evaluateTick60fps={evaluateTick60fps}
         />
 
@@ -164,6 +178,9 @@ export const DioramaCanvas: React.FC<DioramaCanvasProps> = ({
           isPlaying={isPlaying}
           cameraMode={cameraMode}
           themeCategory={themeCategory}
+          stageSkinUrl={stageSkinUrl}
+          stageSkinVisible={stageSkinVisible}
+          onStageSkinError={onStageSkinError}
         />
 
         {/* 2. Viewport Observer Camera & Free-Orbit Handover Rig */}

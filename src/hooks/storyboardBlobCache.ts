@@ -14,6 +14,7 @@ export interface StoryboardCacheVariant {
   sampleMode: StoryboardSampleMode;
   themeCategory: AppThemeCategory;
   dofBlurEnabled: boolean;
+  stageSkinUrl?: string | null;
 }
 
 export interface StoryboardBlobCacheOptions {
@@ -61,7 +62,8 @@ export class StoryboardBlobCache {
     // Observer mode renders without DoF bokeh, so normalize DoF to avoid duplicate entries
     const effectiveDof =
       variant.targetCamera === 'stage-cam' && variant.dofBlurEnabled ? 1 : 0;
-    return `${scoreId}|${variant.targetCamera}|${variant.sampleMode}|${variant.themeCategory}|${effectiveDof}`;
+    const skinKey = variant.stageSkinUrl ?? '';
+    return `${scoreId}|${variant.targetCamera}|${variant.sampleMode}|${variant.themeCategory}|${effectiveDof}|${skinKey}`;
   }
 
   get(score: StageScore, variant: StoryboardCacheVariant): Blob[] | null {

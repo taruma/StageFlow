@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Ephemeral `.glb` / `.gltf` 3D Stage Environment Skin (`src/stage/StageEnvironmentSkin.tsx`, `src/stage/BlueprintStageScene.tsx`, `src/stage/DioramaCanvas.tsx`, `src/stage/StageCamMonitorCanvas.tsx`, `src/stage/CleanStageCamExportCanvas.tsx`, `src/hooks/useFileDropLoader.ts`, `src/hooks/useStageCamSnapshot.ts`, `src/hooks/storyboardBlobCache.ts`, `src/hooks/useStoryboardGenerator.ts`, `src/ui/InteractiveStudioApp.tsx`, `src/ui/DioramaOverlayContainer.tsx`, `src/ui/header/FileMenuDropdown.tsx`, `src/ui/UniversalVideoViewport.tsx`, `src/ui/CleanVideoExportModal.tsx`, `src/ui/StoryboardModal.tsx`)**:
+  - Added drag-and-drop and `File ▾` picker support for `.glb` / `.gltf` 3D environment models held strictly in ephemeral session memory (`URL.createObjectURL` with automatic revocation and `useGLTF.clear` cache cleanup), keeping YAML choreography scores untouched.
+  - Added `StageEnvironmentSkin.tsx` wrapping `@react-three/drei` `useGLTF` inside a `SkinErrorBoundary` + `Suspense`, cloning the parsed scene graph per R3F canvas so the main Diorama, Stage Cam Monitor, PNG Snapshot, MP4 Export, and Storyboard Contact Sheet render the skin concurrently, applying `-0.002m` Y-offset to prevent floor grid Z-fighting, triggering `invalidate()` for `frameloop="demand"`, and attaching offline `RoomEnvironment` PMREM IBL for PBR metallic/roughness surfaces.
+  - Added a compact floating Stage Skin pill in `DioramaOverlayContainer.tsx` (show/hide eye toggle + remove button) while a `.glb` skin is active, and keyed `StoryboardBlobCache` by `stageSkinUrl` so storyboard previews stay isolated per skin state.
+
 ### Fixed
 
 - **Headless Viewport Recorder Frame 0 Black Screen (`src/recorder/HeadlessRecorderView.tsx`, `src/stage/DioramaCanvas.tsx`)**:

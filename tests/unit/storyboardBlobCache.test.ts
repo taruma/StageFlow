@@ -126,4 +126,27 @@ describe('StoryboardBlobCache', () => {
     expect(cache.entryCount).toBe(0);
     expect(cache.blobCount).toBe(0);
   });
+
+  it('separates cached entries when stageSkinUrl changes or is cleared', () => {
+    const cache = new StoryboardBlobCache();
+    const score = makeScoreClone();
+    const noSkinBlobs = makeFakeBlobs(2);
+    const cafeSkinBlobs = makeFakeBlobs(2);
+
+    const noSkinVariant: StoryboardCacheVariant = {
+      ...STAGE_MID_LIGHT,
+      stageSkinUrl: null,
+    };
+    const cafeSkinVariant: StoryboardCacheVariant = {
+      ...STAGE_MID_LIGHT,
+      stageSkinUrl: 'blob:http://localhost/cafe-skin',
+    };
+
+    cache.set(score, noSkinVariant, noSkinBlobs);
+    cache.set(score, cafeSkinVariant, cafeSkinBlobs);
+
+    expect(cache.entryCount).toBe(2);
+    expect(cache.get(score, STAGE_MID_LIGHT)).toBe(noSkinBlobs);
+    expect(cache.get(score, cafeSkinVariant)).toBe(cafeSkinBlobs);
+  });
 });

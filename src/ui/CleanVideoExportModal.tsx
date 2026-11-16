@@ -45,6 +45,7 @@ export interface CleanVideoExportModalProps {
   activeShot?: ShotCue | null;
   liveViewportPose?: SphericalPose;
   dofBlurEnabled: boolean;
+  stageSkinUrl?: string | null;
   onNotify?: (message: string, type?: ToastNotification['type']) => void;
   onClose: () => void;
 }
@@ -55,6 +56,7 @@ export const CleanVideoExportModal: React.FC<CleanVideoExportModalProps> = ({
   activeShot,
   liveViewportPose,
   dofBlurEnabled,
+  stageSkinUrl,
   onNotify,
   onClose,
 }) => {
@@ -529,6 +531,7 @@ export const CleanVideoExportModal: React.FC<CleanVideoExportModalProps> = ({
           targetCamera={targetCamera}
           observerAngleMode={effectiveObserverAngleMode}
           customObserverPose={liveViewportPose}
+          stageSkinUrl={stageSkinUrl}
         />
       )}
     </div>
