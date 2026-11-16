@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Storyboard Contact Sheet Generator & Viewer Modal — Phase 1 (#28)
+
+- **Layer 1 Pure Sampling & Metadata (`src/core/storyboardMath.ts`, `src/ui/shotBreakdownUtils.ts`)**:
+  - Added `computeShotSampleTimeSec`, `isMovingShotForStoryboard`, `buildStoryboardSamples`, and `formatStoryboardPanelMeta` to deterministically sample `score.shots` across `mid`, `start`, `end`, and `start-end` modes (emitting `START`/`END` pairs for shots with camera maneuvers/deltas or root `blocking:` entity motion, and boundary-safe inward insets inside `[startSec, endSec)` while compensating for `score.offsetSec`).
+  - Consolidated `cleanShotLabel` in `src/core/storyboardMath.ts` and re-exported it from `src/ui/shotBreakdownUtils.ts` to keep Layer 1 pure with zero duplicate logic.
+- **Layer 3 Progressive Offscreen Capture (`src/hooks/useStoryboardGenerator.ts`)**:
+  - Added `useStoryboardGenerator` to mount a single `CleanStageCamExportCanvas` (`frameloop="never"`, `720p`) strictly during capture, stream PNG `Blob` object URLs into state per panel, revoke URLs cleanly on refresh/unmount, and unmount the WebGL renderer immediately upon completion.
+- **Layer 5 Storyboard Modal & Header Integration (`src/ui/StoryboardModal.tsx`, `src/ui/StoryboardControlsSidebar.tsx`, `src/ui/StoryboardPanelCard.tsx`, `src/ui/header/FileMenuDropdown.tsx`, `src/ui/WorkspaceHeader.tsx`, `src/ui/InteractiveStudioApp.tsx`)**:
+  - Added `File ▾ → Storyboard...` opening a dedicated Storyboard Contact Sheet viewer modal featuring WebGL render controls (`Sample per Shot`, `Camera` [`Stage Cam` / `Observer`], `Stage Palette` [`Light` / `Warm` / `Dark`], `Optical DoF Blur`) separated from instant client-side CSS controls (`Columns` [`2` / `3` / `4`], `Annotations` [`Annotated` / `Clean Only`]).
+- **Unit Tests & Documentation (`tests/unit/storyboardMath.test.ts`, `docs/ARCHITECTURE_FILE_MAP.md`, `docs/DIORAMA_3D_AND_UI_SPECIFICATIONS.md`)**:
+  - Added 6 deterministic Vitest unit tests in `tests/unit/storyboardMath.test.ts` (`308` passing tests across `24` suites) and updated architecture and UI specifications.
+
 #### Entity Rotation Pivot (`base` vs `center` vs `top` / `0..1`) (#20)
 
 - **Layer 1 AST & Pivot Normalizer (`src/core/types.ts`, `src/core/scorePrimitives.ts`, `src/core/scoreParser.ts`)**:

@@ -71,6 +71,7 @@ stageflow/
 │   │   ├── opticsMath.ts            # Focal length (mm) <-> Vertical FOV (deg), Rectangular Gate & Thin-Lens DoF math
 │   │   ├── exportMath.ts            # Pure even-dimension H.264 bounds, bitrate, time-range & MP4 filename helpers
 │   │   ├── exportScrubberMath.ts    # Pure dual-handle export scrubber quantization & drag clamping math
+│   │   ├── storyboardMath.ts        # Pure deterministic shot sampling, motion detection & storyboard metadata helpers
 │   │   ├── sphericalMath.ts         # Degrees <-> Radians, Spherical <-> Cartesian, shortestAngleDiff, rotateVec3YXZ
 │   │   ├── maneuvers.ts             # 9 easing curves & 11 3D camera trajectory maneuvers
 │   │   ├── dofEvaluator.ts          # Stateless focus distance, rack-focus interpolation & thin-lens DoF evaluator
@@ -108,7 +109,8 @@ stageflow/
 │   │   ├── useIsMobile.ts           # Zero-polling responsive mobile breakpoint tracker (<768px)
 │   │   ├── useAppShellTheme.ts      # SceneFlow theme hook (Auto/Dark/Warm/Light) & transition suppression
 │   │   ├── useWebVideoExport.ts     # WebCodecs H.264 VideoEncoder + mp4-muxer deterministic MP4 exporter hook
-│   │   └── useStageCamSnapshot.ts   # 1-click 1080p clean Stage Cam PNG snapshot capture & download hook
+│   │   ├── useStageCamSnapshot.ts   # 1-click 1080p clean Stage Cam PNG snapshot capture & download hook
+│   │   └── useStoryboardGenerator.ts # Progressive offscreen 720p Storyboard PNG panel capture & blob lifecycle hook
 │   ├── stage/                       # Layer 4: React Three Fiber 3D Blueprint Diorama
 │   │   ├── dioramaTheme.ts          # Adaptive theme clear colors, fog & metric grid line mapping
 │   │   ├── cameraPresets.ts         # Directorial angle presets (Top, Iso, Front, Side) & spherical math
@@ -191,6 +193,9 @@ stageflow/
 │   │   ├── CleanVideoExportConfigForm.tsx # Export camera, angle, resolution, fps, range & palette form controls
 │   │   ├── ExportRangeScrubber.tsx  # Dual-handle shot-aware timeline scrubber + inline Start/End decimal inputs
 │   │   ├── ExportRangeScrubberTrack.tsx # Visual scrubber track, shot cut ticks, hover hairline & Start/End thumbs
+│   │   ├── StoryboardModal.tsx      # Storyboard Contact Sheet generator & viewer modal (Phase 1)
+│   │   ├── StoryboardControlsSidebar.tsx # Storyboard render & instant layout controls sidebar
+│   │   ├── StoryboardPanelCard.tsx  # Individual storyboard <img> panel card with optional shot annotations
 │   │   ├── StorageStatusBadge.tsx   # Visual status badge (Bundled vs. IndexedDB draft)
 │   │   └── InteractiveStudioApp.tsx # 3D choreography diorama & split workspace orchestrator
 │   ├── App.tsx                      # Code-split root mode switcher & suspense router
@@ -201,6 +206,7 @@ stageflow/
         ├── opticsMath.test.ts
         ├── exportMath.test.ts
         ├── exportScrubberMath.test.ts
+        ├── storyboardMath.test.ts
         ├── sphericalMath.test.ts
         ├── cameraRigs.test.ts
         ├── entityEngine.test.ts

@@ -6,20 +6,14 @@
 
 import type { SceneEntityDef, TargetAnchor, Vec3 } from '../core/types';
 import { matchEntityTargetKey } from '../core/cameraTargetResolver';
+import { cleanShotLabel } from '../core/storyboardMath';
+
+export { cleanShotLabel };
 
 export interface ResolvedTargetInfo {
   label: string;
   color?: string;
   isEntity: boolean;
-}
-
-/**
- * Strips redundant "Shot ## · ", "Shot ##: ", or "Shot ## - " prefixes from user labels
- * since the #xx badge already shows the shot number.
- */
-export function cleanShotLabel(rawLabel: string): string {
-  if (!rawLabel || typeof rawLabel !== 'string') return '';
-  return rawLabel.replace(/^Shot\s*\d+\s*[·:–-]\s*/i, '').trim() || rawLabel;
 }
 
 function formatEntityTargetEntry(

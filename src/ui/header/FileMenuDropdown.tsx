@@ -10,6 +10,7 @@ import {
   FolderOpen,
   Download,
   Film,
+  LayoutGrid,
   Plus,
   FolderKanban,
   Book,
@@ -26,6 +27,7 @@ export interface FileMenuDropdownProps {
   onUploadFiles: (files: FileList) => void;
   onExportActiveScore: () => void;
   onOpenVideoExport?: () => void;
+  onOpenStoryboard?: () => void;
   onCreateBlankScore?: () => void;
   onOpenLibrary: (tab?: FilterTab) => void;
 }
@@ -38,6 +40,7 @@ export const FileMenuDropdown: React.FC<FileMenuDropdownProps> = ({
   onUploadFiles,
   onExportActiveScore,
   onOpenVideoExport,
+  onOpenStoryboard,
   onCreateBlankScore,
   onOpenLibrary,
 }) => {
@@ -158,6 +161,22 @@ export const FileMenuDropdown: React.FC<FileMenuDropdownProps> = ({
               >
                 <Film className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                 <span>Export Video (.mp4)...</span>
+              </button>
+            )}
+
+            {onOpenStoryboard && (
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  onOpenStoryboard();
+                  onClose();
+                }}
+                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-text-body hover:text-text-main hover:bg-surface-subtle transition-colors text-left cursor-pointer"
+                title="Generate and inspect a shot-by-shot Storyboard contact sheet"
+              >
+                <LayoutGrid className="w-3.5 h-3.5 text-sky-500 shrink-0" />
+                <span>Storyboard...</span>
               </button>
             )}
           </div>
