@@ -120,7 +120,7 @@ Refer directly to these sections in the SSOT documentation for full details with
 | **Pose Inheritance (`continuous: true`)** | [`docs/YAML_AUTHORING_GUIDE.md §5.2`](../../../docs/YAML_AUTHORING_GUIDE.md#52-pose-inheritance-standard-vs-continuous-mode) |
 | **Decoupled Actor Blocking (`blocking:`)**| [`docs/YAML_AUTHORING_GUIDE.md §6.1`](../../../docs/YAML_AUTHORING_GUIDE.md#61-decoupled-actor--prop-blocking-blocking) |
 | **8 Production Recipes (OTS, Dolly-Zoom, etc.)** | [`docs/YAML_AUTHORING_GUIDE.md §7`](../../../docs/YAML_AUTHORING_GUIDE.md#7-directors-cookbook-8-production-recipes) |
-| **Formal AST Normalized Schema Contract** | [`docs/STAGEFLOW_SCRIPT_SPECIFICATION.md §7.2`](../../../docs/STAGEFLOW_SCRIPT_SPECIFICATION.md#72-normalized-ast-schema-contract) |
+| **Formal AST Normalized Schema Contract** | [`docs/STAGEFLOW_SCRIPT_SPECIFICATION.md §7.2`](../../../docs/STAGEFLOW_SCRIPT_SPECIFICATION.md#72-normalized-ast-interface-contract-typests) |
 
 ---
 

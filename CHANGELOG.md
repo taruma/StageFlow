@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Storyboard Contact Sheet Generator, Viewer & Exports — Phase 1 & Phase 2 (#28)
 
 - **Layer 1 Pure Sampling, Orientation-Aware Layout, Filenames & Zero-Dep ZIP (`src/core/storyboardMath.ts`, `src/core/storyboardLayout.ts`, `src/core/zipBuilder.ts`, `src/ui/shotBreakdownUtils.ts`)**:
-  - Split shot metadata, sheet summary, filename formatting (`formatStoryboardFrameFilename` with optional `orderedBeat` prefix `_01_start` / `_02_mid` / `_03_end` inside ZIPs while preserving single-download naming, `formatStoryboardContactSheetFilename` with multi-page `_p01` suffixes, `formatStoryboardContactSheetZipFilename`, and timestamped `formatStoryboardZipFilename`), row pagination (`paginateStoryboardRows`), and orientation-aware density layout resolution (`resolveStoryboardLayoutSpec`) into `src/core/storyboardLayout.ts` (re-exported via `src/core/storyboardMath.ts`) to keep each module focused and under 250 lines.
+  - Split shot metadata, sheet summary, filename formatting (`formatStoryboardFrameFilename` with optional `orderedBeat` prefix `_01_start` / `_02_mid` / `_03_end` inside ZIPs while preserving single-download naming, `formatStoryboardContactSheetFilename` with multi-page `_p01` suffixes, `formatStoryboardContactSheetZipFilename`, and timestamped `formatStoryboardZipFilename`), row pagination (`paginateStoryboardRows`), and orientation-aware density layout resolution (`resolveStoryboardLayoutSpec`) into `src/core/storyboardLayout.ts` (re-exported via `src/core/storyboardMath.ts`) to separate layout/metadata formatting from shot sampling.
   - Added `computeShotSampleTimeSec`, `isMovingShotForStoryboard`, `buildStoryboardSamples`, `groupStoryboardSamplesByShot`, `formatStoryboardShotMeta`, and `summarizeStoryboardSheet` to deterministically sample `score.shots` across `mid`, `start`, `end`, `start-end`, and `start-mid-end` modes (compensating for `score.offsetSec` and emitting `START`/`END` or `START`/`MID`/`END` beats for camera maneuvers/deltas or root `blocking:` entity motion), compute focal-length transitions (`35mm → 85mm`), DoF aperture/focus strings, rig badges, and aggregate sheet-level lens/move/rig summaries.
   - Added pure zero-dependency STORE ZIP + IEEE 802.3 CRC-32 builder (`src/core/zipBuilder.ts`) with UTF-8 filenames and collision deduplication.
   - Consolidated `cleanShotLabel` and `resolveShotTargetInfo` in `src/core/storyboardLayout.ts` and re-exported them via `src/core/storyboardMath.ts` and `src/ui/shotBreakdownUtils.ts` to keep Layer 1 pure with zero duplicate logic.
@@ -25,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added `File ▾ → Storyboard...` opening a wide (`max-w-[1440px]`, `90vh`) Storyboard Contact Sheet modal with a compact (`232px`) sidebar housing preview controls (`Layout` density presets, `Guides`, `Annotations`) and `Frame Export` configuration (`720p`/`1080p`, `PNG`/`WebP`/`JPG`, `Clean Frame`/`Burn-in`), Contact Sheet header rendering score `subtitle`, YAML `videoUrl` source link/label (`formatScoreVideoSourceLabel`), and hairline-divided `Lenses` / `Moves` / `Rigs` summaries, live multi-page badge (`N Pages` via `estimateStoryboardContactSheetPageCount`), footer **`Contact Sheet`** (`Contact Sheet (Np .zip)` when paginated across `~3200px` tall `2400px`-wide pages via `renderStoryboardContactSheetPages`, wrapping full untruncated shot descriptions), an optional **`1-Page PNG`** override when multi-page, **`All Frames (.zip)`**, and a pinned footer `?` `Spec Guide` popover (`StoryboardSpecGuidePopover`) beside `Close` explaining how to read every card metric.
   - Replaced pill-style card badges with minimal corner slate frame overlays (`#shot` / `@ sec` / duration window, hidden in `Clean Only`), a small bottom-right single-frame download button overlay (`FrameTile`), optional 2D canvas overlay burn-in (`renderStoryboardOverlayBurnIn` / `drawStoryboardOverlayInRect`), and a compact hairline-ruled 2-column technical spec table (`TARGET` with `target_offset` `Δ[x, y, z]`, `RIG`, `CAM` distance/wrapped-yaw/pitch/roll, `MOVE`, `OPTICS`, `FOCUS` near–far DoF slice, plus a full-width `OBS` row in `Observer` mode resolved from `observer_shots` while keeping Stage Shot specs 1-to-1) with expanded plain-English hover tooltips, grouping moving shots into `Start & End` `col-span-2` pairs / `Start·Mid·End` rows and flipping annotated portrait (`< 0.99`) cards into `[Frame(s) Left | Metadata Right]` horizontal splits with zero pillarboxing.
 - **Unit Tests & Documentation (`tests/unit/storyboardMath.test.ts`, `tests/unit/storyboardBlobCache.test.ts`, `tests/unit/zipBuilder.test.ts`, `docs/ARCHITECTURE_FILE_MAP.md`, `docs/DIORAMA_3D_AND_UI_SPECIFICATIONS.md`)**:
-  - Added deterministic Vitest suites in `tests/unit/storyboardMath.test.ts` (10 tests), `tests/unit/storyboardBlobCache.test.ts` (5 tests), and `tests/unit/zipBuilder.test.ts` (3 tests) (`320` passing tests across `26` suites) and updated architecture and UI specifications.
+  - Added deterministic Vitest suites in `tests/unit/storyboardMath.test.ts` (13 tests), `tests/unit/storyboardBlobCache.test.ts` (5 tests), and `tests/unit/zipBuilder.test.ts` (3 tests) (`323` passing tests across `26` suites) and updated architecture and UI specifications.
 
 #### Entity Rotation Pivot (`base` vs `center` vs `top` / `0..1`) (#20)
 
@@ -50,28 +50,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added `useStageCamSnapshot` to evaluate `computeStageFrame(timestampSec, score)` and `computeExportDimensions(1080, score.aspectRatio)`, mount `CleanStageCamExportCanvas` (`targetCamera="stage-cam"`, `gateScale = 1.0`, `labelMode="off"`) offscreen strictly during capture while inheriting active Diorama Theme and `[Blur]` DoF state, encode to `image/png`, trigger browser download, and unmount immediately (0% idle GPU overhead).
 - **Transport Bar Bottom-Left Capture Button (`src/ui/DirectorialTransportBar.tsx`, `src/ui/InteractiveStudioApp.tsx`, `docs/`)**:
   - Placed a single-click Camera button on the bottom-left flank of Row 3 in `DirectorialTransportBar` (hidden `< 768px` via `hidden md:flex`) using a balanced `md:grid-cols-[1fr_auto_1fr]` layout so `DirectorialTransportDeck` remains dead-center, wired in `InteractiveStudioApp.tsx`, and documented across `docs/ARCHITECTURE_FILE_MAP.md`, `docs/DIORAMA_3D_AND_UI_SPECIFICATIONS.md`, `README.md`, and `AGENTS.md`.
-
-### Fixed
-
-#### Stage Cam DoF `deep` (`f/∞`) Shot-Cut Continuity (`src/stage/StageCamDofEffect.tsx`, `docs/DIORAMA_3D_AND_UI_SPECIFICATIONS.md`)
-
-- **Consistent `shallow` $\leftrightarrow$ `deep` (`f/∞`) Color in Stage Cam Blur ON (`src/stage/StageCamDofEffect.tsx`, `docs/DIORAMA_3D_AND_UI_SPECIFICATIONS.md`)**:
-  - Added a `uOpticalScale <= 0.0` 1-tap passthrough branch in `DOF_FRAGMENT_SHADER` (skipping depth sampling and the 28-tap bokeh loop) and routed `dof: 'deep'` (`f/∞`) shots through the Stage Cam FBO composite pass when `BLUR` is ON instead of bypassing to direct screen render, preserving the Stage Cam Blur-ON look without brightness or color jumps across `shallow` $\leftrightarrow$ `deep` cuts.
-
-#### Continuous Rig Eye Inheritance, Parser Alias Parity & Living Documentation Sync
-
-- **Continuous Camera Rig `E_prev` Inheritance (`src/core/cameraRigEvaluator.ts`, `src/core/shotPoseEvaluator.ts`, `src/core/trajectoryChain.ts`)**:
-  - Added optional `fallbackEyeOverride?: Vec3` across `evaluateRigCameraPose`, `evaluateShotCameraPose`, and `sampleTrajectoryPoints`, with `resolveCueStartPose` extracted in `src/core/trajectoryChain.ts` and `cuePrevEndEyes` cached for both `stageCamera` and `observerCamera` tracks.
-  - When `isContinuous` is active (`i > 0`, `maneuver !== 'cut'`) and `rig.from` / `rig.position` is omitted (`track`, 1-point `spline_track`, or `tripod`), both runtime evaluation and 3D floor rail sampling now inherit the preceding shot's terminal eye position `E_prev` seamlessly even when `target:` changes or moves.
-- **Parser Alias Parity & Type Comment Fixes (`src/core/scoreParser.ts`, `src/core/cameraCueParser.ts`, `src/core/types.ts`)**:
-  - Added `stage.gridStep` camelCase alias (with finite positive guard) for `stage.grid_step` and extended flat root `optics` fallbacks in `src/core/scoreParser.ts` to match nested `optics:` aliases (`root.blur`, `root.depth_of_field`, `root.depthOfField`, `root.f_stop`, `root.fStop`).
-  - Added `f_stop_start`, `dof_start`, `f_stop_end`, and `dof_end` detection to `hasFlatOpticalField` inside `applyFlatShotCameraOverrides` in `src/core/cameraCueParser.ts`.
-  - Updated stale comments in `src/core/types.ts` for `SphericalPose.pitch` (`[-85 deg, +85 deg]`) and `ScoreCategory` blueprint range (`BP 01–07`).
-- **Unit Tests & Living Documentation Sync (`tests/unit/`, `docs/*.md`, `README.md`, `AGENTS.md`)**:
-  - Added unit tests in `tests/unit/scoreParser.test.ts` and `tests/unit/cameraRigs.test.ts` covering parser aliases, flat shot-root aperture/DoF overrides, and continuous `track`/`spline_track`/`tripod` rig eye inheritance across changing `target:` anchors (`295` passing tests across `23` suites).
-  - Audited and synchronized `docs/STAGEFLOW_SCRIPT_SPECIFICATION.md`, `docs/CORE_MATH_AND_SCORE_SPECIFICATIONS.md`, `docs/YAML_AUTHORING_GUIDE.md`, `README.md`, and `AGENTS.md` to eliminate mathematical, AST contract, and authoring-guide drift (including uniform `spline_track` math, `EvaluatedEntityState` / missing AST sub-interfaces in §7.2, `[0.4m, 100.0m]` `d_focus` clamp, `orbit`/`sweep` `from` evaluation, reserved `waypoints[]` fields, undocumented YAML aliases, and Cookbook blueprint citations).
-
-### Added
 
 #### Dot-Notation Entity Target Sub-Anchors (GH Issue #19)
 
@@ -104,6 +82,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Updated `labelGroupRef` positioning in `syncEntityTransform` to rotate the top anchor `{ x: 0, y: liveH, z: 0 }` via `rotateVec3YXZ`, tracking tilted character/prop meshes in 3D while keeping floating billboard labels upright.
 - **Unit Tests & Documentation Sync (`tests/unit/scoreParser.test.ts`, `tests/unit/entityEngine.test.ts`, `tests/unit/stagePerfHelpers.test.ts`, `docs/*.md`, `.agents/skills/stageflow-score-creator/SKILL.md`)**:
   - Added parser, blocking/legacy evaluator, shortest-arc wrapping, `cut: true`, `look_at` independence, 3D `getEntityLookAnchor`, and `React.memo` perf gate unit tests; synchronized math, AST contract, authoring guide, and 3D diorama specs.
+
+### Fixed
+
+#### Stage Cam DoF `deep` (`f/∞`) Shot-Cut Continuity (`src/stage/StageCamDofEffect.tsx`, `docs/DIORAMA_3D_AND_UI_SPECIFICATIONS.md`)
+
+- **Consistent `shallow` $\leftrightarrow$ `deep` (`f/∞`) Color in Stage Cam Blur ON (`src/stage/StageCamDofEffect.tsx`, `docs/DIORAMA_3D_AND_UI_SPECIFICATIONS.md`)**:
+  - Added a `uOpticalScale <= 0.0` 1-tap passthrough branch in `DOF_FRAGMENT_SHADER` (skipping depth sampling and the 28-tap bokeh loop) and routed `dof: 'deep'` (`f/∞`) shots through the Stage Cam FBO composite pass when `BLUR` is ON instead of bypassing to direct screen render, preserving the Stage Cam Blur-ON look without brightness or color jumps across `shallow` $\leftrightarrow$ `deep` cuts.
+
+#### Continuous Rig Eye Inheritance, Parser Alias Parity & Living Documentation Sync
+
+- **Continuous Camera Rig `E_prev` Inheritance (`src/core/cameraRigEvaluator.ts`, `src/core/shotPoseEvaluator.ts`, `src/core/trajectoryChain.ts`)**:
+  - Added optional `fallbackEyeOverride?: Vec3` across `evaluateRigCameraPose`, `evaluateShotCameraPose`, and `sampleTrajectoryPoints`, with `resolveCueStartPose` extracted in `src/core/trajectoryChain.ts` and `cuePrevEndEyes` cached for both `stageCamera` and `observerCamera` tracks.
+  - When `isContinuous` is active (`i > 0`, `maneuver !== 'cut'`) and `rig.from` / `rig.position` is omitted (`track`, 1-point `spline_track`, or `tripod`), both runtime evaluation and 3D floor rail sampling now inherit the preceding shot's terminal eye position `E_prev` seamlessly even when `target:` changes or moves.
+- **Parser Alias Parity & Type Comment Fixes (`src/core/scoreParser.ts`, `src/core/cameraCueParser.ts`, `src/core/types.ts`)**:
+  - Added `stage.gridStep` camelCase alias (with finite positive guard) for `stage.grid_step` and extended flat root `optics` fallbacks in `src/core/scoreParser.ts` to match nested `optics:` aliases (`root.blur`, `root.depth_of_field`, `root.depthOfField`, `root.f_stop`, `root.fStop`).
+  - Added `f_stop_start`, `dof_start`, `f_stop_end`, and `dof_end` detection to `hasFlatOpticalField` inside `applyFlatShotCameraOverrides` in `src/core/cameraCueParser.ts`.
+  - Updated stale comments in `src/core/types.ts` for `SphericalPose.pitch` (`[-85 deg, +85 deg]`) and `ScoreCategory` blueprint range (`BP 01–07`).
+- **Unit Tests & Living Documentation Sync (`tests/unit/`, `docs/*.md`, `README.md`, `AGENTS.md`)**:
+  - Added unit tests in `tests/unit/scoreParser.test.ts` and `tests/unit/cameraRigs.test.ts` covering parser aliases, flat shot-root aperture/DoF overrides, and continuous `track`/`spline_track`/`tripod` rig eye inheritance across changing `target:` anchors (`295` passing tests across `23` suites).
+  - Audited and synchronized `docs/STAGEFLOW_SCRIPT_SPECIFICATION.md`, `docs/CORE_MATH_AND_SCORE_SPECIFICATIONS.md`, `docs/YAML_AUTHORING_GUIDE.md`, `README.md`, and `AGENTS.md` to eliminate mathematical, AST contract, and authoring-guide drift (including uniform `spline_track` math, `EvaluatedEntityState` / missing AST sub-interfaces in §7.2, `[0.4m, 100.0m]` `d_focus` clamp, `orbit`/`sweep` `from` evaluation, reserved `waypoints[]` fields, undocumented YAML aliases, and Cookbook blueprint citations).
 
 ## [1.1.2] - 2026-11-15
 

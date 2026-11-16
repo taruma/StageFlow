@@ -152,7 +152,7 @@ Scene entities (`character`, `prop`, `marker`) are rendered with unambiguous ori
   - **Right Wing**: Theme mode dropdown (`ThemeSelectorDropdown.tsx`), standalone amber `[ 📖 Library ]` gateway button opening `ScoreLibraryModal.tsx`, a tactile 1-click **`[ Reset Layout ]`** button, native fullscreen toggle, and an **About / Info** button (`AppInfoModal.tsx`) with global `?` keyboard shortcut.
   - **Authoritative Stacking Context**: The header uses `relative z-30`, ensuring all dropdown menus (`File ▾`, `Color Themes ▾`) and popovers render safely above viewport HUD elements, labels, and badges.
 - **Tiered `File ▾` Menu (`FileMenuDropdown.tsx`)**:
-  - *Media & Score I/O*: "Open Video or Score..." (file picker trigger), "Export Active Score (.yaml)" (direct browser download), and "Export Video (.mp4)..." (opens `CleanVideoExportModal.tsx` for in-browser WebCodecs clean film gate MP4 export).
+  - *Media & Score I/O*: "Open Video or Score..." (file picker trigger), "Export Active Score (.yaml)" (direct browser download), "Export Video (.mp4)..." (opens `CleanVideoExportModal.tsx` for in-browser WebCodecs clean film gate MP4 export), and "Storyboard..." (opens `StoryboardModal.tsx` for shot-by-shot Contact Sheet viewer, single-frame PNG/WebP/JPG downloads, Contact Sheet PNG/ZIP, and `All Frames (.zip)` export).
   - *Scores*: "New Blank Score..." and "Manage Custom Scores" (with custom scores badge count).
   - *Reference*: "Score Library..." and links to the YAML Authoring Guide and Script Specification.
 - **2-Column Master-Detail Score Library & Project Hub (`ScoreLibraryModal.tsx`, `ScoreInspectorPane.tsx`, `ScoreStageMinimap.tsx`)**:

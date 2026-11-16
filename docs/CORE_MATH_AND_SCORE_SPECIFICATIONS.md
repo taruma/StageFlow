@@ -353,3 +353,18 @@ video:
   aspect_ratio: "16:9"
 ```
 **YAML as Single Source of Truth**: Whenever the YAML score specifies or changes a video URL, any active in-memory dropped video override is automatically cleared so the score's video is played. Local dropped video files (`.mp4`, `.webm`) are maintained strictly in temporary session memory and are never written to `IndexedDB` or `localStorage`.
+
+---
+
+## 7. Pure Export, Storyboard Sampling & Archive Utilities (`exportMath.ts`, `exportScrubberMath.ts`, `storyboardMath.ts`, `storyboardLayout.ts`, `zipBuilder.ts`)
+
+All video export geometry, dual-handle range clamping, storyboard shot sampling, white-paper contact sheet pagination, and archive packaging execute purely in Layer 1 with zero React, DOM, or Three.js dependencies:
+
+- **Export Dimensions, Timing & Filenames (`src/core/exportMath.ts`, `src/core/exportScrubberMath.ts`)**:
+  - `resolveExportAspectRatio()` locks `'observer'` exports to `16:9` while honoring `score.aspectRatio` for `'stage-cam'` exports; `computeExportDimensions()` computes H.264 even-integer pixel dimensions (`roundToEven`) across `540p` preview, `720p`, and `1080p` tiers.
+  - `validateCustomExportRange()` and `computeExportTimeRange()` enforce finite, non-negative, $\ge 1 / \text{fps}$ bounds clamped to `score.durationSec`, paired with `exportScrubberMath.ts` for 3-decimal quantization (`45.375s`, `61.625s`) and `formatExportMp4Filename()` / `formatExportSnapshotFilename()` (`<slug>[_<shot-id>]_<scene-sec>s_snap_<YYYYMMDD_HHmmss_SSS>_1080p.png`).
+- **Storyboard Sampling, Orientation-Aware Layout & Pagination (`src/core/storyboardMath.ts`, `src/core/storyboardLayout.ts`)**:
+  - `computeShotSampleTimeSec()` and `buildStoryboardSamples()` sample `score.shots` across `'mid'`, `'start'`, `'end'`, `'start-end'`, and `'start-mid-end'` modes within `[startSec, endSec)` (compensating for `score.offsetSec`), while `isMovingShotForStoryboard()` and `groupStoryboardSamplesByShot()` group moving shots into `START`/`END` pairs or `START`/`MID`/`END` strips.
+  - `resolveStoryboardLayoutSpec()`, `formatStoryboardShotMeta()`, `summarizeStoryboardSheet()`, and `paginateStoryboardRows()` compute orientation-aware grid columns (landscape vs. portrait `< 0.99`), DP/AC spec card telemetry (including `OBS` rows from `observer_shots`), sheet-level `Lenses`/`Moves`/`Rigs` totals, and non-splitting page breaks.
+- **Zero-Dependency Archive Builder (`src/core/zipBuilder.ts`)**:
+  - `buildZipArchive()` packs raw `Uint8Array` image entries into a compliant uncompressed `STORE` ZIP archive with UTF-8 filenames, IEEE 802.3 CRC-32 checksums, and automatic collision deduplication.

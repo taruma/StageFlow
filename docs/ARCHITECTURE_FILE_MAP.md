@@ -204,7 +204,7 @@ stageflow/
 │   │   ├── StoryboardGuideOverlay.tsx # Instant CSS/SVG Rule-of-Thirds, Safe-Action & Crosshair guides overlay
 │   │   ├── StoryboardSpecGuidePopover.tsx # Footer "?" Spec Guide popover explaining technical card notation
 │   │   ├── storyboardOverlayBurnIn.ts # 2D canvas compositor for optional 720p/1080p slate & guide export burn-ins
-│   │   ├── storyboardContactSheetRenderer.ts # Clean white-paper 2D canvas Contact Sheet PNG compositor
+│   │   ├── storyboardContactSheetRenderer.ts # Clean white-paper 2D canvas Contact Sheet PNG & multi-page compositor
 │   │   ├── StoryboardPanelCard.tsx  # Grouped shot storyboard card (1-up, Start-End 2-col, Start·Mid·End row)
 │   │   ├── StorageStatusBadge.tsx   # Visual status badge (Bundled vs. IndexedDB draft)
 │   │   └── InteractiveStudioApp.tsx # 3D choreography diorama & split workspace orchestrator
