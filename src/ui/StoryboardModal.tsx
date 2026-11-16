@@ -5,10 +5,12 @@
  * instant CSS composition guides, and unmounts WebGL immediately upon completion.
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertCircle, LayoutGrid, Loader2, X } from 'lucide-react';
 import {
+  computeExportDimensions,
   resolveExportAspectRatio,
+  type ExportResolutionTier,
   type ExportTargetCamera,
 } from '../core/exportMath';
 import {
@@ -16,12 +18,19 @@ import {
   resolveStoryboardLayoutSpec,
   summarizeStoryboardSheet,
   type StoryboardDensity,
+  type StoryboardExportFormat,
   type StoryboardGridColumns,
   type StoryboardGuideMode,
   type StoryboardSampleMode,
+  type StoryboardSamplePoint,
 } from '../core/storyboardMath';
-import type { AppThemeCategory, StageScore } from '../core/types';
+import type {
+  AppThemeCategory,
+  StageScore,
+  ToastNotification,
+} from '../core/types';
 import { useStoryboardGenerator } from '../hooks/useStoryboardGenerator';
+import { useStoryboardPanelExport } from '../hooks/useStoryboardPanelExport';
 import { CleanStageCamExportCanvas } from '../stage/CleanStageCamExportCanvas';
 import { formatFilmGateLabel } from './shotBreakdownUtils';
 import { StoryboardControlsSidebar } from './StoryboardControlsSidebar';
@@ -30,12 +39,14 @@ import {
   type StoryboardCardLayoutMode,
 } from './StoryboardPanelCard';
 import { StoryboardSpecGuidePopover } from './StoryboardSpecGuidePopover';
+import { renderStoryboardOverlayBurnIn } from './storyboardOverlayBurnIn';
 import { UI_TOKENS } from './tokens/ui';
 
 export interface StoryboardModalProps {
   isOpen: boolean;
   score: StageScore;
   dofBlurEnabled: boolean;
+  onNotify?: (message: string, type?: ToastNotification['type']) => void;
   onClose: () => void;
 }
 
@@ -51,6 +62,7 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
   isOpen,
   score,
   dofBlurEnabled,
+  onNotify,
   onClose,
 }) => {
   const [sampleMode, setSampleMode] = useState<StoryboardSampleMode>('mid');
@@ -61,6 +73,11 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
   const [density, setDensity] = useState<StoryboardDensity>('balanced');
   const [guideMode, setGuideMode] = useState<StoryboardGuideMode>('off');
   const [annotated, setAnnotated] = useState<boolean>(true);
+  const [exportTier, setExportTier] = useState<ExportResolutionTier>(1080);
+  const [exportFormat, setExportFormat] =
+    useState<StoryboardExportFormat>('png');
+  const [exportIncludeOverlays, setExportIncludeOverlays] =
+    useState<boolean>(false);
   const [isSpecGuideOpen, setIsSpecGuideOpen] = useState<boolean>(false);
 
   // Sync DoF blur toggle from active Stage Cam state whenever the modal opens
@@ -109,6 +126,8 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
     dofBlurEnabled: localDofBlur,
   });
 
+  const panelExporter = useStoryboardPanelExport({ onNotify });
+
   const panelsByKey = useMemo(() => {
     return new Map(panels.map((p) => [p.sample.key, p]));
   }, [panels]);
@@ -126,6 +145,51 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
   const effectiveAspect = resolveExportAspectRatio(
     score.aspectRatio,
     targetCamera
+  );
+
+  const exportDims = useMemo(
+    () => computeExportDimensions(exportTier, effectiveAspect),
+    [exportTier, effectiveAspect]
+  );
+
+  const handleExportSample = useCallback(
+    (sample: StoryboardSamplePoint) => {
+      const shouldBurnOverlay =
+        exportIncludeOverlays && (annotated || guideMode !== 'off');
+      panelExporter.exportPanel({
+        score,
+        sample,
+        targetCamera,
+        themeCategory,
+        dofBlurEnabled: localDofBlur,
+        tier: exportTier,
+        format: exportFormat,
+        postProcessCanvas: shouldBurnOverlay
+          ? (sourceCanvas) =>
+              renderStoryboardOverlayBurnIn(sourceCanvas, {
+                guideMode,
+                includeSlate: annotated,
+                shotNumber: sample.shot.shotNumber,
+                beatTag: sample.beatTag,
+                stageTimeSec: sample.stageTimeSec,
+                startSec: sample.shot.startSec,
+                endSec: sample.shot.endSec,
+              })
+          : undefined,
+      });
+    },
+    [
+      panelExporter,
+      score,
+      targetCamera,
+      themeCategory,
+      localDofBlur,
+      exportTier,
+      exportFormat,
+      exportIncludeOverlays,
+      annotated,
+      guideMode,
+    ]
   );
 
   const layoutSpec = useMemo(
@@ -214,6 +278,14 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
             onChangeGuideMode={setGuideMode}
             annotated={annotated}
             onChangeAnnotated={setAnnotated}
+            exportTier={exportTier}
+            onChangeExportTier={setExportTier}
+            exportFormat={exportFormat}
+            onChangeExportFormat={setExportFormat}
+            exportIncludeOverlays={exportIncludeOverlays}
+            onChangeExportIncludeOverlays={setExportIncludeOverlays}
+            exportWidth={exportDims.width}
+            exportHeight={exportDims.height}
             isGenerating={isGenerating}
             panelWidth={dims.width}
             panelHeight={dims.height}
@@ -327,6 +399,10 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
                       layoutMode={layoutMode}
                       isPortrait={layoutSpec.isPortrait}
                       effectiveDensity={layoutSpec.effectiveDensity}
+                      downloadingKey={panelExporter.downloadingKey}
+                      exportTier={exportTier}
+                      exportFormat={exportFormat}
+                      onExportSample={handleExportSample}
                     />
                   ))}
                 </div>
@@ -371,7 +447,7 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
           </div>
         </div>
 
-        {/* Offscreen WebGL Renderer (mounted strictly during batch capture) */}
+        {/* Offscreen WebGL Renderer (mounted strictly during preview batch capture) */}
         {isCanvasMounted && initialFrame && (
           <CleanStageCamExportCanvas
             key={canvasKey}
@@ -383,6 +459,21 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
             dofBlurEnabled={localDofBlur}
             themeCategory={themeCategory}
             targetCamera={targetCamera}
+          />
+        )}
+
+        {/* Dedicated 1-Frame Offscreen WebGL Renderer (mounted strictly during single-panel export) */}
+        {panelExporter.pendingRequest && (
+          <CleanStageCamExportCanvas
+            key={`export-${panelExporter.pendingRequest.sample.key}-${panelExporter.pendingRequest.tier}`}
+            ref={panelExporter.canvasRef}
+            score={panelExporter.pendingRequest.score}
+            initialFrame={panelExporter.pendingRequest.sample.frame}
+            width={panelExporter.pendingRequest.width}
+            height={panelExporter.pendingRequest.height}
+            dofBlurEnabled={panelExporter.pendingRequest.dofBlurEnabled}
+            themeCategory={panelExporter.pendingRequest.themeCategory}
+            targetCamera={panelExporter.pendingRequest.targetCamera}
           />
         )}
       </div>

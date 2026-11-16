@@ -6,11 +6,15 @@
  */
 
 import React, { memo } from 'react';
-import { Loader2 } from 'lucide-react';
-import type { ExportTargetCamera } from '../core/exportMath';
+import { Download, Loader2 } from 'lucide-react';
+import type {
+  ExportResolutionTier,
+  ExportTargetCamera,
+} from '../core/exportMath';
 import {
   formatStoryboardShotMeta,
   type StoryboardDensity,
+  type StoryboardExportFormat,
   type StoryboardGuideMode,
   type StoryboardSamplePoint,
   type StoryboardShotGroup,
@@ -31,6 +35,10 @@ export interface StoryboardPanelCardProps {
   layoutMode: StoryboardCardLayoutMode;
   isPortrait: boolean;
   effectiveDensity: StoryboardDensity;
+  downloadingKey?: string | null;
+  exportTier?: ExportResolutionTier;
+  exportFormat?: StoryboardExportFormat;
+  onExportSample?: (sample: StoryboardSamplePoint) => void;
 }
 
 const BEAT_DOT_CLASS: Record<'START' | 'MID' | 'END', string> = {
@@ -64,6 +72,9 @@ const FrameTile: React.FC<{
   guideMode: StoryboardGuideMode;
   rounded?: boolean;
   className?: string;
+  downloadingKey?: string | null;
+  exportLabel?: string;
+  onExportSample?: (sample: StoryboardSamplePoint) => void;
 }> = ({
   sample,
   panel,
@@ -76,62 +87,97 @@ const FrameTile: React.FC<{
   guideMode,
   rounded = false,
   className = 'w-full',
-}) => (
-  <div
-    className={`relative bg-surface-muted overflow-hidden ${className} ${
-      rounded ? 'rounded-md border border-border-subtle' : ''
-    }`}
-    style={{ aspectRatio: `${width} / ${height}` }}
-  >
-    {panel ? (
-      <img
-        src={panel.imageUrl}
-        alt={`${shotBadge} ${label}${
-          sample.beatTag ? ` (${sample.beatTag})` : ''
-        }`}
-        className="w-full h-full object-cover block select-none"
-        draggable={false}
-      />
-    ) : (
-      <div className="w-full h-full flex flex-col items-center justify-center gap-1.5 text-text-faint animate-pulse">
-        <Loader2 className="w-4 h-4 animate-spin" />
-        <span className="text-[10px] font-mono uppercase tracking-wider">
-          {shotBadge}
-          {sample.beatTag ? ` · ${sample.beatTag}` : ''}
-        </span>
-      </div>
-    )}
+  downloadingKey,
+  exportLabel = '1080p PNG',
+  onExportSample,
+}) => {
+  const isDownloadingThis = downloadingKey === sample.key;
+  const isExportBusy = Boolean(downloadingKey);
 
-    <StoryboardGuideOverlay guideMode={guideMode} />
+  return (
+    <div
+      className={`group/tile relative bg-surface-muted overflow-hidden ${className} ${
+        rounded ? 'rounded-md border border-border-subtle' : ''
+      }`}
+      style={{ aspectRatio: `${width} / ${height}` }}
+    >
+      {panel ? (
+        <img
+          src={panel.imageUrl}
+          alt={`${shotBadge} ${label}${
+            sample.beatTag ? ` (${sample.beatTag})` : ''
+          }`}
+          className="w-full h-full object-cover block select-none"
+          draggable={false}
+        />
+      ) : (
+        <div className="w-full h-full flex flex-col items-center justify-center gap-1.5 text-text-faint animate-pulse">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          <span className="text-[10px] font-mono uppercase tracking-wider">
+            {shotBadge}
+            {sample.beatTag ? ` · ${sample.beatTag}` : ''}
+          </span>
+        </div>
+      )}
 
-    {annotated && (
-      <>
-        {/* Top-Left Minimal Slate Stamp */}
-        <span className="absolute top-1.5 left-1.5 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[3px] bg-slate-950/75 backdrop-blur-[2px] border border-white/15 text-[9.5px] font-mono font-bold tracking-wider text-white/95 shadow-2xs pointer-events-none select-none">
-          {sample.beatTag ? (
-            <>
-              <span
-                className={`w-1.5 h-1.5 rounded-full ${BEAT_DOT_CLASS[sample.beatTag]}`}
-              />
-              <span>
-                {shotBadge} · {sample.beatTag}
-              </span>
-            </>
+      <StoryboardGuideOverlay guideMode={guideMode} />
+
+      {annotated && (
+        <>
+          {/* Top-Left Minimal Slate Stamp */}
+          <span className="absolute top-1.5 left-1.5 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[3px] bg-slate-950/75 backdrop-blur-[2px] border border-white/15 text-[9.5px] font-mono font-bold tracking-wider text-white/95 shadow-2xs pointer-events-none select-none">
+            {sample.beatTag ? (
+              <>
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${BEAT_DOT_CLASS[sample.beatTag]}`}
+                />
+                <span>
+                  {shotBadge} · {sample.beatTag}
+                </span>
+              </>
+            ) : (
+              <span>{shotBadge}</span>
+            )}
+          </span>
+
+          {/* Top-Right Timecode Slate Stamp */}
+          <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded-[3px] bg-slate-950/70 backdrop-blur-[2px] border border-white/15 text-[9px] font-mono tracking-tight text-white/90 shadow-2xs pointer-events-none select-none">
+            {sample.beatTag
+              ? `@ ${sample.stageTimeSec.toFixed(1)}s`
+              : singleTimeStamp}
+          </span>
+        </>
+      )}
+
+      {/* Small Bottom-Right Single-Frame Download Button */}
+      {onExportSample && panel && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onExportSample(sample);
+          }}
+          disabled={isExportBusy}
+          title={`Download ${shotBadge}${
+            sample.beatTag ? ` ${sample.beatTag}` : ''
+          } (${exportLabel})`}
+          aria-label={`Download ${shotBadge} frame as ${exportLabel}`}
+          className={`absolute bottom-1.5 right-1.5 w-6 h-6 rounded-[4px] bg-slate-950/75 hover:bg-slate-950/95 border border-white/20 text-white/90 hover:text-white flex items-center justify-center shadow-sm backdrop-blur-[2px] transition-all cursor-pointer disabled:cursor-wait ${
+            isDownloadingThis
+              ? 'opacity-100'
+              : 'opacity-70 group-hover/tile:opacity-100 disabled:opacity-35'
+          }`}
+        >
+          {isDownloadingThis ? (
+            <Loader2 className="w-3 h-3 animate-spin" />
           ) : (
-            <span>{shotBadge}</span>
+            <Download className="w-3 h-3" />
           )}
-        </span>
-
-        {/* Top-Right Timecode Slate Stamp */}
-        <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded-[3px] bg-slate-950/70 backdrop-blur-[2px] border border-white/15 text-[9px] font-mono tracking-tight text-white/90 shadow-2xs pointer-events-none select-none">
-          {sample.beatTag
-            ? `@ ${sample.stageTimeSec.toFixed(1)}s`
-            : singleTimeStamp}
-        </span>
-      </>
-    )}
-  </div>
-);
+        </button>
+      )}
+    </div>
+  );
+};
 
 export const StoryboardPanelCard: React.FC<StoryboardPanelCardProps> = memo(
   ({
@@ -145,11 +191,18 @@ export const StoryboardPanelCard: React.FC<StoryboardPanelCardProps> = memo(
     layoutMode,
     isPortrait,
     effectiveDensity,
+    downloadingKey,
+    exportTier = 1080,
+    exportFormat = 'png',
+    onExportSample,
   }) => {
     const meta = formatStoryboardShotMeta(group.samples, targetCamera);
     const shotBadge = `#${String(meta.shotNumber).padStart(2, '0')}`;
     const frameCount = group.samples.length;
     const singleTimeStamp = `${meta.timeRangeText} (${meta.durationText})`;
+    const exportLabel = `${exportTier}p ${
+      exportFormat === 'jpeg' ? 'JPG' : exportFormat.toUpperCase()
+    }`;
 
     const isStartEndPair = layoutMode === 'start-end' && frameCount === 2;
     const isTripleStrip = layoutMode === 'single-row' && frameCount >= 3;
@@ -252,26 +305,39 @@ export const StoryboardPanelCard: React.FC<StoryboardPanelCardProps> = memo(
       </div>
     ) : null;
 
+    const renderFrameTile = (
+      sample: StoryboardSamplePoint,
+      tileProps: { rounded?: boolean; className?: string } = {}
+    ) => (
+      <FrameTile
+        key={sample.key}
+        sample={sample}
+        panel={panelsByKey.get(sample.key)}
+        shotBadge={shotBadge}
+        label={meta.label}
+        singleTimeStamp={singleTimeStamp}
+        width={width}
+        height={height}
+        annotated={annotated}
+        guideMode={guideMode}
+        rounded={tileProps.rounded}
+        className={tileProps.className}
+        downloadingKey={downloadingKey}
+        exportLabel={exportLabel}
+        onExportSample={onExportSample}
+      />
+    );
+
     const renderPortraitFrames = () => {
       if (isTripleStrip) {
         return (
           <div className="p-2 bg-surface-subtle/40 flex flex-wrap sm:flex-nowrap items-center gap-1.5 shrink-0">
-            {group.samples.map((sample) => (
-              <FrameTile
-                key={sample.key}
-                sample={sample}
-                panel={panelsByKey.get(sample.key)}
-                shotBadge={shotBadge}
-                label={meta.label}
-                singleTimeStamp={singleTimeStamp}
-                width={width}
-                height={height}
-                annotated={annotated}
-                guideMode={guideMode}
-                rounded
-                className="w-[108px] sm:w-[122px] shrink-0"
-              />
-            ))}
+            {group.samples.map((sample) =>
+              renderFrameTile(sample, {
+                rounded: true,
+                className: 'w-[108px] sm:w-[122px] shrink-0',
+              })
+            )}
           </div>
         );
       }
@@ -279,22 +345,12 @@ export const StoryboardPanelCard: React.FC<StoryboardPanelCardProps> = memo(
       if (isStartEndPair) {
         return (
           <div className="p-2 bg-surface-subtle/40 flex items-center gap-1.5 shrink-0">
-            {group.samples.map((sample) => (
-              <FrameTile
-                key={sample.key}
-                sample={sample}
-                panel={panelsByKey.get(sample.key)}
-                shotBadge={shotBadge}
-                label={meta.label}
-                singleTimeStamp={singleTimeStamp}
-                width={width}
-                height={height}
-                annotated={annotated}
-                guideMode={guideMode}
-                rounded
-                className="w-[116px] sm:w-[130px] shrink-0"
-              />
-            ))}
+            {group.samples.map((sample) =>
+              renderFrameTile(sample, {
+                rounded: true,
+                className: 'w-[116px] sm:w-[130px] shrink-0',
+              })
+            )}
           </div>
         );
       }
@@ -306,19 +362,10 @@ export const StoryboardPanelCard: React.FC<StoryboardPanelCardProps> = memo(
 
       return (
         <div className="p-2 bg-surface-subtle/40 flex items-center justify-center shrink-0">
-          <FrameTile
-            sample={group.samples[0]}
-            panel={panelsByKey.get(group.samples[0].key)}
-            shotBadge={shotBadge}
-            label={meta.label}
-            singleTimeStamp={singleTimeStamp}
-            width={width}
-            height={height}
-            annotated={annotated}
-            guideMode={guideMode}
-            rounded
-            className={`${widthClass} shrink-0`}
-          />
+          {renderFrameTile(group.samples[0], {
+            rounded: true,
+            className: `${widthClass} shrink-0`,
+          })}
         </div>
       );
     };
@@ -327,21 +374,9 @@ export const StoryboardPanelCard: React.FC<StoryboardPanelCardProps> = memo(
       if (isTripleStrip) {
         return (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-2 bg-surface-subtle/40">
-            {group.samples.map((sample) => (
-              <FrameTile
-                key={sample.key}
-                sample={sample}
-                panel={panelsByKey.get(sample.key)}
-                shotBadge={shotBadge}
-                label={meta.label}
-                singleTimeStamp={singleTimeStamp}
-                width={width}
-                height={height}
-                annotated={annotated}
-                guideMode={guideMode}
-                rounded
-              />
-            ))}
+            {group.samples.map((sample) =>
+              renderFrameTile(sample, { rounded: true })
+            )}
           </div>
         );
       }
@@ -349,21 +384,9 @@ export const StoryboardPanelCard: React.FC<StoryboardPanelCardProps> = memo(
       if (isStartEndPair) {
         return (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 p-1.5 bg-surface-subtle/40">
-            {group.samples.map((sample) => (
-              <FrameTile
-                key={sample.key}
-                sample={sample}
-                panel={panelsByKey.get(sample.key)}
-                shotBadge={shotBadge}
-                label={meta.label}
-                singleTimeStamp={singleTimeStamp}
-                width={width}
-                height={height}
-                annotated={annotated}
-                guideMode={guideMode}
-                rounded
-              />
-            ))}
+            {group.samples.map((sample) =>
+              renderFrameTile(sample, { rounded: true })
+            )}
           </div>
         );
       }
@@ -376,18 +399,9 @@ export const StoryboardPanelCard: React.FC<StoryboardPanelCardProps> = memo(
               : 'w-full'
           }
         >
-          <FrameTile
-            sample={group.samples[0]}
-            panel={panelsByKey.get(group.samples[0].key)}
-            shotBadge={shotBadge}
-            label={meta.label}
-            singleTimeStamp={singleTimeStamp}
-            width={width}
-            height={height}
-            annotated={annotated}
-            guideMode={guideMode}
-            rounded={isLandscapeHorizontalStaticRow}
-          />
+          {renderFrameTile(group.samples[0], {
+            rounded: isLandscapeHorizontalStaticRow,
+          })}
         </div>
       );
     };

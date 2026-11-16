@@ -1135,6 +1135,7 @@ export const InteractiveStudioApp: React.FC = () => {
         isOpen={isStoryboardOpen}
         score={activeScore}
         dofBlurEnabled={display.dofBlurEnabled}
+        onNotify={showToast}
         onClose={() => setIsStoryboardOpen(false)}
       />
 

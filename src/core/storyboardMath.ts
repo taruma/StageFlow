@@ -70,11 +70,13 @@ export interface StoryboardSheetSummary {
 
 export {
   cleanShotLabel,
+  formatStoryboardFrameFilename,
   formatStoryboardPanelMeta,
   formatStoryboardShotMeta,
   resolveStoryboardLayoutSpec,
   summarizeStoryboardSheet,
   type StoryboardDensity,
+  type StoryboardExportFormat,
   type StoryboardGridColumns,
   type StoryboardLayoutSpec,
 } from './storyboardLayout';

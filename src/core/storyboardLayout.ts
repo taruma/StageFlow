@@ -5,10 +5,15 @@
  */
 
 import { matchEntityTargetKey } from './cameraTargetResolver';
-import type { ExportTargetCamera } from './exportMath';
+import {
+  sanitizeExportSlug,
+  type ExportResolutionTier,
+  type ExportTargetCamera,
+} from './exportMath';
 import { formatApertureFStop } from './opticsMath';
 import { radToDeg } from './sphericalMath';
 import type {
+  StoryboardBeatTag,
   StoryboardPanelMeta,
   StoryboardSampleMode,
   StoryboardSamplePoint,
@@ -19,6 +24,7 @@ import type { SceneEntityDef, TargetAnchor, Vec3 } from './types';
 
 export type StoryboardDensity = 'compact' | 'balanced' | 'large';
 export type StoryboardGridColumns = 1 | 2 | 3 | 4 | 6;
+export type StoryboardExportFormat = 'png' | 'webp' | 'jpeg';
 
 export interface ResolvedTargetInfo {
   label: string;
@@ -496,4 +502,32 @@ export function summarizeStoryboardSheet(
       .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
       .map(([label, count]) => ({ label, count })),
   };
+}
+
+/**
+ * Formats a deterministic single-panel storyboard export filename, e.g.:
+ * `afraid_01_shot-01_1_6s_1080p.png` or `afraid_01_shot-01_start_0s_720p.webp`.
+ */
+export function formatStoryboardFrameFilename(params: {
+  scoreIdOrTitle: string;
+  shotNumber: number;
+  shotId: string;
+  beatTag: StoryboardBeatTag;
+  stageTimeSec: number;
+  tier: ExportResolutionTier;
+  format: StoryboardExportFormat;
+  targetCamera: ExportTargetCamera;
+}): string {
+  const slug = sanitizeExportSlug(params.scoreIdOrTitle);
+  const shotNum = String(Math.max(1, Math.round(params.shotNumber))).padStart(
+    2,
+    '0'
+  );
+  const shotSlug = sanitizeExportSlug(params.shotId);
+  const beatPart = params.beatTag ? `_${params.beatTag.toLowerCase()}` : '';
+  const secRounded = Number(Math.max(0, params.stageTimeSec).toFixed(2));
+  const secPart = `${String(secRounded).replace('.', '_')}s`;
+  const camPart = params.targetCamera === 'observer' ? '_observer' : '';
+  const ext = params.format === 'jpeg' ? 'jpg' : params.format;
+  return `${slug}_${shotNum}_${shotSlug}${beatPart}_${secPart}${camPart}_${params.tier}p.${ext}`;
 }

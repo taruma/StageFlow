@@ -6,9 +6,13 @@
 
 import React from 'react';
 import { Camera, Eye, RefreshCw } from 'lucide-react';
-import type { ExportTargetCamera } from '../core/exportMath';
+import type {
+  ExportResolutionTier,
+  ExportTargetCamera,
+} from '../core/exportMath';
 import type {
   StoryboardDensity,
+  StoryboardExportFormat,
   StoryboardGuideMode,
   StoryboardLayoutSpec,
   StoryboardSampleMode,
@@ -32,6 +36,14 @@ export interface StoryboardControlsSidebarProps {
   onChangeGuideMode: (mode: StoryboardGuideMode) => void;
   annotated: boolean;
   onChangeAnnotated: (annotated: boolean) => void;
+  exportTier: ExportResolutionTier;
+  onChangeExportTier: (tier: ExportResolutionTier) => void;
+  exportFormat: StoryboardExportFormat;
+  onChangeExportFormat: (format: StoryboardExportFormat) => void;
+  exportIncludeOverlays: boolean;
+  onChangeExportIncludeOverlays: (include: boolean) => void;
+  exportWidth: number;
+  exportHeight: number;
   isGenerating: boolean;
   panelWidth: number;
   panelHeight: number;
@@ -72,6 +84,17 @@ const GUIDE_OPTIONS: ReadonlyArray<{ id: StoryboardGuideMode; label: string }> =
     { id: 'all', label: 'All' },
   ];
 
+const EXPORT_TIER_OPTIONS: ReadonlyArray<ExportResolutionTier> = [720, 1080];
+
+const EXPORT_FORMAT_OPTIONS: ReadonlyArray<{
+  id: StoryboardExportFormat;
+  label: string;
+}> = [
+  { id: 'png', label: 'PNG' },
+  { id: 'webp', label: 'WebP' },
+  { id: 'jpeg', label: 'JPG' },
+];
+
 export const StoryboardControlsSidebar: React.FC<
   StoryboardControlsSidebarProps
 > = ({
@@ -89,6 +112,14 @@ export const StoryboardControlsSidebar: React.FC<
   onChangeGuideMode,
   annotated,
   onChangeAnnotated,
+  exportTier,
+  onChangeExportTier,
+  exportFormat,
+  onChangeExportFormat,
+  exportIncludeOverlays,
+  onChangeExportIncludeOverlays,
+  exportWidth,
+  exportHeight,
   isGenerating,
   panelWidth,
   panelHeight,
@@ -345,6 +376,77 @@ export const StoryboardControlsSidebar: React.FC<
               Clean Only
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* Frame Export Configuration */}
+      <div className="border-t border-border-subtle pt-2.5 space-y-2">
+        <div className="flex items-center justify-between">
+          <span className={UI_TOKENS.input.label}>Frame Export</span>
+          <span className="text-[9px] font-mono text-text-faint">
+            {exportWidth}×{exportHeight}
+          </span>
+        </div>
+
+        <div className={`${UI_TOKENS.button.segmentedGroup} w-full`}>
+          {EXPORT_TIER_OPTIONS.map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => onChangeExportTier(t)}
+              className={`flex-1 justify-center !px-2 font-mono ${
+                exportTier === t
+                  ? UI_TOKENS.button.segmentedItemActive
+                  : UI_TOKENS.button.segmentedItem
+              }`}
+            >
+              {t}p
+            </button>
+          ))}
+        </div>
+
+        <div className={`${UI_TOKENS.button.segmentedGroup} w-full`}>
+          {EXPORT_FORMAT_OPTIONS.map((opt) => (
+            <button
+              key={opt.id}
+              type="button"
+              onClick={() => onChangeExportFormat(opt.id)}
+              className={`flex-1 justify-center !px-1.5 !text-[10px] font-mono ${
+                exportFormat === opt.id
+                  ? UI_TOKENS.button.segmentedItemActive
+                  : UI_TOKENS.button.segmentedItem
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
+        <div className={`${UI_TOKENS.button.segmentedGroup} w-full`}>
+          <button
+            type="button"
+            onClick={() => onChangeExportIncludeOverlays(false)}
+            title="Export clean WebGL render without slate or guide overlays"
+            className={`flex-1 justify-center !px-1.5 !text-[10px] ${
+              !exportIncludeOverlays
+                ? UI_TOKENS.button.segmentedItemActive
+                : UI_TOKENS.button.segmentedItem
+            }`}
+          >
+            Clean Frame
+          </button>
+          <button
+            type="button"
+            onClick={() => onChangeExportIncludeOverlays(true)}
+            title="Burn active slate stamps and composition guides into exported frame"
+            className={`flex-1 justify-center !px-1.5 !text-[10px] ${
+              exportIncludeOverlays
+                ? UI_TOKENS.button.segmentedItemActive
+                : UI_TOKENS.button.segmentedItem
+            }`}
+          >
+            Burn-in
+          </button>
         </div>
       </div>
 

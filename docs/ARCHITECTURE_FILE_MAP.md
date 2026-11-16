@@ -112,7 +112,8 @@ stageflow/
 │   │   ├── useWebVideoExport.ts     # WebCodecs H.264 VideoEncoder + mp4-muxer deterministic MP4 exporter hook
 │   │   ├── useStageCamSnapshot.ts   # 1-click 1080p clean Stage Cam PNG snapshot capture & download hook
 │   │   ├── storyboardBlobCache.ts   # Bounded LRU WebP Blob cache keyed by WeakMap StageScore identity
-│   │   └── useStoryboardGenerator.ts # Progressive offscreen 540p Storyboard WebP panel capture & blob lifecycle hook
+│   │   ├── useStoryboardGenerator.ts # Progressive offscreen 540p Storyboard WebP panel capture & blob lifecycle hook
+│   │   └── useStoryboardPanelExport.ts # Single-panel 720p/1080p PNG/WebP/JPEG capture & download hook
 │   ├── stage/                       # Layer 4: React Three Fiber 3D Blueprint Diorama
 │   │   ├── dioramaTheme.ts          # Adaptive theme clear colors, fog & metric grid line mapping
 │   │   ├── cameraPresets.ts         # Directorial angle presets (Top, Iso, Front, Side) & spherical math
@@ -199,6 +200,7 @@ stageflow/
 │   │   ├── StoryboardControlsSidebar.tsx # Storyboard render & instant layout controls sidebar
 │   │   ├── StoryboardGuideOverlay.tsx # Instant CSS/SVG Rule-of-Thirds, Safe-Action & Crosshair guides overlay
 │   │   ├── StoryboardSpecGuidePopover.tsx # Footer "?" Spec Guide popover explaining technical card notation
+│   │   ├── storyboardOverlayBurnIn.ts # 2D canvas compositor for optional 720p/1080p slate & guide export burn-ins
 │   │   ├── StoryboardPanelCard.tsx  # Grouped shot storyboard card (1-up, Start-End 2-col, Start·Mid·End row)
 │   │   ├── StorageStatusBadge.tsx   # Visual status badge (Bundled vs. IndexedDB draft)
 │   │   └── InteractiveStudioApp.tsx # 3D choreography diorama & split workspace orchestrator

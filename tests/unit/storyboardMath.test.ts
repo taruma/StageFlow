@@ -6,6 +6,7 @@ import {
   buildStoryboardSamples,
   cleanShotLabel,
   computeShotSampleTimeSec,
+  formatStoryboardFrameFilename,
   formatStoryboardPanelMeta,
   formatStoryboardShotMeta,
   groupStoryboardSamplesByShot,
@@ -309,5 +310,46 @@ describe('storyboardMath', () => {
       columns: 2,
       isEvenLocked: true,
     });
+  });
+
+  it('formats deterministic single-panel export filenames across formats, beats, and cameras', () => {
+    expect(
+      formatStoryboardFrameFilename({
+        scoreIdOrTitle: 'Afraid',
+        shotNumber: 1,
+        shotId: 'shot-01',
+        beatTag: null,
+        stageTimeSec: 1.6,
+        tier: 1080,
+        format: 'png',
+        targetCamera: 'stage-cam',
+      })
+    ).toBe('afraid_01_shot_01_1_6s_1080p.png');
+
+    expect(
+      formatStoryboardFrameFilename({
+        scoreIdOrTitle: 'Vector Field',
+        shotNumber: 12,
+        shotId: 'orbit-reveal',
+        beatTag: 'START',
+        stageTimeSec: 0,
+        tier: 720,
+        format: 'jpeg',
+        targetCamera: 'observer',
+      })
+    ).toBe('vector_field_12_orbit_reveal_start_0s_observer_720p.jpg');
+
+    expect(
+      formatStoryboardFrameFilename({
+        scoreIdOrTitle: 'The Expansion',
+        shotNumber: 3,
+        shotId: 'rack',
+        beatTag: 'END',
+        stageTimeSec: 14.25,
+        tier: 1080,
+        format: 'webp',
+        targetCamera: 'stage-cam',
+      })
+    ).toBe('the_expansion_03_rack_end_14_25s_1080p.webp');
   });
 });
