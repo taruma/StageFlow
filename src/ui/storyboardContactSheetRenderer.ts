@@ -306,6 +306,9 @@ function buildSpecRows(
     { label: 'MOVE', value: meta.moveText },
     { label: 'OPTICS', value: meta.opticsText, spanFull: !meta.focusText },
     ...(meta.focusText ? [{ label: 'FOCUS', value: meta.focusText }] : []),
+    ...(meta.observerText
+      ? [{ label: 'OBS', value: meta.observerText, spanFull: true }]
+      : []),
   ];
 }
 
@@ -596,7 +599,11 @@ function planContactSheetLayout(
       const isHorizontalSplit =
         isPortraitHorizontalCard || isLandscapeHorizontalStaticRow;
 
-      const meta = formatStoryboardShotMeta(group.samples, targetCamera);
+      const meta = formatStoryboardShotMeta(
+        group.samples,
+        targetCamera,
+        score.observerShots
+      );
       const specRows = annotated ? buildSpecRows(meta) : [];
 
       let mediaWidth = w;

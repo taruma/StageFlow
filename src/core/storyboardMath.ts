@@ -54,6 +54,8 @@ export interface StoryboardPanelMeta {
   apertureText: string | null;
   focusText: string | null;
   focusTooltip: string | null;
+  observerText: string | null;
+  observerTooltip: string | null;
   description: string;
 }
 
@@ -125,21 +127,16 @@ export function computeShotSampleTimeSec(
 }
 
 /**
- * Determines whether a shot exhibits camera or entity motion across its window.
+ * Determines whether a shot exhibits Stage Camera or entity motion across its window.
+ * Keeps beat sampling 1-to-1 with the Stage Shot list in both Stage Cam and Observer views.
  */
 export function isMovingShotForStoryboard(
   startFrame: StageFrame,
   endFrame: StageFrame,
-  targetCamera: ExportTargetCamera
+  _targetCamera: ExportTargetCamera = 'stage-cam'
 ): boolean {
-  const startTrack =
-    targetCamera === 'observer'
-      ? startFrame.observerCamera
-      : startFrame.stageCamera;
-  const endTrack =
-    targetCamera === 'observer'
-      ? endFrame.observerCamera
-      : endFrame.stageCamera;
+  const startTrack = startFrame.stageCamera;
+  const endTrack = endFrame.stageCamera;
 
   if (startTrack.maneuver !== 'cut' || endTrack.maneuver !== 'cut') {
     return true;

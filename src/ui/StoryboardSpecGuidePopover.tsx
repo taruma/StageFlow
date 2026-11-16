@@ -51,6 +51,11 @@ const GUIDE_ITEMS: ReadonlyArray<{ term: string; detail: string }> = [
       'Focus plane depth (m) and sharp Depth-of-Field slice (Near–Far; ∞ = hyperfocal deep background).',
   },
   {
+    term: 'OBS',
+    detail:
+      'Observer Diorama camera target, pose, and move shown in Observer mode while keeping Stage Shot specs intact.',
+  },
+  {
     term: 'A→B',
     detail:
       'Indicates a parameter animates from Start to End in grouped moving-shot cards.',

@@ -21,7 +21,13 @@ import type {
   StoryboardSheetSummary,
   StoryboardShotGroup,
 } from './storyboardMath';
-import type { SceneEntityDef, TargetAnchor, Vec3 } from './types';
+import type {
+  EvaluatedCameraTrack,
+  ObserverShotCue,
+  SceneEntityDef,
+  TargetAnchor,
+  Vec3,
+} from './types';
 
 export type StoryboardDensity = 'compact' | 'balanced' | 'large';
 export type StoryboardGridColumns = 1 | 2 | 3 | 4 | 6;
@@ -287,92 +293,19 @@ function formatVerboseOffsetVec(v?: Vec3): string | null {
   return `Δ[X: ${fmt(v.x)}, Y: ${fmt(v.y)}, Z: ${fmt(v.z)}]`;
 }
 
-/**
- * Extracts formatted directorial & DP technical metadata for a shot card.
- */
-export function formatStoryboardShotMeta(
-  samples: StoryboardSamplePoint[],
-  targetCamera: ExportTargetCamera
-): StoryboardPanelMeta {
-  const first = samples[0];
-  const last = samples[samples.length - 1];
-  const { shot } = first;
-
-  const firstTrack =
-    targetCamera === 'observer'
-      ? first.frame.observerCamera
-      : first.frame.stageCamera;
-  const lastTrack =
-    targetCamera === 'observer'
-      ? last.frame.observerCamera
-      : last.frame.stageCamera;
-
-  const durationSec = Math.max(0, shot.endSec - shot.startSec);
-  const firstLens = `${Math.round(firstTrack.transform.pose.focalLengthMm)}mm`;
-  const lastLens = `${Math.round(lastTrack.transform.pose.focalLengthMm)}mm`;
-  const focalLengthText = formatRangeValue(firstLens, lastLens);
-
-  let apertureText: string | null = null;
-  let focusText: string | null = null;
-  let focusTooltip: string | null = null;
-
-  if (targetCamera === 'stage-cam') {
-    const firstDof = first.frame.stageCamera.dof;
-    const lastDof = last.frame.stageCamera.dof;
-    if (firstDof.enabled || lastDof.enabled) {
-      const a1 = firstDof.enabled
-        ? formatApertureFStop(firstDof.apertureFStop)
-        : 'Deep';
-      const a2 = lastDof.enabled
-        ? formatApertureFStop(lastDof.apertureFStop)
-        : 'Deep';
-      apertureText = formatRangeValue(a1, a2);
-    }
-    if (
-      firstDof.hasExplicitFocus ||
-      lastDof.hasExplicitFocus ||
-      firstDof.enabled ||
-      lastDof.enabled
-    ) {
-      const f1 = `${firstDof.focusDistanceM.toFixed(1)}m`;
-      const f2 = `${lastDof.focusDistanceM.toFixed(1)}m`;
-      const focusDist = formatRangeValue(f1, f2);
-      if (firstDof.enabled) {
-        const nearStr = firstDof.nearLimitM.toFixed(1);
-        const farStr = Number.isFinite(firstDof.farLimitM)
-          ? `${firstDof.farLimitM.toFixed(1)}m`
-          : '∞';
-        focusText = `${focusDist} (${nearStr}–${farStr})`;
-        const farVerbose = Number.isFinite(firstDof.farLimitM)
-          ? `${firstDof.farLimitM.toFixed(1)}m`
-          : 'Infinity';
-        focusTooltip = `Focus Depth: ${focusDist} · Sharp DoF Range: ${nearStr}m to ${farVerbose} (Near–Far)`;
-      } else {
-        focusText = focusDist;
-        focusTooltip = `Focus Depth: ${focusDist} (Deep DoF)`;
-      }
-    }
-  }
-
-  const opticsText = apertureText
-    ? `${focalLengthText} · ${apertureText}`
-    : focalLengthText;
-  const opticsTooltip = apertureText
-    ? `Focal Length: ${focalLengthText} · Aperture: ${apertureText}`
-    : `Focal Length: ${focalLengthText}`;
-
-  const cueSpec =
-    targetCamera === 'observer' ? shot.observerCamera : shot.stageCamera;
-  const easing = cueSpec?.easing;
-  const moveText =
-    firstTrack.maneuver !== 'cut' && easing
-      ? `${firstTrack.maneuver} (${easing})`
-      : firstTrack.maneuver;
-  const moveTooltip =
-    firstTrack.maneuver !== 'cut' && easing
-      ? `Camera Maneuver: ${firstTrack.maneuver} · Easing: ${easing}`
-      : `Camera Maneuver: ${firstTrack.maneuver}`;
-
+function formatCameraPoseStrings(
+  firstTrack: EvaluatedCameraTrack,
+  lastTrack: EvaluatedCameraTrack
+): {
+  distStr: string;
+  yawStr: string;
+  yawVerbose: string;
+  pitchStr: string;
+  pitchVerbose: string;
+  rollSuffix: string;
+  rollVerboseSuffix: string;
+  poseText: string;
+} {
   const dist1 = `${firstTrack.transform.pose.distance.toFixed(1)}m`;
   const dist2 = `${lastTrack.transform.pose.distance.toFixed(1)}m`;
   const distStr =
@@ -413,8 +346,102 @@ export function formatStoryboardShotMeta(
     rollVerboseSuffix = ` · Roll: ${rVerbose}`;
   }
 
-  const cameraText = `${distStr} · ${yawStr} · ${pitchStr}${rollSuffix}`;
-  const cameraTooltip = `Camera Pose — Distance: ${distStr} · Yaw: ${yawVerbose} · Pitch: ${pitchVerbose}${rollVerboseSuffix}`;
+  return {
+    distStr,
+    yawStr,
+    yawVerbose,
+    pitchStr,
+    pitchVerbose,
+    rollSuffix,
+    rollVerboseSuffix,
+    poseText: `${distStr} · ${yawStr} · ${pitchStr}${rollSuffix}`,
+  };
+}
+
+/**
+ * Extracts formatted directorial & DP technical metadata for a shot card.
+ * Primary specs always describe the Stage Camera shot (keeping 1-to-1 parity with
+ * shot titles, lenses, and descriptions), while Observer mode appends a dedicated
+ * `OBS` row resolved from `observerShots` or `shot.observerCamera`.
+ */
+export function formatStoryboardShotMeta(
+  samples: StoryboardSamplePoint[],
+  targetCamera: ExportTargetCamera,
+  observerShots?: ObserverShotCue[]
+): StoryboardPanelMeta {
+  const first = samples[0];
+  const last = samples[samples.length - 1];
+  const { shot } = first;
+
+  const firstTrack = first.frame.stageCamera;
+  const lastTrack = last.frame.stageCamera;
+
+  const durationSec = Math.max(0, shot.endSec - shot.startSec);
+  const firstLens = `${Math.round(firstTrack.transform.pose.focalLengthMm)}mm`;
+  const lastLens = `${Math.round(lastTrack.transform.pose.focalLengthMm)}mm`;
+  const focalLengthText = formatRangeValue(firstLens, lastLens);
+
+  let apertureText: string | null = null;
+  let focusText: string | null = null;
+  let focusTooltip: string | null = null;
+
+  const firstDof = first.frame.stageCamera.dof;
+  const lastDof = last.frame.stageCamera.dof;
+  if (firstDof.enabled || lastDof.enabled) {
+    const a1 = firstDof.enabled
+      ? formatApertureFStop(firstDof.apertureFStop)
+      : 'Deep';
+    const a2 = lastDof.enabled
+      ? formatApertureFStop(lastDof.apertureFStop)
+      : 'Deep';
+    apertureText = formatRangeValue(a1, a2);
+  }
+  if (
+    firstDof.hasExplicitFocus ||
+    lastDof.hasExplicitFocus ||
+    firstDof.enabled ||
+    lastDof.enabled
+  ) {
+    const f1 = `${firstDof.focusDistanceM.toFixed(1)}m`;
+    const f2 = `${lastDof.focusDistanceM.toFixed(1)}m`;
+    const focusDist = formatRangeValue(f1, f2);
+    if (firstDof.enabled) {
+      const nearStr = firstDof.nearLimitM.toFixed(1);
+      const farStr = Number.isFinite(firstDof.farLimitM)
+        ? `${firstDof.farLimitM.toFixed(1)}m`
+        : '∞';
+      focusText = `${focusDist} (${nearStr}–${farStr})`;
+      const farVerbose = Number.isFinite(firstDof.farLimitM)
+        ? `${firstDof.farLimitM.toFixed(1)}m`
+        : 'Infinity';
+      focusTooltip = `Focus Depth: ${focusDist} · Sharp DoF Range: ${nearStr}m to ${farVerbose} (Near–Far)`;
+    } else {
+      focusText = focusDist;
+      focusTooltip = `Focus Depth: ${focusDist} (Deep DoF)`;
+    }
+  }
+
+  const opticsText = apertureText
+    ? `${focalLengthText} · ${apertureText}`
+    : focalLengthText;
+  const opticsTooltip = apertureText
+    ? `Focal Length: ${focalLengthText} · Aperture: ${apertureText}`
+    : `Focal Length: ${focalLengthText}`;
+
+  const cueSpec = shot.stageCamera;
+  const easing = cueSpec?.easing;
+  const moveText =
+    firstTrack.maneuver !== 'cut' && easing
+      ? `${firstTrack.maneuver} (${easing})`
+      : firstTrack.maneuver;
+  const moveTooltip =
+    firstTrack.maneuver !== 'cut' && easing
+      ? `Camera Maneuver: ${firstTrack.maneuver} · Easing: ${easing}`
+      : `Camera Maneuver: ${firstTrack.maneuver}`;
+
+  const camPose = formatCameraPoseStrings(firstTrack, lastTrack);
+  const cameraText = camPose.poseText;
+  const cameraTooltip = `Camera Pose — Distance: ${camPose.distStr} · Yaw: ${camPose.yawVerbose} · Pitch: ${camPose.pitchVerbose}${camPose.rollVerboseSuffix}`;
 
   const entities = first.frame.entitiesList.map((e) => e.def);
   const baseTargetLabel = resolveShotTargetInfo(
@@ -445,6 +472,30 @@ export function formatStoryboardShotMeta(
   const rigText = rigRaw ? formatRigName(rigRaw) : null;
   const rigTooltip = rigText ? `Physical Camera Mount: ${rigText}` : null;
 
+  let observerText: string | null = null;
+  let observerTooltip: string | null = null;
+  if (targetCamera === 'observer') {
+    const obsFirst = first.frame.observerCamera;
+    const obsLast = last.frame.observerCamera;
+    const matchedObsCue =
+      obsFirst.shotId && observerShots
+        ? observerShots.find((o) => o.id === obsFirst.shotId)
+        : undefined;
+    const obsSpec = matchedObsCue?.camera ?? shot.observerCamera;
+    const obsTargetLabel = resolveShotTargetInfo(
+      obsSpec?.target,
+      entities,
+      obsFirst.baseTarget
+    ).label;
+    const obsPose = formatCameraPoseStrings(obsFirst, obsLast);
+    const obsMove =
+      obsFirst.maneuver !== 'cut' && obsSpec?.easing
+        ? `${obsFirst.maneuver} (${obsSpec.easing})`
+        : obsFirst.maneuver;
+    observerText = `${obsTargetLabel} · ${obsPose.poseText} · ${obsMove}`;
+    observerTooltip = `Observer Diorama Camera — Target: ${obsTargetLabel} · Distance: ${obsPose.distStr} · Yaw: ${obsPose.yawVerbose} · Pitch: ${obsPose.pitchVerbose}${obsPose.rollVerboseSuffix} · Move: ${obsMove}`;
+  }
+
   return {
     shotNumber: shot.shotNumber,
     label: cleanShotLabel(shot.label) || shot.id,
@@ -465,6 +516,8 @@ export function formatStoryboardShotMeta(
     apertureText,
     focusText,
     focusTooltip,
+    observerText,
+    observerTooltip,
     description: (shot.description ?? '').trim(),
   };
 }
@@ -474,18 +527,19 @@ export function formatStoryboardShotMeta(
  */
 export function formatStoryboardPanelMeta(
   sample: StoryboardSamplePoint,
-  targetCamera: ExportTargetCamera
+  targetCamera: ExportTargetCamera,
+  observerShots?: ObserverShotCue[]
 ): StoryboardPanelMeta {
-  return formatStoryboardShotMeta([sample], targetCamera);
+  return formatStoryboardShotMeta([sample], targetCamera, observerShots);
 }
 
 /**
- * Aggregates unique focal lengths, camera maneuvers, and physical rigs across
+ * Aggregates unique Stage Camera focal lengths, maneuvers, and physical rigs across
  * all grouped shots for the Contact Sheet header summary strip.
  */
 export function summarizeStoryboardSheet(
   groups: StoryboardShotGroup[],
-  targetCamera: ExportTargetCamera
+  _targetCamera: ExportTargetCamera = 'stage-cam'
 ): StoryboardSheetSummary {
   const lensCounts = new Map<number, number>();
   const maneuverCounts = new Map<string, number>();
@@ -494,10 +548,7 @@ export function summarizeStoryboardSheet(
   for (const group of groups) {
     const rep = group.samples[0];
     if (!rep) continue;
-    const track =
-      targetCamera === 'observer'
-        ? rep.frame.observerCamera
-        : rep.frame.stageCamera;
+    const track = rep.frame.stageCamera;
 
     const mm = Math.round(track.transform.pose.focalLengthMm);
     lensCounts.set(mm, (lensCounts.get(mm) ?? 0) + 1);

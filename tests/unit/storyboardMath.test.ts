@@ -498,4 +498,60 @@ describe('storyboardMath', () => {
       isExternalUrl: false,
     });
   });
+
+  it('preserves Stage Shot 1-to-1 specs in observer mode while adding OBS row from observer_shots', () => {
+    const scoreWithObs = parseValidScore(`${MULTI_SHOT_YAML}
+observer_shots:
+  - id: "obs-follow"
+    start: 0
+    end: 12
+    target: "hero"
+    maneuver: "orbit"
+    easing: "smooth"
+    distance: 11
+    pitch: 26
+    yaw_start: 35
+    yaw_end: 55
+`);
+
+    const stageSamples = buildStoryboardSamples(
+      scoreWithObs,
+      'start-end',
+      'stage-cam'
+    );
+    const observerSamples = buildStoryboardSamples(
+      scoreWithObs,
+      'start-end',
+      'observer'
+    );
+
+    expect(observerSamples.map((s) => s.key)).toEqual(
+      stageSamples.map((s) => s.key)
+    );
+
+    const groups = groupStoryboardSamplesByShot(observerSamples);
+    const stageMeta = formatStoryboardShotMeta(
+      groups[0].samples,
+      'stage-cam',
+      scoreWithObs.observerShots
+    );
+    expect(stageMeta.observerText).toBeNull();
+
+    const obsMeta = formatStoryboardShotMeta(
+      groups[0].samples,
+      'observer',
+      scoreWithObs.observerShots
+    );
+    expect(obsMeta.opticsText).toBe('35mm · f/2.8');
+    expect(obsMeta.moveText).toBe('cut');
+    expect(obsMeta.targetText).toBe('Hero · Δ[+0.45, -0.1, 0]');
+    expect(obsMeta.observerText).toMatch(/^Hero · 11\.0m · Y\d+° · P\+26° · orbit \(smooth\)$/);
+    expect(obsMeta.observerTooltip).toContain('Observer Diorama Camera — Target: Hero');
+
+    const summary = summarizeStoryboardSheet(groups, 'observer');
+    expect(summary.lenses).toEqual([
+      { label: '24mm', count: 1 },
+      { label: '35mm', count: 2 },
+    ]);
+  });
 });

@@ -19,7 +19,10 @@ import {
   type StoryboardSamplePoint,
   type StoryboardShotGroup,
 } from '../core/storyboardMath';
-import type { StoryboardRenderedPanel } from '../hooks/useStoryboardGenerator';
+import type {
+  StoryboardRenderedPanel,
+} from '../hooks/useStoryboardGenerator';
+import type { ObserverShotCue } from '../core/types';
 import { StoryboardGuideOverlay } from './StoryboardGuideOverlay';
 
 export type StoryboardCardLayoutMode = 'grid' | 'start-end' | 'single-row';
@@ -30,6 +33,7 @@ export interface StoryboardPanelCardProps {
   width: number;
   height: number;
   targetCamera: ExportTargetCamera;
+  observerShots?: ObserverShotCue[];
   annotated: boolean;
   guideMode: StoryboardGuideMode;
   layoutMode: StoryboardCardLayoutMode;
@@ -186,6 +190,7 @@ export const StoryboardPanelCard: React.FC<StoryboardPanelCardProps> = memo(
     width,
     height,
     targetCamera,
+    observerShots,
     annotated,
     guideMode,
     layoutMode,
@@ -196,7 +201,11 @@ export const StoryboardPanelCard: React.FC<StoryboardPanelCardProps> = memo(
     exportFormat = 'png',
     onExportSample,
   }) => {
-    const meta = formatStoryboardShotMeta(group.samples, targetCamera);
+    const meta = formatStoryboardShotMeta(
+      group.samples,
+      targetCamera,
+      observerShots
+    );
     const shotBadge = `#${String(meta.shotNumber).padStart(2, '0')}`;
     const frameCount = group.samples.length;
     const singleTimeStamp = `${meta.timeRangeText} (${meta.durationText})`;
@@ -244,6 +253,18 @@ export const StoryboardPanelCard: React.FC<StoryboardPanelCardProps> = memo(
               label: 'FOCUS',
               value: meta.focusText,
               tooltip: meta.focusTooltip ?? `Focus Depth: ${meta.focusText}`,
+            },
+          ]
+        : []),
+      ...(meta.observerText
+        ? [
+            {
+              label: 'OBS',
+              value: meta.observerText,
+              tooltip:
+                meta.observerTooltip ??
+                `Observer Diorama Camera: ${meta.observerText}`,
+              spanFull: true,
             },
           ]
         : []),

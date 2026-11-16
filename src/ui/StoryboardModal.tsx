@@ -608,6 +608,7 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
                       width={dims.width}
                       height={dims.height}
                       targetCamera={targetCamera}
+                      observerShots={score.observerShots}
                       annotated={annotated}
                       guideMode={guideMode}
                       layoutMode={layoutMode}
