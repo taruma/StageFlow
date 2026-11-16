@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { computeExportDimensions } from '../../src/core/exportMath';
+import { parseAspectRatio } from '../../src/core/opticsMath';
 import { parseStageScore } from '../../src/core/scoreParser';
 import {
   buildStoryboardSamples,
@@ -161,5 +163,23 @@ describe('storyboardMath', () => {
     expect(meta.maneuverText).toBe('dolly');
     expect(meta.description).toBe('Slow dolly move toward hero.');
     expect(cleanShotLabel('Shot 01 · Static Wide')).toBe('Static Wide');
+  });
+
+  it('computes even 540p preview dimensions honoring each score aspect ratio', () => {
+    const cases: Array<{ ratioRaw: string; expectedW: number; expectedH: number }> = [
+      { ratioRaw: '16:9', expectedW: 960, expectedH: 540 },
+      { ratioRaw: '2.39:1', expectedW: 960, expectedH: 402 },
+      { ratioRaw: '1.85:1', expectedW: 960, expectedH: 518 },
+      { ratioRaw: '4:3', expectedW: 720, expectedH: 540 },
+      { ratioRaw: '9:16', expectedW: 540, expectedH: 960 },
+    ];
+
+    for (const c of cases) {
+      const dims = computeExportDimensions(540, parseAspectRatio(c.ratioRaw));
+      expect(dims.width).toBe(c.expectedW);
+      expect(dims.height).toBe(c.expectedH);
+      expect(dims.width % 2).toBe(0);
+      expect(dims.height % 2).toBe(0);
+    }
   });
 });

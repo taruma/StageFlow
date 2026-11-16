@@ -1,8 +1,9 @@
 /**
  * Progressive Offscreen Storyboard Frame Generator Hook.
  * Mounts a single CleanStageCamExportCanvas strictly during batch capture,
- * renders each deterministic sample frame into an in-memory PNG Blob URL,
- * streams completed <img> panels into state, and unmounts WebGL immediately afterward.
+ * renders each deterministic sample frame at 540p into an in-memory WebP Blob URL
+ * (falling back cleanly to JPEG/PNG if unsupported), streams completed <img>
+ * panels into state, and unmounts WebGL immediately afterward.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -35,7 +36,8 @@ export interface UseStoryboardGeneratorParams {
   dofBlurEnabled: boolean;
 }
 
-const STORYBOARD_PREVIEW_TIER = 720;
+const STORYBOARD_PREVIEW_TIER = 540;
+const STORYBOARD_PREVIEW_QUALITY = 0.92;
 
 function nextAnimationFrame(): Promise<void> {
   return new Promise((resolve) => {
@@ -49,10 +51,36 @@ function yieldToEventLoop(): Promise<void> {
   });
 }
 
-function canvasToPngBlob(canvas: HTMLCanvasElement): Promise<Blob | null> {
+function encodeCanvasBlob(
+  canvas: HTMLCanvasElement,
+  mimeType: string,
+  quality?: number
+): Promise<Blob | null> {
   return new Promise((resolve) => {
-    canvas.toBlob((blob) => resolve(blob), 'image/png');
+    canvas.toBlob((blob) => resolve(blob), mimeType, quality);
   });
+}
+
+async function canvasToPreviewBlob(
+  canvas: HTMLCanvasElement
+): Promise<Blob | null> {
+  const webp = await encodeCanvasBlob(
+    canvas,
+    'image/webp',
+    STORYBOARD_PREVIEW_QUALITY
+  );
+  if (webp && webp.type === 'image/webp') {
+    return webp;
+  }
+  const jpeg = await encodeCanvasBlob(
+    canvas,
+    'image/jpeg',
+    STORYBOARD_PREVIEW_QUALITY
+  );
+  if (jpeg) {
+    return jpeg;
+  }
+  return encodeCanvasBlob(canvas, 'image/png');
 }
 
 export function useStoryboardGenerator({
@@ -137,12 +165,12 @@ export function useStoryboardGenerator({
           const canvas = await handle.renderFrame(sample.frame);
           if (generationIdRef.current !== runId) return;
 
-          const blob = await canvasToPngBlob(canvas);
+          const blob = await canvasToPreviewBlob(canvas);
           if (generationIdRef.current !== runId) return;
 
           if (!blob) {
             throw new Error(
-              `Failed to encode Shot #${sample.shot.shotNumber} as PNG.`
+              `Failed to encode Shot #${sample.shot.shotNumber} preview image.`
             );
           }
 

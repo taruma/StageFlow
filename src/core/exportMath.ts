@@ -70,14 +70,14 @@ export function roundToEven(value: number): number {
 
 /**
  * Computes H.264-compliant even pixel dimensions (width % 2 === 0, height % 2 === 0)
- * from a resolution tier (720p or 1080p) and score aspect ratio.
+ * from a vertical resolution tier (e.g. 540, 720, 1080) and score aspect ratio.
  *
- * - Wide ratios (>= 16:9, e.g. 16:9, 1.85:1, 2.39:1): anchors width to 1920/1280.
- * - Standard horizontal ratios (1.0 <= r < 16:9, e.g. 4:3): anchors height to 1080/720.
- * - Vertical ratios (r < 1.0, e.g. 9:16): anchors width to 1080/720.
+ * - Wide ratios (>= 16:9, e.g. 16:9, 1.85:1, 2.39:1): anchors width to 960/1280/1920.
+ * - Standard horizontal ratios (1.0 <= r < 16:9, e.g. 4:3): anchors height to tier.
+ * - Vertical ratios (r < 1.0, e.g. 9:16): anchors width to tier.
  */
 export function computeExportDimensions(
-  tier: ExportResolutionTier,
+  tier: number,
   aspectRatio: number
 ): ExportDimensions {
   const safeAspect =

@@ -266,7 +266,7 @@ export const StoryboardControlsSidebar: React.FC<
               {panelCount} {panelCount === 1 ? 'Panel' : 'Panels'}
             </div>
             <div className="text-[10px] text-text-faint">
-              {panelWidth}×{panelHeight} · 720p
+              {panelWidth}×{panelHeight} · 540p Preview
             </div>
           </div>
           <button

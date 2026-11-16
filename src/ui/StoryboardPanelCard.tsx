@@ -1,10 +1,11 @@
 /**
  * Single panel card inside the Storyboard Contact Sheet preview grid.
- * Displays either a streamed PNG <img> or a loading skeleton, with optional
+ * Memoized to avoid re-rendering completed panels as remaining frames stream in.
+ * Displays either a streamed WebP <img> or a loading skeleton, with optional
  * directorial metadata footer (shot #, label, timecode, lens, maneuver, notes).
  */
 
-import React from 'react';
+import React, { memo } from 'react';
 import { Loader2 } from 'lucide-react';
 import type { ExportTargetCamera } from '../core/exportMath';
 import {
@@ -22,14 +23,8 @@ export interface StoryboardPanelCardProps {
   annotated: boolean;
 }
 
-export const StoryboardPanelCard: React.FC<StoryboardPanelCardProps> = ({
-  sample,
-  panel,
-  width,
-  height,
-  targetCamera,
-  annotated,
-}) => {
+export const StoryboardPanelCard: React.FC<StoryboardPanelCardProps> = memo(
+  ({ sample, panel, width, height, targetCamera, annotated }) => {
   const meta = formatStoryboardPanelMeta(sample, targetCamera);
   const shotBadge = `#${String(meta.shotNumber).padStart(2, '0')}`;
 
@@ -118,4 +113,6 @@ export const StoryboardPanelCard: React.FC<StoryboardPanelCardProps> = ({
       )}
     </article>
   );
-};
+});
+
+StoryboardPanelCard.displayName = 'StoryboardPanelCard';

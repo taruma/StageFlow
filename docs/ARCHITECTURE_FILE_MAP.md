@@ -110,7 +110,7 @@ stageflow/
 │   │   ├── useAppShellTheme.ts      # SceneFlow theme hook (Auto/Dark/Warm/Light) & transition suppression
 │   │   ├── useWebVideoExport.ts     # WebCodecs H.264 VideoEncoder + mp4-muxer deterministic MP4 exporter hook
 │   │   ├── useStageCamSnapshot.ts   # 1-click 1080p clean Stage Cam PNG snapshot capture & download hook
-│   │   └── useStoryboardGenerator.ts # Progressive offscreen 720p Storyboard PNG panel capture & blob lifecycle hook
+│   │   └── useStoryboardGenerator.ts # Progressive offscreen 540p Storyboard WebP panel capture & blob lifecycle hook
 │   ├── stage/                       # Layer 4: React Three Fiber 3D Blueprint Diorama
 │   │   ├── dioramaTheme.ts          # Adaptive theme clear colors, fog & metric grid line mapping
 │   │   ├── cameraPresets.ts         # Directorial angle presets (Top, Iso, Front, Side) & spherical math
