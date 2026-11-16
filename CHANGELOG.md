@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Chronological YAML DSL Release History in Authoring Guide
+
+- **YAML Authoring Guide Release History (`docs/YAML_AUTHORING_GUIDE.md`, `src/ui/guide/guideUtils.ts`, `tests/unit/guideUtils.test.ts`)**:
+  - Added `## 8. YAML DSL Release History` at the bottom of `docs/YAML_AUTHORING_GUIDE.md` tracing author-facing YAML DSL features and evaluation behaviors chronologically from `v0.1.0` (`2026-11-03`) through `v1.0.0` (`2026-11-10`), `v1.1.0`–`v1.1.2` (`2026-11-14`–`2026-11-15`), and `v1.2.0` (`Unreleased`).
+  - Added `{ label: 'Releases', id: 'section-8' }` to `GUIDE_DOC_SHORTCUTS.guide` in `src/ui/guide/guideUtils.ts` and updated `tests/unit/guideUtils.test.ts` (`7` → `8` top-level guide sections).
+
 #### Storyboard Contact Sheet Generator, Viewer & Exports — Phase 1 & Phase 2 (#28)
 
 - **Layer 1 Pure Sampling, Orientation-Aware Layout, Filenames & Zero-Dep ZIP (`src/core/storyboardMath.ts`, `src/core/storyboardLayout.ts`, `src/core/zipBuilder.ts`, `src/ui/shotBreakdownUtils.ts`)**:

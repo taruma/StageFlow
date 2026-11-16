@@ -1432,3 +1432,38 @@ shots:
     stage_camera: { target: "arthur", maneuver: "orbit", distance: 2.0, pitch: 4, yaw_start: 25, yaw_end: 0, lens: 85mm }
 ```
 *(Reference Blueprint: `blueprint_05_two_rooms.yaml` in Score Library)*
+
+---
+
+## 8. YAML DSL Release History
+
+Chronological summary of **YAML authoring features, syntax additions, and evaluator behaviors** from the earliest release (`v0.1.0`) through the upcoming `v1.2.0` release. All scores remain backward-compatible across versions. For non-YAML Studio UI, WebCodecs export, and rendering changes, see [`CHANGELOG.md`](../CHANGELOG.md).
+
+### 8.1 `v0.1.0` (2026-11-03) — Core Score & Dual-Timeline Foundation
+
+- **Declarative Score Anatomy** ([§1.5](#section-1-5), [§3](#section-3)): Root metadata (`version`, `id`, `title`, `video`, `aspect_ratio`, `duration`, `offset`), `stage:` geometry (`width`, `depth`, `grid_step`), `entities:` (`character`, `prop`, `marker` with `position`, `rotation`, `radius`, `height`, `color`), `shots:`, and decoupled `observer_shots:`.
+- **Metric & Degree Units** ([§1.2](#section-1-2)): World positions in meters (`1 unit = 1m`) and camera/entity angles in degrees (`pitch`, `yaw`, `rotation`, plus `"rad"` string support) with shortest-arc unwrapping.
+- **Camera Maneuvers, Easings & Full-Frame Lenses** ([§4](#section-4), [§5](#section-5)): `maneuver` moves (`cut`, `dolly`, `truck`, `pedestal`, `pan`, `tilt`, `arc`, `orbit`, `swoop`, `spline`, `recoil`), `easing` curves, `lens` / `lens_start` / `lens_end` (`mm` full-frame `36mm × 24mm` optics), and `waypoints:` for `spline` shots.
+
+### 8.2 `v1.0.0` (2026-11-10) — Kinematics, Optics, Rigs & Blocking
+
+- **Camera Roll (`roll`, `dutch`) & Target Framing Offsets (`target_offset`)** ([§4.1](#section-4-1), [§4.2](#section-4-2), [§5.3](#section-5-3)): Added `roll`, `roll_start`, `roll_end`, `roll_delta`, `dutch` alias, and `target_offset` / `target_offset_start` / `target_offset_end` with Option A shot-boundary neutral resets (`0°` roll, `[0, 0, 0]` offset) unless continuous mode is active.
+- **Continuous Oner Mode (`continuous: true`) & Directed Orbits (`direction`)** ([§4.5](#section-4-5), [§5.2](#section-5-2), [§6.5](#section-6-5)): Added root-level and cue-level `continuous: true` / `false` chaining across `shots:`, `observer_shots:`, and `blocking:` (auto-chaining omitted `start:` timestamps and smoothly gliding camera poses, Dutch roll, and `target_offset`), plus `direction: "cw" | "ccw"` and `revolutions:` on circular orbits.
+- **Decoupled Blocking Timeline (`blocking:`)** ([§6.1](#section-6-1), [§6.3](#section-6-3)): Added Format A (single-entity) and Format B (multi-entity beat) root `blocking:` cues with `duration:` / `dur:` syntax, `from:` overrides, dynamic `look_at:` gaze tracking, `cut: true` instant placement, and non-destructive `shots[].entities` `highlighted` / `note` overlays.
+- **Thin-Lens Depth of Field & Focus Tracking** ([§3.1](#section-3-1), [§4.6](#section-4-6)): Added root `optics:` (`dof_blur`), `focus`, `focus_start`, `focus_end` (entity targets or metric distances), `dof` (`shallow` | `medium` | `deep`), and numeric/string `aperture` (`2.8`, `"f/2.8"`).
+- **Physical Camera Rigs (`rig:`) & Stage Preset Targets** ([§3.3](#section-3-3), [§4.9](#section-4-9)): Added `rig:` (`tripod`, `track`, `spline_track` with `from`, `to`, `waypoints`, `height`, `fixed_gaze`), `show_rig:` / `stage.show_rigs`, and `"center"` / `"origin"` / `"stage"` baseline stage camera target presets.
+- **Two-Shot Multi-Subject Centroid Arrays** ([§4.2](#section-4-2)): Enabled array targets (`["actor_a", "actor_b"]`) on `target`, `from`, `focus`, and `look_at`.
+- **3D Entity Dimensions, Styles, Shapes & Kind Aliases** ([§3.1.1](#section-3-1-1), [§3.4](#section-3-4), [§6.1](#section-6-1)): Added `width`, `height`, `depth`, `size`, `dimensions`, `scale` (and `from_*` / `*_start` / `*_end` animated cue overrides), `style:` (`mannequin`, `edges`, `silhouette`, `glass`, `solid`, `wireframe`, `tape`, `glow`, `beacon`), `shape:` (`box`, `sphere`, `cylinder`, `capsule`, `x`, `t`, `circle`, `puck`), kind aliases (`actor`/`person`, `set`/`furniture`/`item`/`object`, `spike`/`mark`), eye-level default look-at anchor (`0.90h`), `100m` max camera distance, and root `metadata:` blocks.
+
+### 8.3 `v1.1.0` – `v1.1.2` (2026-11-14 – 2026-11-15) — Studio Parity (No Schema Changes)
+
+- **100% YAML Compatibility**: `v1.1.0`, `v1.1.1`, and `v1.1.2` introduced no new or breaking YAML score fields; all `v1.0.0` scores run unchanged.
+- **Live `duration:` Editing Behavior (`v1.1.1`)**: Editing root `duration:` in the live YAML editor updates the media clock in-place without resetting the playhead or free-orbit camera pose.
+
+### 8.4 `v1.2.0` (`Unreleased`) — 3D Orientation, Pivot, Sub-Anchors & Rig Continuity
+
+- **Entity 3D Tilt (`pitch`, `roll`)** ([§3.4](#section-3-4), [§6.1](#section-6-1), [§6.4](#section-6-4)): Added per-entity `pitch` and `roll` (degrees or `"rad"`) across `entities[]`, `blocking:` (Format A/B), and `shots[].entities` with intrinsic `YXZ` rotation, shortest-arc easing, `cut: true` snapping, and independence from yaw `look_at`.
+- **Optional Entity Rotation Pivot (`pivot`)** ([§3.4](#section-3-4), [§6.1](#section-6-1), [§6.4](#section-6-4)): Added `pivot` (`"base"` = `0.0`, `"center"` = `0.5`, `"top"` = `1.0`, or clamped `0..1`; aliases `pivot_ratio`, `pivotRatio`) across `entities[]`, `blocking:`, and `shots[].entities` for ground-pinned leans vs. mid-air flips/banking, with $C^0$ forward chaining across tilted cues.
+- **Dot-Notation Entity Target Sub-Anchors (`<entityKey>.<part>`)** ([§4.2](#section-4-2), [§6.1](#section-6-1)): Target specific body regions (`.head`/`.eyes`/`.eye`, `.shoulder`/`.chest`, `.shoulder_l`, `.shoulder_r`, `.waist`/`.center`, `.feet`/`.base`, `.top`) across `target`, `from`, `focus`, `focus_start`/`focus_end`, multi-entity arrays, `waypoints`, baseline `stage` cameras, and order-independent `look_at` (with exact-first ID matching for dotted entity IDs).
+- **Continuous Rig Eye Inheritance (`E_prev`)** ([§4.9](#section-4-9), [§5.2](#section-5-2)): Continuous `track`, 1-point `spline_track`, and `tripod` camera rigs that omit `rig.from`/`rig.position` now inherit the previous shot's terminal eye position $\vec{E}_{\text{prev}}$ even when `target:` changes or moves.
+- **Parser & Alias Parity** ([§3.1](#section-3-1), [§3.3](#section-3-3), [§4.6](#section-4-6)): Added `stage.gridStep` camelCase alias, flat root `optics` aliases (`blur`, `depth_of_field`/`depthOfField`, `f_stop`/`fStop`), and flat shot-root optical overrides (`f_stop_start`, `dof_start`, `f_stop_end`, `dof_end`).
