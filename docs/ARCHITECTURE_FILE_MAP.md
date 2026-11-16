@@ -116,7 +116,7 @@ stageflow/
 │   │   ├── useStoryboardGenerator.ts # Progressive offscreen 540p Storyboard WebP panel capture & blob lifecycle hook
 │   │   ├── storyboardExportUtils.ts # Shared canvas image encoding, MIME resolution & blob download helpers
 │   │   ├── useStoryboardPanelExport.ts # Single-panel 720p/1080p PNG/WebP/JPEG capture & download hook
-│   │   └── useStoryboardBatchExport.ts # Batch Contact Sheet PNG & Download All (.zip) export hook
+│   │   └── useStoryboardBatchExport.ts # Batch Contact Sheet PNG & All Frames (.zip) export hook
 │   ├── stage/                       # Layer 4: React Three Fiber 3D Blueprint Diorama
 │   │   ├── dioramaTheme.ts          # Adaptive theme clear colors, fog & metric grid line mapping
 │   │   ├── cameraPresets.ts         # Directorial angle presets (Top, Iso, Front, Side) & spherical math

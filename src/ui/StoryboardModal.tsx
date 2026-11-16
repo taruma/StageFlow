@@ -684,7 +684,7 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
               ) : (
                 <Archive className="w-3.5 h-3.5" />
               )}
-              <span>Download All (.zip)</span>
+              <span>All Frames (.zip)</span>
             </button>
 
             <StoryboardSpecGuidePopover
@@ -732,7 +732,7 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
           />
         )}
 
-        {/* Dedicated Offscreen WebGL Renderer (mounted strictly during Download All ZIP export) */}
+        {/* Dedicated Offscreen WebGL Renderer (mounted strictly during All Frames ZIP export) */}
         {pendingZipRequest && pendingZipRequest.samples[0] && (
           <CleanStageCamExportCanvas
             key={`zip-${pendingZipRequest.zipFilename}-${pendingZipRequest.tier}`}

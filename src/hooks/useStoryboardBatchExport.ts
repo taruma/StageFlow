@@ -1,6 +1,6 @@
 /**
  * Batch Storyboard Export Hook (Phase 2b):
- *   1. Download All (.zip): Renders every sampled frame sequentially at 720p/1080p
+ *   1. All Frames (.zip): Renders every sampled frame sequentially at 720p/1080p
  *      via a single offscreen CleanStageCamExportCanvas, packs into a zero-dep
  *      STORE ZIP archive, triggers download, and unmounts WebGL immediately.
  *   2. Contact Sheet (.png): Composites the clean white-paper Contact Sheet via
