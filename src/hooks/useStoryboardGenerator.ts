@@ -19,6 +19,10 @@ import {
 } from '../core/storyboardMath';
 import type { AppThemeCategory, StageScore } from '../core/types';
 import type { CleanStageCamExportHandle } from '../stage/CleanStageCamExportCanvas';
+import {
+  StoryboardBlobCache,
+  type StoryboardCacheVariant,
+} from './storyboardBlobCache';
 
 export interface StoryboardRenderedPanel {
   sample: StoryboardSamplePoint;
@@ -94,6 +98,11 @@ export function useStoryboardGenerator({
   const canvasRef = useRef<CleanStageCamExportHandle | null>(null);
   const generationIdRef = useRef(0);
   const objectUrlsRef = useRef<string[]>([]);
+  const cacheRef = useRef<StoryboardBlobCache | null>(null);
+  if (!cacheRef.current) {
+    cacheRef.current = new StoryboardBlobCache();
+  }
+  const lastHandledRegenSeqRef = useRef(0);
 
   const [panels, setPanels] = useState<StoryboardRenderedPanel[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -136,6 +145,45 @@ export function useStoryboardGenerator({
       return;
     }
 
+    const cache = cacheRef.current!;
+    const variant: StoryboardCacheVariant = {
+      targetCamera,
+      sampleMode,
+      themeCategory,
+      dofBlurEnabled,
+    };
+
+    const forceRegenerate = lastHandledRegenSeqRef.current !== regenSeq;
+    lastHandledRegenSeqRef.current = regenSeq;
+    if (forceRegenerate) {
+      cache.invalidate(score, variant);
+    }
+
+    const cachedBlobs = !forceRegenerate ? cache.get(score, variant) : null;
+    if (cachedBlobs && cachedBlobs.length === samples.length) {
+      const restoredPanels: StoryboardRenderedPanel[] = cachedBlobs.map(
+        (blob, idx) => {
+          const imageUrl = URL.createObjectURL(blob);
+          objectUrlsRef.current.push(imageUrl);
+          return {
+            sample: samples[idx],
+            imageUrl,
+            width: dims.width,
+            height: dims.height,
+          };
+        }
+      );
+      setPanels(restoredPanels);
+      setProgressIndex(restoredPanels.length);
+      setIsGenerating(false);
+      setIsCanvasMounted(false);
+
+      return () => {
+        generationIdRef.current++;
+        revokeAllObjectUrls();
+      };
+    }
+
     setIsGenerating(true);
     setIsCanvasMounted(true);
 
@@ -158,6 +206,8 @@ export function useStoryboardGenerator({
           throw new Error('Storyboard WebGL renderer failed to initialize.');
         }
 
+        const capturedBlobs: Blob[] = [];
+
         for (let i = 0; i < samples.length; i++) {
           if (generationIdRef.current !== runId) return;
 
@@ -174,6 +224,7 @@ export function useStoryboardGenerator({
             );
           }
 
+          capturedBlobs.push(blob);
           const imageUrl = URL.createObjectURL(blob);
           objectUrlsRef.current.push(imageUrl);
 
@@ -188,6 +239,10 @@ export function useStoryboardGenerator({
           setProgressIndex(i + 1);
 
           await yieldToEventLoop();
+        }
+
+        if (generationIdRef.current === runId) {
+          cache.set(score, variant, capturedBlobs);
         }
       } catch (err) {
         if (generationIdRef.current === runId) {
@@ -213,6 +268,9 @@ export function useStoryboardGenerator({
     };
   }, [
     isOpen,
+    score,
+    targetCamera,
+    sampleMode,
     samples,
     dims.width,
     dims.height,

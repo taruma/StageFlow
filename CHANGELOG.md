@@ -14,13 +14,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Layer 1 Pure Sampling & Metadata (`src/core/storyboardMath.ts`, `src/ui/shotBreakdownUtils.ts`)**:
   - Added `computeShotSampleTimeSec`, `isMovingShotForStoryboard`, `buildStoryboardSamples`, and `formatStoryboardPanelMeta` to deterministically sample `score.shots` across `mid`, `start`, `end`, and `start-end` modes (emitting `START`/`END` pairs for shots with camera maneuvers/deltas or root `blocking:` entity motion, and boundary-safe inward insets inside `[startSec, endSec)` while compensating for `score.offsetSec`).
   - Consolidated `cleanShotLabel` in `src/core/storyboardMath.ts` and re-exported it from `src/ui/shotBreakdownUtils.ts` to keep Layer 1 pure with zero duplicate logic.
-- **Layer 3 Progressive Offscreen Capture (`src/hooks/useStoryboardGenerator.ts`, `src/core/exportMath.ts`)**:
+- **Layer 3 Progressive Offscreen Capture & Bounded LRU Cache (`src/hooks/useStoryboardGenerator.ts`, `src/hooks/storyboardBlobCache.ts`, `src/core/exportMath.ts`)**:
   - Widened `computeExportDimensions` tier parameter to accept preview tiers (`540p`) alongside `720p`/`1080p` export tiers while keeping `ExportResolutionTier` unchanged.
-  - Added `useStoryboardGenerator` to mount a single `CleanStageCamExportCanvas` (`frameloop="never"`, `540p`) strictly during capture, stream WebP `Blob` object URLs (`0.92` quality with JPEG/PNG fallback) into state per panel, revoke URLs cleanly on refresh/unmount, and unmount the WebGL renderer immediately upon completion.
+  - Added `StoryboardBlobCache` storing raw compressed `Blob`s (never `blob:` URLs) in a strict LRU cache (`4` entries / `150` blobs max) keyed by `WeakMap<StageScore, number>` identity and normalized render variant so modal reopens and view toggles restore instantaneously without memory leaks or stale YAML edits.
+  - Added `useStoryboardGenerator` to mount a single `CleanStageCamExportCanvas` (`frameloop="never"`, `540p`) strictly during cache-miss captures, stream WebP `Blob` object URLs (`0.92` quality with JPEG/PNG fallback) into state per panel, revoke active URLs cleanly on close/refresh/unmount, and unmount the WebGL renderer immediately upon completion.
 - **Layer 5 Storyboard Modal & Header Integration (`src/ui/StoryboardModal.tsx`, `src/ui/StoryboardControlsSidebar.tsx`, `src/ui/StoryboardPanelCard.tsx`, `src/ui/header/FileMenuDropdown.tsx`, `src/ui/WorkspaceHeader.tsx`, `src/ui/InteractiveStudioApp.tsx`)**:
   - Added `File ▾ → Storyboard...` opening a dedicated Storyboard Contact Sheet viewer modal featuring WebGL render controls (`Sample per Shot`, `Camera` [`Stage Cam` / `Observer`], `Stage Palette` [`Light` / `Warm` / `Dark`], `Optical DoF Blur`) separated from instant client-side CSS controls (`Columns` [`2` / `3` / `4`], `Annotations` [`Annotated` / `Clean Only`]), with `React.memo`-guarded panel cards (`StoryboardPanelCard.tsx`).
-- **Unit Tests & Documentation (`tests/unit/storyboardMath.test.ts`, `docs/ARCHITECTURE_FILE_MAP.md`, `docs/DIORAMA_3D_AND_UI_SPECIFICATIONS.md`)**:
-  - Added 7 deterministic Vitest unit tests in `tests/unit/storyboardMath.test.ts` (`309` passing tests across `24` suites) and updated architecture and UI specifications.
+- **Unit Tests & Documentation (`tests/unit/storyboardMath.test.ts`, `tests/unit/storyboardBlobCache.test.ts`, `docs/ARCHITECTURE_FILE_MAP.md`, `docs/DIORAMA_3D_AND_UI_SPECIFICATIONS.md`)**:
+  - Added deterministic Vitest suites in `tests/unit/storyboardMath.test.ts` (7 tests) and `tests/unit/storyboardBlobCache.test.ts` (5 tests) (`314` passing tests across `25` suites) and updated architecture and UI specifications.
 
 #### Entity Rotation Pivot (`base` vs `center` vs `top` / `0..1`) (#20)
 
