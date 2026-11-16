@@ -77,27 +77,30 @@ export const StoryboardPanelCard: React.FC<StoryboardPanelCardProps> = memo(
       {annotated && (
         <div className="p-2.5 space-y-1.5 border-t border-border-subtle bg-surface flex-1 flex flex-col justify-between">
           <div className="space-y-1">
-            <div className="flex items-baseline justify-between gap-2">
-              <div className="flex items-baseline gap-1.5 min-w-0">
-                <span className="text-[10px] font-mono font-bold text-amber-600 dark:text-amber-400 shrink-0">
-                  {shotBadge}
-                </span>
-                <h3 className="text-xs font-bold text-text-main truncate">
-                  {meta.label}
-                </h3>
-              </div>
-              <span className="text-[10px] font-mono text-text-faint shrink-0">
-                {meta.timeRangeText}
+            <div
+              className="flex items-baseline gap-1.5 min-w-0"
+              title={`${shotBadge} · ${meta.label}`}
+            >
+              <span className="text-[10px] font-mono font-bold text-amber-600 dark:text-amber-400 shrink-0">
+                {shotBadge}
               </span>
+              <h3 className="text-xs font-bold text-text-main truncate">
+                {meta.label}
+              </h3>
             </div>
 
             <div className="flex items-center justify-between gap-2 text-[10px] font-mono text-text-muted">
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-surface-subtle border border-border-subtle text-text-body">
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-surface-subtle border border-border-subtle text-text-body truncate">
                 <span>{meta.focalLengthText}</span>
                 <span className="text-text-faint">·</span>
                 <span>{meta.maneuverText}</span>
               </span>
-              <span className="text-text-faint">{meta.durationText}</span>
+              <span
+                className="text-text-faint shrink-0"
+                title={`Duration: ${meta.durationText}`}
+              >
+                {meta.timeRangeText}
+              </span>
             </div>
           </div>
 

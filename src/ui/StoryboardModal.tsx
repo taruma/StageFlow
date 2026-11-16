@@ -113,7 +113,7 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
       onClick={onClose}
     >
       <div
-        className={UI_TOKENS.modal.containerLibrary}
+        className="relative w-full max-w-[1440px] h-[94vh] sm:h-[92vh] md:h-[90vh] bg-surface rounded-2xl shadow-2xl overflow-hidden flex flex-col border border-border-main text-text-main"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -170,8 +170,8 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
           />
 
           {/* Scrollable Contact Sheet Preview */}
-          <div className="flex-1 min-w-0 overflow-y-auto bg-app/60 p-4 sm:p-6">
-            <div className="max-w-5xl mx-auto rounded-2xl border border-border-main bg-surface p-4 sm:p-6 shadow-sm space-y-5">
+          <div className="flex-1 min-w-0 overflow-y-auto bg-app/60 p-3.5 sm:p-5">
+            <div className="w-full mx-auto rounded-2xl border border-border-main bg-surface p-4 sm:p-5 shadow-sm space-y-4">
               {/* Contact Sheet Header */}
               <div className="flex flex-wrap items-end justify-between gap-3 pb-3.5 border-b border-border-subtle">
                 <div className="min-w-0">
