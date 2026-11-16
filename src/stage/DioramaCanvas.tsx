@@ -124,7 +124,11 @@ export const DioramaCanvas: React.FC<DioramaCanvasProps> = ({
     <div className="relative w-full h-full bg-app select-none overflow-hidden">
       <Canvas
         frameloop={isPlaying ? 'always' : 'demand'}
-        gl={{ antialias: true, powerPreference: 'high-performance' }}
+        gl={{
+          antialias: true,
+          powerPreference: 'high-performance',
+          preserveDrawingBuffer: true,
+        }}
         dpr={[1, 2]}
         camera={{
           fov: 40,

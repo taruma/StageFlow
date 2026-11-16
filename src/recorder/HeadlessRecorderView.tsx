@@ -102,6 +102,7 @@ export const HeadlessRecorderView: React.FC = () => {
   const [uiFrame, setUiFrame] = useState<StageFrame>(initialFrame);
   const frameRef = useRef<StageFrame>(initialFrame);
   const lastManualSeekIdRef = useRef<number>(0);
+  const r3fTickCountRef = useRef<number>(0);
 
   const configRef = useRef<RecorderConfig>(config);
   configRef.current = config;
@@ -127,6 +128,7 @@ export const HeadlessRecorderView: React.FC = () => {
 
   // Frame evaluation tick passed to DioramaCanvas
   const evaluateTick60fps = useCallback(() => {
+    r3fTickCountRef.current += 1;
     return frameRef.current;
   }, []);
 
@@ -197,6 +199,27 @@ export const HeadlessRecorderView: React.FC = () => {
         );
         frameRef.current = firstFrame;
         setUiFrame(firstFrame);
+
+        // Wait until R3F's useFrame loop has actually executed multiple render cycles
+        // after config/size commit, plus 2 rAFs for compositor + Drei <Html> flush.
+        const targetTick = r3fTickCountRef.current + 4;
+        const deadlineMs = performance.now() + 5000;
+        await new Promise<void>((resolve) => {
+          const checkReady = () => {
+            if (
+              r3fTickCountRef.current >= targetTick ||
+              performance.now() >= deadlineMs
+            ) {
+              requestAnimationFrame(() => {
+                requestAnimationFrame(() => resolve());
+              });
+              return;
+            }
+            requestAnimationFrame(checkReady);
+          };
+          requestAnimationFrame(checkReady);
+        });
+
         return {
           totalFrames: total,
           durationSec: effectiveEnd - newConfig.startSec,

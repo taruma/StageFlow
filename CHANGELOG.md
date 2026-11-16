@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Headless Viewport Recorder Frame 0 Black Screen (`src/recorder/HeadlessRecorderView.tsx`, `src/stage/DioramaCanvas.tsx`)**:
+  - Updated `HeadlessRecorderView` `init()` to track R3F `useFrame` execution ticks (`r3fTickCountRef`) via `evaluateTick60fps` and await 4 R3F render ticks (with a 5s safety deadline) plus 2 `requestAnimationFrame`s before resolving, ensuring WebGL shader compilation, canvas resizing, and Drei `<Html>` overlays complete before `stepFrame(0)` captures Frame 0.
+  - Enabled `preserveDrawingBuffer: true` in `DioramaCanvas` `<Canvas gl={...}>` options so the WebGL drawing buffer is preserved between swaps during headless `page.screenshot()` captures.
+
 ## [1.2.0] - 2026-11-16
 
 ### Changed
