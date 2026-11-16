@@ -531,3 +531,32 @@ export function formatStoryboardFrameFilename(params: {
   const ext = params.format === 'jpeg' ? 'jpg' : params.format;
   return `${slug}_${shotNum}_${shotSlug}${beatPart}_${secPart}${camPart}_${params.tier}p.${ext}`;
 }
+
+/**
+ * Formats a deterministic Storyboard Contact Sheet PNG filename, e.g.:
+ * `afraid_storyboard_stage_cam.png` or `vector_field_storyboard_observer_clean.png`.
+ */
+export function formatStoryboardContactSheetFilename(params: {
+  scoreIdOrTitle: string;
+  targetCamera: ExportTargetCamera;
+  annotated: boolean;
+}): string {
+  const slug = sanitizeExportSlug(params.scoreIdOrTitle);
+  const camPart = params.targetCamera === 'observer' ? '_observer' : '';
+  const cleanPart = params.annotated ? '' : '_clean';
+  return `${slug}_storyboard${camPart}${cleanPart}.png`;
+}
+
+/**
+ * Formats a deterministic Storyboard batch frames ZIP filename, e.g.:
+ * `afraid_frames_1080p.zip` or `vector_field_frames_observer_720p.zip`.
+ */
+export function formatStoryboardZipFilename(params: {
+  scoreIdOrTitle: string;
+  targetCamera: ExportTargetCamera;
+  tier: ExportResolutionTier;
+}): string {
+  const slug = sanitizeExportSlug(params.scoreIdOrTitle);
+  const camPart = params.targetCamera === 'observer' ? '_observer' : '';
+  return `${slug}_frames${camPart}_${params.tier}p.zip`;
+}

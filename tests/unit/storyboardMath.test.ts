@@ -6,9 +6,11 @@ import {
   buildStoryboardSamples,
   cleanShotLabel,
   computeShotSampleTimeSec,
+  formatStoryboardContactSheetFilename,
   formatStoryboardFrameFilename,
   formatStoryboardPanelMeta,
   formatStoryboardShotMeta,
+  formatStoryboardZipFilename,
   groupStoryboardSamplesByShot,
   resolveStoryboardLayoutSpec,
   summarizeStoryboardSheet,
@@ -351,5 +353,37 @@ describe('storyboardMath', () => {
         targetCamera: 'stage-cam',
       })
     ).toBe('the_expansion_03_rack_end_14_25s_1080p.webp');
+
+    expect(
+      formatStoryboardContactSheetFilename({
+        scoreIdOrTitle: 'Vector Field',
+        targetCamera: 'stage-cam',
+        annotated: true,
+      })
+    ).toBe('vector_field_storyboard.png');
+
+    expect(
+      formatStoryboardContactSheetFilename({
+        scoreIdOrTitle: 'Afraid',
+        targetCamera: 'observer',
+        annotated: false,
+      })
+    ).toBe('afraid_storyboard_observer_clean.png');
+
+    expect(
+      formatStoryboardZipFilename({
+        scoreIdOrTitle: 'The Expansion',
+        targetCamera: 'stage-cam',
+        tier: 1080,
+      })
+    ).toBe('the_expansion_frames_1080p.zip');
+
+    expect(
+      formatStoryboardZipFilename({
+        scoreIdOrTitle: 'Afraid',
+        targetCamera: 'observer',
+        tier: 720,
+      })
+    ).toBe('afraid_frames_observer_720p.zip');
   });
 });

@@ -23,6 +23,12 @@ import type {
   ToastNotification,
 } from '../core/types';
 import type { CleanStageCamExportHandle } from '../stage/CleanStageCamExportCanvas';
+import {
+  encodeCanvasImage,
+  nextAnimationFrame,
+  resolveActualFormat,
+  triggerBlobDownload,
+} from './storyboardExportUtils';
 
 export interface StoryboardPanelExportRequest {
   score: StageScore;
@@ -51,52 +57,6 @@ export interface ExportStoryboardPanelParams {
 
 export interface UseStoryboardPanelExportOptions {
   onNotify?: (message: string, type?: ToastNotification['type']) => void;
-}
-
-const FORMAT_MIME_TYPE: Record<StoryboardExportFormat, string> = {
-  png: 'image/png',
-  webp: 'image/webp',
-  jpeg: 'image/jpeg',
-};
-
-const LOSSY_EXPORT_QUALITY = 0.94;
-
-function nextAnimationFrame(): Promise<void> {
-  return new Promise((resolve) => {
-    requestAnimationFrame(() => resolve());
-  });
-}
-
-function encodeCanvasImage(
-  canvas: HTMLCanvasElement,
-  format: StoryboardExportFormat
-): Promise<Blob | null> {
-  const mime = FORMAT_MIME_TYPE[format];
-  const quality = format === 'png' ? undefined : LOSSY_EXPORT_QUALITY;
-  return new Promise((resolve) => {
-    canvas.toBlob((blob) => resolve(blob), mime, quality);
-  });
-}
-
-function resolveActualFormat(
-  requested: StoryboardExportFormat,
-  blobType: string
-): StoryboardExportFormat {
-  if (blobType === 'image/png') return 'png';
-  if (blobType === 'image/jpeg') return 'jpeg';
-  if (blobType === 'image/webp') return 'webp';
-  return requested;
-}
-
-function triggerImageDownload(blob: Blob, filename: string): void {
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = filename;
-  document.body.appendChild(anchor);
-  anchor.click();
-  document.body.removeChild(anchor);
-  setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
 export function useStoryboardPanelExport({
@@ -217,7 +177,7 @@ export function useStoryboardPanelExport({
                 targetCamera: pendingRequest.targetCamera,
               });
 
-        triggerImageDownload(blob, downloadFilename);
+        triggerBlobDownload(blob, downloadFilename);
         if (actualFormat !== pendingRequest.format) {
           onNotifyRef.current?.(
             `${pendingRequest.format.toUpperCase()} unsupported — saved "${downloadFilename}"`,

@@ -82,26 +82,22 @@ function drawSlateBadge(
 }
 
 /**
- * Composites active guides and/or slate corner stamps onto a copy of `sourceCanvas`.
+ * Draws active composition guides and/or slate corner stamps inside an arbitrary
+ * target rectangle `(x, y, width, height)` on an existing 2D canvas context.
  */
-export function renderStoryboardOverlayBurnIn(
-  sourceCanvas: HTMLCanvasElement,
-  options: StoryboardOverlayBurnInOptions
-): HTMLCanvasElement {
-  const width = sourceCanvas.width;
-  const height = sourceCanvas.height;
-  const out = document.createElement('canvas');
-  out.width = width;
-  out.height = height;
+export function drawStoryboardOverlayInRect(
+  ctx: CanvasRenderingContext2D,
+  rect: { x: number; y: number; width: number; height: number },
+  options: StoryboardOverlayBurnInOptions,
+  baseScaleRefPx = 720
+): void {
+  const { x: ox, y: oy, width, height } = rect;
+  const scale = Math.max(0.32, Math.min(width, height) / baseScaleRefPx);
 
-  const ctx = out.getContext('2d');
-  if (!ctx) {
-    return sourceCanvas;
-  }
-
-  ctx.drawImage(sourceCanvas, 0, 0, width, height);
-
-  const scale = Math.max(0.5, Math.min(width, height) / 720);
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(ox, oy, width, height);
+  ctx.clip();
 
   // 1. Composition Guides
   if (options.guideMode !== 'off') {
@@ -118,7 +114,7 @@ export function renderStoryboardOverlayBurnIn(
       ctx.strokeStyle = 'rgba(245, 158, 11, 0.65)';
       ctx.lineWidth = Math.max(1, 1.5 * scale);
       ctx.setLineDash([8 * scale, 6 * scale]);
-      ctx.strokeRect(mx, my, width - mx * 2, height - my * 2);
+      ctx.strokeRect(ox + mx, oy + my, width - mx * 2, height - my * 2);
       ctx.setLineDash([]);
     }
 
@@ -127,19 +123,19 @@ export function renderStoryboardOverlayBurnIn(
       ctx.lineWidth = Math.max(1, 1.2 * scale);
       ctx.beginPath();
       for (const frac of [1 / 3, 2 / 3]) {
-        const x = Math.round(width * frac) + 0.5;
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, height);
-        const y = Math.round(height * frac) + 0.5;
-        ctx.moveTo(0, y);
-        ctx.lineTo(width, y);
+        const lx = Math.round(ox + width * frac) + 0.5;
+        ctx.moveTo(lx, oy);
+        ctx.lineTo(lx, oy + height);
+        const ly = Math.round(oy + height * frac) + 0.5;
+        ctx.moveTo(ox, ly);
+        ctx.lineTo(ox + width, ly);
       }
       ctx.stroke();
     }
 
     if (showCrosshair || showSafe) {
-      const cx = width / 2;
-      const cy = height / 2;
+      const cx = ox + width / 2;
+      const cy = oy + height / 2;
       const r = 10 * scale;
       const tick = 6 * scale;
       ctx.strokeStyle = 'rgba(245, 158, 11, 0.78)';
@@ -166,11 +162,11 @@ export function renderStoryboardOverlayBurnIn(
 
   // 2. Slate Corner Stamps
   if (options.includeSlate) {
-    const margin = Math.round(16 * scale);
-    const fontPx = Math.round(15 * scale);
-    const padX = Math.round(9 * scale);
-    const padY = Math.round(5 * scale);
-    const radius = Math.round(5 * scale);
+    const margin = Math.max(6, Math.round(16 * scale));
+    const fontPx = Math.max(9, Math.round(15 * scale));
+    const padX = Math.max(4, Math.round(9 * scale));
+    const padY = Math.max(2, Math.round(5 * scale));
+    const radius = Math.max(3, Math.round(5 * scale));
 
     const shotBadge = `#${String(options.shotNumber).padStart(2, '0')}`;
     const leftText = options.beatTag
@@ -179,8 +175,8 @@ export function renderStoryboardOverlayBurnIn(
     const dotColor = options.beatTag ? BEAT_DOT_COLOR[options.beatTag] : null;
     drawSlateBadge(
       ctx,
-      margin,
-      margin,
+      ox + margin,
+      oy + margin,
       leftText,
       dotColor,
       fontPx,
@@ -196,8 +192,8 @@ export function renderStoryboardOverlayBurnIn(
       : `${options.startSec.toFixed(1)}s–${options.endSec.toFixed(1)}s (${durSec.toFixed(1)}s)`;
     drawSlateBadge(
       ctx,
-      width - margin,
-      margin,
+      ox + width - margin,
+      oy + margin,
       rightText,
       null,
       fontPx,
@@ -207,6 +203,30 @@ export function renderStoryboardOverlayBurnIn(
       true
     );
   }
+
+  ctx.restore();
+}
+
+/**
+ * Composites active guides and/or slate corner stamps onto a copy of `sourceCanvas`.
+ */
+export function renderStoryboardOverlayBurnIn(
+  sourceCanvas: HTMLCanvasElement,
+  options: StoryboardOverlayBurnInOptions
+): HTMLCanvasElement {
+  const width = sourceCanvas.width;
+  const height = sourceCanvas.height;
+  const out = document.createElement('canvas');
+  out.width = width;
+  out.height = height;
+
+  const ctx = out.getContext('2d');
+  if (!ctx) {
+    return sourceCanvas;
+  }
+
+  ctx.drawImage(sourceCanvas, 0, 0, width, height);
+  drawStoryboardOverlayInRect(ctx, { x: 0, y: 0, width, height }, options);
 
   return out;
 }

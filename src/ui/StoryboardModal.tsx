@@ -7,7 +7,14 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertCircle, LayoutGrid, Loader2, X } from 'lucide-react';
+import {
+  AlertCircle,
+  Archive,
+  FileImage,
+  LayoutGrid,
+  Loader2,
+  X,
+} from 'lucide-react';
 import {
   computeExportDimensions,
   resolveExportAspectRatio,
@@ -30,10 +37,12 @@ import type {
   StageScore,
   ToastNotification,
 } from '../core/types';
+import { useStoryboardBatchExport } from '../hooks/useStoryboardBatchExport';
 import { useStoryboardGenerator } from '../hooks/useStoryboardGenerator';
 import { useStoryboardPanelExport } from '../hooks/useStoryboardPanelExport';
 import { CleanStageCamExportCanvas } from '../stage/CleanStageCamExportCanvas';
 import { formatFilmGateLabel } from './shotBreakdownUtils';
+import { renderStoryboardContactSheetCanvas } from './storyboardContactSheetRenderer';
 import { StoryboardControlsSidebar } from './StoryboardControlsSidebar';
 import {
   StoryboardPanelCard,
@@ -135,12 +144,27 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
     cancelExport,
   } = useStoryboardPanelExport({ onNotify });
 
-  // Cancel any in-flight single-panel export when the modal closes
+  const {
+    progress: batchProgress,
+    isBatchExporting,
+    pendingZipRequest,
+    canvasRef: batchZipCanvasRef,
+    exportAllZip,
+    exportContactSheet,
+    cancelBatchExport,
+  } = useStoryboardBatchExport({ onNotify });
+
+  // Cancel any in-flight exports when the modal closes or score/samples change
   useEffect(() => {
     if (!isOpen) {
       cancelExport();
+      cancelBatchExport();
     }
-  }, [isOpen, cancelExport]);
+  }, [isOpen, cancelExport, cancelBatchExport]);
+
+  useEffect(() => {
+    cancelBatchExport();
+  }, [score, targetCamera, sampleMode, themeCategory, localDofBlur, cancelBatchExport]);
 
   const panelsByKey = useMemo(() => {
     return new Map(panels.map((p) => [p.sample.key, p]));
@@ -217,11 +241,7 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
     [effectiveAspect, sampleMode, density, annotated]
   );
 
-  if (!isOpen) return null;
-
   const gateLabel = formatFilmGateLabel(effectiveAspect);
-  const initialFrame = samples[0]?.frame;
-
   const layoutMode: StoryboardCardLayoutMode =
     sampleMode === 'start-mid-end'
       ? 'single-row'
@@ -229,7 +249,114 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
         ? 'start-end'
         : 'grid';
 
+  const handleExportContactSheet = useCallback(() => {
+    if (
+      panelDownloadingKey ||
+      isBatchExporting ||
+      isGenerating ||
+      panels.length < totalCount ||
+      shotGroups.length === 0
+    ) {
+      return;
+    }
+    void exportContactSheet({
+      score,
+      targetCamera,
+      annotated,
+      renderSheetCanvas: () =>
+        renderStoryboardContactSheetCanvas({
+          score,
+          shotGroups,
+          panelsByKey,
+          sheetSummary,
+          gateLabel,
+          panelWidth: dims.width,
+          panelHeight: dims.height,
+          targetCamera,
+          layoutSpec,
+          layoutMode,
+          annotated,
+          guideMode,
+          totalCount,
+        }),
+    });
+  }, [
+    panelDownloadingKey,
+    isBatchExporting,
+    isGenerating,
+    panels.length,
+    totalCount,
+    shotGroups,
+    exportContactSheet,
+    score,
+    targetCamera,
+    annotated,
+    panelsByKey,
+    sheetSummary,
+    gateLabel,
+    dims.width,
+    dims.height,
+    layoutSpec,
+    layoutMode,
+    guideMode,
+  ]);
+
+  const handleExportAllZip = useCallback(() => {
+    if (panelDownloadingKey || isBatchExporting || samples.length === 0) {
+      return;
+    }
+    const shouldBurnOverlay =
+      exportIncludeOverlays && (annotated || guideMode !== 'off');
+    exportAllZip({
+      score,
+      samples,
+      targetCamera,
+      themeCategory,
+      dofBlurEnabled: localDofBlur,
+      tier: exportTier,
+      format: exportFormat,
+      postProcessCanvas: shouldBurnOverlay
+        ? (sourceCanvas, sample) =>
+            renderStoryboardOverlayBurnIn(sourceCanvas, {
+              guideMode,
+              includeSlate: annotated,
+              shotNumber: sample.shot.shotNumber,
+              beatTag: sample.beatTag,
+              stageTimeSec: sample.stageTimeSec,
+              startSec: sample.shot.startSec,
+              endSec: sample.shot.endSec,
+            })
+        : undefined,
+    });
+  }, [
+    panelDownloadingKey,
+    isBatchExporting,
+    samples,
+    exportIncludeOverlays,
+    annotated,
+    guideMode,
+    exportAllZip,
+    score,
+    targetCamera,
+    themeCategory,
+    localDofBlur,
+    exportTier,
+    exportFormat,
+  ]);
+
+  if (!isOpen) return null;
+
+  const initialFrame = samples[0]?.frame;
   const gridClass = GRID_COLUMN_CLASS[layoutSpec.columns];
+  const isAnyExportBusy = Boolean(panelDownloadingKey) || isBatchExporting;
+  const canExportSheet =
+    !isGenerating &&
+    !isAnyExportBusy &&
+    shotGroups.length > 0 &&
+    panels.length >= totalCount;
+  const canExportZip = !isAnyExportBusy && samples.length > 0;
+  const exportFormatLabel =
+    exportFormat === 'jpeg' ? 'JPG' : exportFormat.toUpperCase();
 
   return (
     <div
@@ -413,7 +540,10 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
                       layoutMode={layoutMode}
                       isPortrait={layoutSpec.isPortrait}
                       effectiveDensity={layoutSpec.effectiveDensity}
-                      downloadingKey={panelDownloadingKey}
+                      downloadingKey={
+                        panelDownloadingKey ??
+                        (isBatchExporting ? '__batch__' : null)
+                      }
                       exportTier={exportTier}
                       exportFormat={exportFormat}
                       onExportSample={handleExportSample}
@@ -426,11 +556,27 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
         </div>
 
         {/* Footer Status Bar */}
-        <div className="px-5 py-3 border-t border-border-subtle bg-surface-subtle flex items-center justify-between gap-3 shrink-0">
-          <div className="flex items-center gap-2 text-xs font-mono text-text-muted">
-            {isGenerating ? (
+        <div className="px-4 sm:px-5 py-3 border-t border-border-subtle bg-surface-subtle flex flex-wrap items-center justify-between gap-2.5 shrink-0">
+          <div className="flex items-center gap-2.5 text-xs font-mono text-text-muted min-w-0">
+            {batchProgress ? (
               <>
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-500" />
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-500 shrink-0" />
+                <span className="truncate">
+                  {batchProgress.mode === 'zip'
+                    ? `Exporting ZIP ${batchProgress.completed} / ${batchProgress.total}...`
+                    : 'Compositing Contact Sheet...'}
+                </span>
+                <button
+                  type="button"
+                  onClick={cancelBatchExport}
+                  className="px-2 py-0.5 rounded-md border border-border-main bg-surface hover:bg-surface-hover text-[11px] font-semibold text-text-body hover:text-text-main transition-colors cursor-pointer shrink-0"
+                >
+                  Cancel
+                </button>
+              </>
+            ) : isGenerating ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-500 shrink-0" />
                 <span>
                   Rendering frame {Math.min(progressIndex + 1, totalCount)} of{' '}
                   {totalCount}...
@@ -445,7 +591,41 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
             )}
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <button
+              type="button"
+              disabled={!canExportSheet}
+              onClick={handleExportContactSheet}
+              title={
+                isGenerating
+                  ? 'Wait for preview frames to finish rendering'
+                  : 'Download Contact Sheet as crisp white-paper PNG'
+              }
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border-main bg-surface hover:bg-surface-hover text-xs font-semibold text-text-main disabled:opacity-45 disabled:cursor-not-allowed transition-colors cursor-pointer"
+            >
+              {batchProgress?.mode === 'contact-sheet' ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-500" />
+              ) : (
+                <FileImage className="w-3.5 h-3.5 text-amber-500" />
+              )}
+              <span>Contact Sheet</span>
+            </button>
+
+            <button
+              type="button"
+              disabled={!canExportZip}
+              onClick={handleExportAllZip}
+              title={`Download all ${samples.length} frames as ${exportTier}p ${exportFormatLabel} (.zip)`}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-btn-primary-bg text-btn-primary-text hover:bg-btn-primary-hover text-xs font-bold shadow-sm disabled:opacity-45 disabled:cursor-not-allowed transition-all cursor-pointer"
+            >
+              {batchProgress?.mode === 'zip' ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Archive className="w-3.5 h-3.5" />
+              )}
+              <span>Download All (.zip)</span>
+            </button>
+
             <StoryboardSpecGuidePopover
               isOpen={isSpecGuideOpen}
               onToggle={() => setIsSpecGuideOpen((prev) => !prev)}
@@ -488,6 +668,21 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
             dofBlurEnabled={panelExportPendingRequest.dofBlurEnabled}
             themeCategory={panelExportPendingRequest.themeCategory}
             targetCamera={panelExportPendingRequest.targetCamera}
+          />
+        )}
+
+        {/* Dedicated Offscreen WebGL Renderer (mounted strictly during Download All ZIP export) */}
+        {pendingZipRequest && pendingZipRequest.samples[0] && (
+          <CleanStageCamExportCanvas
+            key={`zip-${pendingZipRequest.zipFilename}-${pendingZipRequest.tier}`}
+            ref={batchZipCanvasRef}
+            score={pendingZipRequest.score}
+            initialFrame={pendingZipRequest.samples[0].frame}
+            width={pendingZipRequest.width}
+            height={pendingZipRequest.height}
+            dofBlurEnabled={pendingZipRequest.dofBlurEnabled}
+            themeCategory={pendingZipRequest.themeCategory}
+            targetCamera={pendingZipRequest.targetCamera}
           />
         )}
       </div>
