@@ -6,6 +6,7 @@ import {
   buildStoryboardSamples,
   cleanShotLabel,
   computeShotSampleTimeSec,
+  formatScoreVideoSourceLabel,
   formatStoryboardContactSheetFilename,
   formatStoryboardContactSheetZipFilename,
   formatStoryboardFrameFilename,
@@ -475,5 +476,26 @@ describe('storyboardMath', () => {
       [0],
       [1],
     ]);
+  });
+
+  it('formats StageScore videoUrl cleanly for Contact Sheet header display', () => {
+    expect(
+      formatScoreVideoSourceLabel('https://www.youtube.com/watch?v=1ly8QX31Uqw')
+    ).toEqual({
+      label: 'https://www.youtube.com/watch?v=1ly8QX31Uqw',
+      isExternalUrl: true,
+    });
+
+    expect(formatScoreVideoSourceLabel('procedural://demo')).toEqual({
+      label: 'procedural://demo',
+      isExternalUrl: false,
+    });
+
+    expect(
+      formatScoreVideoSourceLabel('blob:http://localhost:5173/abc-123')
+    ).toEqual({
+      label: 'Local Video (in-memory)',
+      isExternalUrl: false,
+    });
   });
 });

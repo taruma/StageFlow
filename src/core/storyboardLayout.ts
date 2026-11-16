@@ -51,6 +51,27 @@ export function cleanShotLabel(rawLabel: string): string {
   return rawLabel.replace(/^Shot\s*\d+\s*[·:–-]\s*/i, '').trim() || rawLabel;
 }
 
+/**
+ * Formats a StageScore `videoUrl` for Contact Sheet display (showing external URLs,
+ * paths, or `procedural://` tags verbatim, while masking transient `blob:` URLs).
+ */
+export function formatScoreVideoSourceLabel(videoUrl?: string): {
+  label: string;
+  isExternalUrl: boolean;
+} {
+  const trimmed = (videoUrl ?? '').trim();
+  if (!trimmed) {
+    return { label: 'procedural://demo', isExternalUrl: false };
+  }
+  if (trimmed.startsWith('blob:')) {
+    return { label: 'Local Video (in-memory)', isExternalUrl: false };
+  }
+  return {
+    label: trimmed,
+    isExternalUrl: /^https?:\/\//i.test(trimmed),
+  };
+}
+
 function formatEntityTargetEntry(
   rawId: string,
   entities: SceneEntityDef[]

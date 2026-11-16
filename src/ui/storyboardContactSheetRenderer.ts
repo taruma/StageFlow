@@ -8,6 +8,7 @@
 
 import type { ExportTargetCamera } from '../core/exportMath';
 import {
+  formatScoreVideoSourceLabel,
   formatStoryboardShotMeta,
   paginateStoryboardRows,
   type StoryboardGuideMode,
@@ -517,7 +518,7 @@ export interface RenderStoryboardContactSheetOptions {
 
 export type PlanContactSheetLayoutParams = Omit<
   RenderStoryboardContactSheetParams,
-  'panelsByKey' | 'score' | 'gateLabel' | 'totalCount' | 'guideMode'
+  'panelsByKey' | 'gateLabel' | 'totalCount' | 'guideMode'
 >;
 
 let cachedMeasureCtx: CanvasRenderingContext2D | null = null;
@@ -538,6 +539,7 @@ function planContactSheetLayout(
   singlePage = false
 ) {
   const {
+    score,
     shotGroups,
     sheetSummary,
     panelWidth,
@@ -707,7 +709,25 @@ function planContactSheetLayout(
   }
   flushRow();
 
-  const firstHeaderH = summaryParts.length > 0 ? 148 : 112;
+  mctx.font = `400 19px ${SANS_FONT}`;
+  const subtitleLines = score.subtitle?.trim()
+    ? wrapTextLines(mctx, score.subtitle.trim(), innerWidth * 0.72)
+    : [];
+  const videoSource = formatScoreVideoSourceLabel(score.videoUrl);
+
+  let headerOffsetY = 66;
+  if (subtitleLines.length > 0) {
+    headerOffsetY += 4 + subtitleLines.length * 26;
+  }
+  if (videoSource.label) {
+    headerOffsetY += 6 + 22;
+  }
+  const summaryTopOffsetY = headerOffsetY + 14;
+  if (summaryParts.length > 0) {
+    headerOffsetY = summaryTopOffsetY + 26;
+  }
+
+  const firstHeaderH = Math.max(112, headerOffsetY + 14);
   const firstGapAfterHeader = 32;
   const contHeaderH = 68;
   const contGapAfterHeader = 28;
@@ -729,6 +749,9 @@ function planContactSheetLayout(
   return {
     innerWidth,
     panelAspect,
+    subtitleLines,
+    videoSourceLabel: videoSource.label,
+    summaryTopOffsetY,
     summaryParts,
     rows,
     firstHeaderH,
@@ -787,6 +810,9 @@ export async function renderStoryboardContactSheetPages(
   const {
     innerWidth,
     panelAspect,
+    subtitleLines,
+    videoSourceLabel,
+    summaryTopOffsetY,
     summaryParts,
     rows,
     firstHeaderH,
@@ -867,9 +893,36 @@ export async function renderStoryboardContactSheetPages(
       );
       ctx.textAlign = 'left';
 
+      let blockY = headerY + 66;
+      if (subtitleLines.length > 0) {
+        blockY += 4;
+        ctx.fillStyle = PALETTE.textMuted;
+        ctx.font = `400 19px ${SANS_FONT}`;
+        for (const line of subtitleLines) {
+          ctx.fillText(line, SHEET_PAD, blockY);
+          blockY += 26;
+        }
+      }
+
+      if (videoSourceLabel) {
+        blockY += 6;
+        ctx.fillStyle = PALETTE.textFaint;
+        ctx.font = `600 13px ${MONO_FONT}`;
+        ctx.fillText('VIDEO', SHEET_PAD, blockY + 2);
+        const labelW = ctx.measureText('VIDEO').width + 12;
+
+        ctx.fillStyle = PALETTE.textBody;
+        ctx.font = `400 15px ${MONO_FONT}`;
+        ctx.fillText(
+          truncateText(ctx, videoSourceLabel, Math.max(120, innerWidth - labelW)),
+          SHEET_PAD + labelW,
+          blockY
+        );
+      }
+
       if (summaryParts.length > 0) {
         let sx = SHEET_PAD;
-        const sy = headerY + 86;
+        const sy = headerY + summaryTopOffsetY;
         for (let i = 0; i < summaryParts.length; i++) {
           if (i > 0) {
             ctx.fillStyle = PALETTE.cardBorder;

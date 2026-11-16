@@ -70,6 +70,7 @@ export interface StoryboardSheetSummary {
 
 export {
   cleanShotLabel,
+  formatScoreVideoSourceLabel,
   formatStoryboardContactSheetFilename,
   formatStoryboardContactSheetZipFilename,
   formatStoryboardFrameFilename,

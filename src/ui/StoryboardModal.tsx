@@ -10,6 +10,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
   Archive,
+  ExternalLink,
   FileImage,
   LayoutGrid,
   Loader2,
@@ -22,6 +23,7 @@ import {
   type ExportTargetCamera,
 } from '../core/exportMath';
 import {
+  formatScoreVideoSourceLabel,
   groupStoryboardSamplesByShot,
   resolveStoryboardLayoutSpec,
   summarizeStoryboardSheet,
@@ -314,6 +316,7 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
     () =>
       isOpen
         ? estimateStoryboardContactSheetPageCount({
+            score,
             shotGroups,
             sheetSummary,
             panelWidth: dims.width,
@@ -326,6 +329,7 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
         : 1,
     [
       isOpen,
+      score,
       shotGroups,
       sheetSummary,
       dims.width,
@@ -393,6 +397,7 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
   const canExportZip = !isAnyExportBusy && samples.length > 0;
   const exportFormatLabel =
     exportFormat === 'jpeg' ? 'JPG' : exportFormat.toUpperCase();
+  const videoSource = formatScoreVideoSourceLabel(score.videoUrl);
 
   return (
     <div
@@ -476,16 +481,43 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
             <div className="w-full mx-auto rounded-2xl border border-border-main bg-surface p-4 sm:p-5 shadow-sm space-y-4">
               {/* Contact Sheet Header + Lens/Rig Summary */}
               <div className="pb-3.5 border-b border-border-subtle space-y-2.5">
-                <div className="flex flex-wrap items-end justify-between gap-3">
-                  <div className="min-w-0">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1 space-y-1">
                     <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-text-faint">
                       Storyboard Contact Sheet
                     </div>
                     <h3 className="text-base font-bold text-text-main truncate">
                       {score.title}
                     </h3>
+                    {score.subtitle && (
+                      <p className="text-xs font-sans text-text-muted leading-snug max-w-3xl">
+                        {score.subtitle}
+                      </p>
+                    )}
+                    {videoSource.label && (
+                      <div className="pt-0.5 flex flex-wrap items-center gap-1.5 text-[10.5px] font-mono text-text-faint">
+                        <span className="text-[9px] uppercase tracking-wider font-semibold">
+                          Video
+                        </span>
+                        {videoSource.isExternalUrl ? (
+                          <a
+                            href={videoSource.label}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-text-body hover:text-amber-600 dark:hover:text-amber-400 underline decoration-border-main underline-offset-2 transition-colors break-all"
+                          >
+                            <span>{videoSource.label}</span>
+                            <ExternalLink className="w-2.5 h-2.5 shrink-0" />
+                          </a>
+                        ) : (
+                          <span className="text-text-body break-all">
+                            {videoSource.label}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <div className="text-[11px] font-mono text-text-muted text-right">
+                  <div className="text-[11px] font-mono text-text-muted text-right shrink-0">
                     <div>
                       {shotGroups.length}{' '}
                       {shotGroups.length === 1 ? 'Shot' : 'Shots'} · {totalCount}{' '}
