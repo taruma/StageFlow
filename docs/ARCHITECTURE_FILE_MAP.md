@@ -71,7 +71,8 @@ stageflow/
 │   │   ├── opticsMath.ts            # Focal length (mm) <-> Vertical FOV (deg), Rectangular Gate & Thin-Lens DoF math
 │   │   ├── exportMath.ts            # Pure even-dimension H.264 bounds, bitrate, time-range & MP4 filename helpers
 │   │   ├── exportScrubberMath.ts    # Pure dual-handle export scrubber quantization & drag clamping math
-│   │   ├── storyboardMath.ts        # Pure deterministic shot sampling, motion detection & storyboard metadata helpers
+│   │   ├── storyboardMath.ts        # Pure deterministic shot sampling & grouping helpers
+│   │   ├── storyboardLayout.ts      # Aspect-aware storyboard density layout, DP/AC metadata & sheet summary helpers
 │   │   ├── sphericalMath.ts         # Degrees <-> Radians, Spherical <-> Cartesian, shortestAngleDiff, rotateVec3YXZ
 │   │   ├── maneuvers.ts             # 9 easing curves & 11 3D camera trajectory maneuvers
 │   │   ├── dofEvaluator.ts          # Stateless focus distance, rack-focus interpolation & thin-lens DoF evaluator

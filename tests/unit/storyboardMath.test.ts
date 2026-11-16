@@ -9,6 +9,7 @@ import {
   formatStoryboardPanelMeta,
   formatStoryboardShotMeta,
   groupStoryboardSamplesByShot,
+  resolveStoryboardLayoutSpec,
   summarizeStoryboardSheet,
 } from '../../src/core/storyboardMath';
 import type { StageScore } from '../../src/core/types';
@@ -240,5 +241,41 @@ describe('storyboardMath', () => {
       expect(dims.width % 2).toBe(0);
       expect(dims.height % 2).toBe(0);
     }
+  });
+
+  it('resolves orientation-aware layout density columns across landscape and portrait scores', () => {
+    // Landscape (16:9 / 2.39:1)
+    expect(resolveStoryboardLayoutSpec(16 / 9, 'mid', 'compact', true)).toMatchObject({
+      isPortrait: false,
+      columns: 4,
+      disabledDensities: [],
+    });
+    expect(resolveStoryboardLayoutSpec(2.39, 'mid', 'balanced', true).columns).toBe(3);
+    expect(resolveStoryboardLayoutSpec(2.39, 'start-end', 'balanced', true)).toMatchObject({
+      isPortrait: false,
+      effectiveDensity: 'compact',
+      columns: 4,
+      isEvenLocked: true,
+      disabledDensities: ['balanced'],
+    });
+    expect(resolveStoryboardLayoutSpec(16 / 9, 'start-mid-end', 'compact', true)).toMatchObject({
+      columns: 1,
+      isSingleRowLocked: true,
+    });
+
+    // Portrait (9:16) annotated vs clean-only
+    expect(resolveStoryboardLayoutSpec(9 / 16, 'mid', 'compact', true)).toMatchObject({
+      isPortrait: true,
+      columns: 3,
+    });
+    expect(resolveStoryboardLayoutSpec(9 / 16, 'mid', 'balanced', true).columns).toBe(2);
+    expect(resolveStoryboardLayoutSpec(9 / 16, 'mid', 'large', true).columns).toBe(1);
+    expect(resolveStoryboardLayoutSpec(9 / 16, 'mid', 'compact', false).columns).toBe(6);
+    expect(resolveStoryboardLayoutSpec(9 / 16, 'start-end', 'compact', true)).toMatchObject({
+      isPortrait: true,
+      effectiveDensity: 'balanced',
+      columns: 2,
+      isEvenLocked: true,
+    });
   });
 });

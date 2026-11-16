@@ -1,8 +1,8 @@
 /**
  * Storyboard Contact Sheet Generator & Viewer Modal (Phase 1).
  * Renders shot panels progressively offscreen via a single CleanStageCamExportCanvas,
- * displays them in configurable grid / Start-End / Start·Mid·End layouts with instant
- * composition guides, and unmounts WebGL immediately when capture completes.
+ * adapts grid density and card orientation to the active aspect ratio, overlays
+ * instant CSS composition guides, and unmounts WebGL immediately upon completion.
  */
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -13,8 +13,10 @@ import {
 } from '../core/exportMath';
 import {
   groupStoryboardSamplesByShot,
+  resolveStoryboardLayoutSpec,
   summarizeStoryboardSheet,
-  type StoryboardColumns,
+  type StoryboardDensity,
+  type StoryboardGridColumns,
   type StoryboardGuideMode,
   type StoryboardSampleMode,
 } from '../core/storyboardMath';
@@ -36,10 +38,12 @@ export interface StoryboardModalProps {
   onClose: () => void;
 }
 
-const GRID_COLUMN_CLASS: Record<StoryboardColumns, string> = {
+const GRID_COLUMN_CLASS: Record<StoryboardGridColumns, string> = {
+  1: 'grid-cols-1',
   2: 'grid-cols-1 sm:grid-cols-2',
   3: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3',
   4: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4',
+  6: 'grid-cols-2 sm:grid-cols-4 lg:grid-cols-6',
 };
 
 export const StoryboardModal: React.FC<StoryboardModalProps> = ({
@@ -53,16 +57,9 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
     useState<ExportTargetCamera>('stage-cam');
   const [themeCategory, setThemeCategory] = useState<AppThemeCategory>('light');
   const [localDofBlur, setLocalDofBlur] = useState<boolean>(dofBlurEnabled);
-  const [columns, setColumns] = useState<StoryboardColumns>(3);
+  const [density, setDensity] = useState<StoryboardDensity>('balanced');
   const [guideMode, setGuideMode] = useState<StoryboardGuideMode>('off');
   const [annotated, setAnnotated] = useState<boolean>(true);
-
-  const handleChangeSampleMode = (nextMode: StoryboardSampleMode) => {
-    setSampleMode(nextMode);
-    if (nextMode === 'start-end' && columns === 3) {
-      setColumns(4);
-    }
-  };
 
   // Sync DoF blur toggle from active Stage Cam state whenever the modal opens
   useEffect(() => {
@@ -118,17 +115,26 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
     [shotGroups, targetCamera]
   );
 
-  if (!isOpen) return null;
-
   const effectiveAspect = resolveExportAspectRatio(
     score.aspectRatio,
     targetCamera
   );
+
+  const layoutSpec = useMemo(
+    () =>
+      resolveStoryboardLayoutSpec(
+        effectiveAspect,
+        sampleMode,
+        density,
+        annotated
+      ),
+    [effectiveAspect, sampleMode, density, annotated]
+  );
+
+  if (!isOpen) return null;
+
   const gateLabel = formatFilmGateLabel(effectiveAspect);
   const initialFrame = samples[0]?.frame;
-
-  const effectiveColumns: StoryboardColumns =
-    sampleMode === 'start-end' && columns === 3 ? 4 : columns;
 
   const layoutMode: StoryboardCardLayoutMode =
     sampleMode === 'start-mid-end'
@@ -137,10 +143,7 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
         ? 'start-end'
         : 'grid';
 
-  const gridClass =
-    layoutMode === 'single-row'
-      ? 'grid-cols-1'
-      : GRID_COLUMN_CLASS[effectiveColumns];
+  const gridClass = GRID_COLUMN_CLASS[layoutSpec.columns];
 
   return (
     <div
@@ -189,15 +192,16 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
         <div className="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden">
           <StoryboardControlsSidebar
             sampleMode={sampleMode}
-            onChangeSampleMode={handleChangeSampleMode}
+            onChangeSampleMode={setSampleMode}
             targetCamera={targetCamera}
             onChangeTargetCamera={setTargetCamera}
             themeCategory={themeCategory}
             onChangeThemeCategory={setThemeCategory}
             dofBlurEnabled={localDofBlur}
             onChangeDofBlurEnabled={setLocalDofBlur}
-            columns={effectiveColumns}
-            onChangeColumns={setColumns}
+            density={density}
+            layoutSpec={layoutSpec}
+            onChangeDensity={setDensity}
             guideMode={guideMode}
             onChangeGuideMode={setGuideMode}
             annotated={annotated}
@@ -323,6 +327,8 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
                       annotated={annotated}
                       guideMode={guideMode}
                       layoutMode={layoutMode}
+                      isPortrait={layoutSpec.isPortrait}
+                      effectiveDensity={layoutSpec.effectiveDensity}
                     />
                   ))}
                 </div>

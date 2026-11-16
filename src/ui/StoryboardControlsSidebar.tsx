@@ -1,15 +1,16 @@
 /**
  * Left configuration sidebar for the Storyboard Modal.
  * Separates WebGL render parameters (Sample, Camera, Palette, DoF)
- * from instant client-side sheet layout controls (Columns, Guides, Annotations).
+ * from instant client-side sheet layout controls (Density, Guides, Annotations).
  */
 
 import React from 'react';
 import { Camera, Eye, RefreshCw } from 'lucide-react';
 import type { ExportTargetCamera } from '../core/exportMath';
 import type {
-  StoryboardColumns,
+  StoryboardDensity,
   StoryboardGuideMode,
+  StoryboardLayoutSpec,
   StoryboardSampleMode,
 } from '../core/storyboardMath';
 import type { AppThemeCategory } from '../core/types';
@@ -24,8 +25,9 @@ export interface StoryboardControlsSidebarProps {
   onChangeThemeCategory: (theme: AppThemeCategory) => void;
   dofBlurEnabled: boolean;
   onChangeDofBlurEnabled: (enabled: boolean) => void;
-  columns: StoryboardColumns;
-  onChangeColumns: (cols: StoryboardColumns) => void;
+  density: StoryboardDensity;
+  layoutSpec: StoryboardLayoutSpec;
+  onChangeDensity: (density: StoryboardDensity) => void;
   guideMode: StoryboardGuideMode;
   onChangeGuideMode: (mode: StoryboardGuideMode) => void;
   annotated: boolean;
@@ -53,7 +55,14 @@ const PALETTE_OPTIONS: ReadonlyArray<{ id: AppThemeCategory; label: string }> = 
   { id: 'dark', label: 'Dark' },
 ];
 
-const COLUMN_OPTIONS: ReadonlyArray<StoryboardColumns> = [2, 3, 4];
+const DENSITY_OPTIONS: ReadonlyArray<{
+  id: StoryboardDensity;
+  label: string;
+}> = [
+  { id: 'compact', label: 'Compact' },
+  { id: 'balanced', label: 'Balanced' },
+  { id: 'large', label: 'Large' },
+];
 
 const GUIDE_OPTIONS: ReadonlyArray<{ id: StoryboardGuideMode; label: string }> =
   [
@@ -74,8 +83,8 @@ export const StoryboardControlsSidebar: React.FC<
   onChangeThemeCategory,
   dofBlurEnabled,
   onChangeDofBlurEnabled,
-  columns,
-  onChangeColumns,
+  layoutSpec,
+  onChangeDensity,
   guideMode,
   onChangeGuideMode,
   annotated,
@@ -88,8 +97,13 @@ export const StoryboardControlsSidebar: React.FC<
   onRegenerate,
 }) => {
   const isObserver = targetCamera === 'observer';
-  const isSingleRowMode = sampleMode === 'start-mid-end';
-  const isEvenColumnsOnly = sampleMode === 'start-end';
+  const layoutBadge = layoutSpec.isSingleRowLocked
+    ? '1 Row/Shot'
+    : layoutSpec.isEvenLocked
+      ? 'Even Grid'
+      : layoutSpec.isPortrait
+        ? 'Portrait'
+        : 'Instant';
 
   return (
     <aside className="w-full md:w-[232px] shrink-0 border-b md:border-b-0 md:border-r border-border-subtle bg-surface-subtle/50 p-3 space-y-2.5 overflow-y-auto">
@@ -116,7 +130,7 @@ export const StoryboardControlsSidebar: React.FC<
           <button
             type="button"
             onClick={() => onChangeSampleMode('start-end')}
-            title="Moving shots show Start & End in a single grouped card (even columns)"
+            title="Moving shots show Start & End in a single grouped card"
             className={`flex-1 justify-center !px-1.5 !text-[10px] ${
               sampleMode === 'start-end'
                 ? UI_TOKENS.button.segmentedItemActive
@@ -229,46 +243,44 @@ export const StoryboardControlsSidebar: React.FC<
       </div>
 
       <div className="border-t border-border-subtle pt-2.5 space-y-2.5">
-        {/* Sheet Columns */}
+        {/* Card Density (Aspect-Aware) */}
         <div className="space-y-1">
           <div className="flex items-center justify-between">
-            <span className={UI_TOKENS.input.label}>Columns</span>
+            <span className={UI_TOKENS.input.label}>Layout</span>
             <span className="text-[9px] font-mono uppercase tracking-wider text-text-faint">
-              {isSingleRowMode
-                ? '1 Row/Shot'
-                : isEvenColumnsOnly
-                  ? 'Even Cols'
-                  : 'Instant'}
+              {layoutBadge}
             </span>
           </div>
           <div
             className={`${UI_TOKENS.button.segmentedGroup} w-full ${
-              isSingleRowMode ? 'opacity-45' : ''
+              layoutSpec.isSingleRowLocked ? 'opacity-45' : ''
             }`}
           >
-            {COLUMN_OPTIONS.map((col) => {
-              const isColDisabled =
-                isSingleRowMode || (isEvenColumnsOnly && col === 3);
+            {DENSITY_OPTIONS.map((opt) => {
+              const isDisabled = layoutSpec.disabledDensities.includes(opt.id);
+              const isActive =
+                !layoutSpec.isSingleRowLocked &&
+                layoutSpec.effectiveDensity === opt.id;
               return (
                 <button
-                  key={col}
+                  key={opt.id}
                   type="button"
-                  disabled={isColDisabled}
+                  disabled={isDisabled}
                   title={
-                    isSingleRowMode
+                    layoutSpec.isSingleRowLocked
                       ? 'Start·Mid·End uses a single full-width row per shot'
-                      : isEvenColumnsOnly && col === 3
-                        ? 'Start & End grouped cards require even columns (2 or 4)'
+                      : isDisabled
+                        ? 'Unavailable for even-paired Start & End cards'
                         : undefined
                   }
-                  onClick={() => onChangeColumns(col)}
-                  className={`flex-1 justify-center !px-2 font-mono disabled:opacity-35 disabled:cursor-not-allowed ${
-                    !isSingleRowMode && columns === col
+                  onClick={() => onChangeDensity(opt.id)}
+                  className={`flex-1 justify-center !px-1.5 !text-[10px] disabled:opacity-35 disabled:cursor-not-allowed ${
+                    isActive
                       ? UI_TOKENS.button.segmentedItemActive
                       : UI_TOKENS.button.segmentedItem
                   }`}
                 >
-                  {col}
+                  {opt.label}
                 </button>
               );
             })}
