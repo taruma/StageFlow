@@ -27,6 +27,7 @@ import {
   getEntityBaseSize,
   lerpAngleShortest,
   relaxLookAtPoses,
+  resolveCueStartEndPivot,
   resolveCueStartEndSize,
   resolveLookAtPoint,
 } from './entityKinematicUtils';
@@ -55,6 +56,7 @@ export function evaluateBlockingEntitiesAtTime(
     let prevRot = def.rotationYRad;
     let prevPitch = def.pitchRad ?? 0;
     let prevRoll = def.rollRad ?? 0;
+    let prevPivot = def.pivotRatio ?? 0;
     let prevVis: boolean = true;
     const entries: ChainedBlockingCueEntry[] = [];
 
@@ -83,6 +85,13 @@ export function evaluateBlockingEntitiesAtTime(
       const endRoll = cue.rollRad ?? prevRoll;
       const startPitch = isCut ? endPitch : prevPitch;
       const startRoll = isCut ? endRoll : prevRoll;
+      const { startPivot, endPivot } = resolveCueStartEndPivot(
+        cue.pivotRatio,
+        prevPivot,
+        startPitch,
+        startRoll,
+        isCut
+      );
 
       let endRot = prevRot;
       if (cue.rotationYRad !== undefined) {
@@ -104,6 +113,8 @@ export function evaluateBlockingEntitiesAtTime(
         endPitch,
         startRoll,
         endRoll,
+        startPivot,
+        endPivot,
         startSize,
         endSize,
         visible,
@@ -115,6 +126,7 @@ export function evaluateBlockingEntitiesAtTime(
       prevRot = endRot;
       prevPitch = endPitch;
       prevRoll = endRoll;
+      prevPivot = endPivot;
       prevVis = visible;
     }
 
@@ -159,6 +171,8 @@ export function evaluateBlockingEntitiesAtTime(
           rotationYRad: lerpAngleShortest(active.startRot, active.endRot, u),
           pitchRad: lerpAngleShortest(active.startPitch, active.endPitch, u),
           rollRad: lerpAngleShortest(active.startRoll, active.endRoll, u),
+          pivotRatio:
+            active.startPivot + u * (active.endPivot - active.startPivot),
           size,
         });
         activeMap.set(def.id, active);
@@ -170,6 +184,7 @@ export function evaluateBlockingEntitiesAtTime(
           rotationYRad: lastFinished.endRot,
           pitchRad: lastFinished.endPitch,
           rollRad: lastFinished.endRoll,
+          pivotRatio: lastFinished.endPivot,
           size: cloneVec3(lastFinished.endSize),
         });
         lastFinishedMap.set(def.id, lastFinished);
@@ -181,6 +196,7 @@ export function evaluateBlockingEntitiesAtTime(
           rotationYRad: def.rotationYRad,
           pitchRad: def.pitchRad ?? 0,
           rollRad: def.rollRad ?? 0,
+          pivotRatio: def.pivotRatio ?? 0,
           size: getEntityBaseSize(def),
         });
       }
@@ -291,6 +307,7 @@ export function evaluateBlockingEntitiesAtTime(
     const rotY = pose.rotationYRad;
     const pitchRad = pose.pitchRad ?? 0;
     const rollRad = pose.rollRad ?? 0;
+    const pivotRatio = pose.pivotRatio ?? def.pivotRatio ?? 0;
     const size: Vec3 = pose.size ?? getEntityBaseSize(def);
     let visible = shotOv?.visible ?? true;
     let highlighted = Boolean(shotOv?.highlighted);
@@ -319,6 +336,7 @@ export function evaluateBlockingEntitiesAtTime(
       rotationYRad: rotY,
       pitchRad,
       rollRad,
+      pivotRatio,
       size,
       highlighted,
       visible,

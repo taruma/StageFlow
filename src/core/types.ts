@@ -107,6 +107,7 @@ export interface SceneEntityDef {
   rotationYRad: number; // Base facing yaw in radians (0 = +Z, PI = -Z)
   pitchRad?: number;    // Base X-axis tilt in radians (0 = upright, +PI/2 = prone toward +Z)
   rollRad?: number;     // Base Z-axis bank in radians (0 = level, + = CW from behind entity)
+  pivotRatio?: number;  // Normalized vertical rotation pivot ratio in [0, 1] (0 = base, 0.5 = center, 1 = top)
   height: number;       // Height in meters (default 1.75m for character, 0.85m for prop)
   width?: number;       // Lateral breadth in meters (X axis, default 2 * radius)
   depth?: number;       // Sagittal depth in meters (Z axis, default 2 * radius)
@@ -120,6 +121,7 @@ export interface EntityCueOverride {
   rotationYRad?: number;
   pitchRad?: number;
   rollRad?: number;
+  pivotRatio?: number;
   lookAt?: TargetAnchor; // Entity ID, multiple entity IDs, or world Vec3 to face toward
   fromWidth?: number;
   fromHeight?: number;
@@ -151,6 +153,7 @@ export interface BlockingCueSpec {
   rotationYRad?: number;
   pitchRad?: number;
   rollRad?: number;
+  pivotRatio?: number;
   lookAt?: TargetAnchor;
   fromWidth?: number;
   fromHeight?: number;
@@ -174,6 +177,7 @@ export interface EvaluatedEntityState {
   rotationYRad: number;
   pitchRad?: number;
   rollRad?: number;
+  pivotRatio?: number;
   size?: Vec3;          // Live evaluated { x: width, y: height, z: depth } in meters at time t
   highlighted: boolean;
   visible: boolean;

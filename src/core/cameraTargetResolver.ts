@@ -6,6 +6,7 @@
 import type {
   CameraCueSpec,
   EntityKind,
+  EntityShape,
   EvaluatedEntityState,
   SceneEntityDef,
   SphericalPose,
@@ -211,7 +212,7 @@ export function getEntitySubAnchorLocalOffset(
 
 /**
  * Computes a world-space entity sub-anchor point from position, live dimensions,
- * intrinsic YXZ orientation, and optional sub-anchor part name.
+ * intrinsic YXZ orientation, optional sub-anchor part name, and vertical pivot ratio p in [0, 1].
  */
 export function computeRotatedSubAnchorPoint(
   position: Vec3,
@@ -221,13 +222,27 @@ export function computeRotatedSubAnchorPoint(
   yawRad: number,
   pitchRad: number,
   rollRad: number,
-  part?: string
+  part?: string,
+  pivotRatio = 0
 ): Vec3 {
+  const p = Number.isFinite(pivotRatio)
+    ? Math.max(0, Math.min(1, pivotRatio))
+    : 0;
+  const pivotY = p * height;
   const localOffset = getEntitySubAnchorLocalOffset(kind, width, height, part);
-  const rotated = rotateVec3YXZ(localOffset, yawRad, pitchRad, rollRad);
+  const rotated = rotateVec3YXZ(
+    {
+      x: localOffset.x,
+      y: localOffset.y - pivotY,
+      z: localOffset.z,
+    },
+    yawRad,
+    pitchRad,
+    rollRad
+  );
   return {
     x: position.x + rotated.x,
-    y: position.y + rotated.y,
+    y: position.y + pivotY + rotated.y,
     z: position.z + rotated.z,
   };
 }
@@ -250,7 +265,8 @@ export function getEntityLookAnchor(
     ent.rotationYRad,
     ent.pitchRad ?? 0,
     ent.rollRad ?? 0,
-    part
+    part,
+    ent.pivotRatio ?? ent.def.pivotRatio ?? 0
   );
 }
 
@@ -271,8 +287,100 @@ export function getEntityDefLookAnchor(
     def.rotationYRad,
     def.pitchRad ?? 0,
     def.rollRad ?? 0,
-    part
+    part,
+    def.pivotRatio ?? 0
   );
+}
+
+/**
+ * Computes the local (x, y, z) position for an entity's floating billboard badge
+ * inside its yaw-oriented groupRef, accounting for pitch, roll, live dimensions,
+ * vertical pivot ratio p in [0, 1], and entity kind/shape.
+ */
+export function computeTiltedEntityLabelOffset(
+  kind: EntityKind,
+  shape: EntityShape | undefined,
+  width: number,
+  height: number,
+  depth: number,
+  pitchRad = 0,
+  rollRad = 0,
+  pivotRatio = 0,
+  clearanceM = 0.28
+): Vec3 {
+  const p = Number.isFinite(pivotRatio)
+    ? Math.max(0, Math.min(1, pivotRatio))
+    : 0;
+  const pivotY = p * height;
+
+  if (Math.abs(pitchRad) < 1e-8 && Math.abs(rollRad) < 1e-8) {
+    return { x: 0, y: Math.max(0, height) + clearanceM, z: 0 };
+  }
+
+  if (kind === 'character') {
+    const crownRot = rotateVec3YXZ(
+      { x: 0, y: (1 - p) * height, z: 0 },
+      0,
+      pitchRad,
+      rollRad
+    );
+    const baseRot = rotateVec3YXZ(
+      { x: 0, y: -pivotY, z: 0 },
+      0,
+      pitchRad,
+      rollRad
+    );
+    const crownY = pivotY + crownRot.y;
+    const baseY = pivotY + baseRot.y;
+    return {
+      x: crownRot.x,
+      y: Math.max(0, crownY, baseY) + clearanceM,
+      z: crownRot.z,
+    };
+  }
+
+  // Props and markers: horizontally center over rotated volume midpoint and clear highest Y extent
+  const centerRot = rotateVec3YXZ(
+    { x: 0, y: (0.5 - p) * height, z: 0 },
+    0,
+    pitchRad,
+    rollRad
+  );
+  const centerY = pivotY + centerRot.y;
+
+  const cx = Math.cos(pitchRad);
+  const sx = Math.sin(pitchRad);
+  const cz = Math.cos(rollRad);
+  const sz = Math.sin(rollRad);
+
+  // Row 2 (Y-axis components) of R_x(pitch) * R_z(roll)
+  const ryx = cx * sz;
+  const ryy = cx * cz;
+  const ryz = -sx;
+
+  const rx = width * 0.5;
+  const ry = height * 0.5;
+  const rz = depth * 0.5;
+
+  let supportY: number;
+  if (kind === 'prop' && shape === 'sphere') {
+    supportY = Math.hypot(rx * ryx, ry * ryy, rz * ryz);
+  } else if (
+    kind === 'marker' ||
+    (kind === 'prop' && (shape === 'cylinder' || shape === 'capsule'))
+  ) {
+    supportY = ry * Math.abs(ryy) + Math.hypot(rx * ryx, rz * ryz);
+  } else {
+    // Box prop (default)
+    supportY =
+      rx * Math.abs(ryx) + ry * Math.abs(ryy) + rz * Math.abs(ryz);
+  }
+
+  return {
+    x: centerRot.x,
+    y: Math.max(0, centerY + supportY) + clearanceM,
+    z: centerRot.z,
+  };
 }
 
 export interface EntityTargetAdapter<T> {

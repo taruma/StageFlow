@@ -7,6 +7,7 @@ import {
   normalizeEntityShape,
   normalizeEntityStyle,
   parseAngleToRad,
+  parseEntityPivotRatio,
   parseLensFocalLengthMm,
   parseOptionalVec3,
   parseTargetOrVec3,
@@ -1758,6 +1759,100 @@ shots:
       // dof_start ("shallow" -> f/2.8) inherited from flat shot root, while nested aperture_end (11.0) takes precedence over dof_end
       expect(resB.score?.shots[0].stageCamera?.apertureStartFStop).toBeCloseTo(2.8, 4);
       expect(resB.score?.shots[0].stageCamera?.apertureEndFStop).toBeCloseTo(11.0, 4);
+    });
+
+    it('parses entity rotation pivot presets, aliases, numeric ratios, and clamping across all 3 authoring tiers (#20)', () => {
+      // Direct primitive normalizer coverage
+      expect(parseEntityPivotRatio(undefined)).toBeUndefined();
+      expect(parseEntityPivotRatio(undefined, 0)).toBe(0);
+      expect(parseEntityPivotRatio('base')).toBe(0);
+      expect(parseEntityPivotRatio(' BOTTOM ')).toBe(0);
+      expect(parseEntityPivotRatio('Feet')).toBe(0);
+      expect(parseEntityPivotRatio('floor')).toBe(0);
+      expect(parseEntityPivotRatio('ground')).toBe(0);
+      expect(parseEntityPivotRatio('center')).toBe(0.5);
+      expect(parseEntityPivotRatio('centre')).toBe(0.5);
+      expect(parseEntityPivotRatio('Middle')).toBe(0.5);
+      expect(parseEntityPivotRatio('mid')).toBe(0.5);
+      expect(parseEntityPivotRatio('waist')).toBe(0.5);
+      expect(parseEntityPivotRatio('top')).toBe(1);
+      expect(parseEntityPivotRatio('HEAD')).toBe(1);
+      expect(parseEntityPivotRatio('crown')).toBe(1);
+      expect(parseEntityPivotRatio('apex')).toBe(1);
+      expect(parseEntityPivotRatio(0.25)).toBe(0.25);
+      expect(parseEntityPivotRatio('0.75')).toBe(0.75);
+      expect(parseEntityPivotRatio(-0.4)).toBe(0);
+      expect(parseEntityPivotRatio(1.6)).toBe(1);
+      expect(parseEntityPivotRatio('invalid', 0)).toBe(0);
+      expect(parseEntityPivotRatio(true)).toBeUndefined();
+
+      const pivotYaml = `
+version: "1.0"
+id: "pivot-parse-test"
+title: "Pivot Parse Test"
+stage:
+  stage_camera:
+    target: "drone"
+entities:
+  - id: "ground_actor"
+    kind: "character"
+  - id: "drone"
+    kind: "prop"
+    shape: "box"
+    position: [1.0, 2.0, 0.0]
+    height: 1.0
+    pitch: 90
+    pivot: "center"
+  - id: "pendulum"
+    kind: "prop"
+    pivot_ratio: "top"
+  - id: "custom_ratio"
+    kind: "character"
+    pivotRatio: 0.72
+blocking:
+  - id: "b-format-b"
+    entity: "ground_actor"
+    start: 0
+    end: 4
+    pivot: "center"
+  - id: "b-format-a"
+    start: 4
+    end: 8
+    pivot: 0.25
+    entities:
+      ground_actor:
+        pitch: 45
+      pendulum:
+        pivot: "base"
+shots:
+  - id: "s1"
+    start: 0
+    end: 8
+    entities:
+      ground_actor:
+        pivot: "top"
+`;
+      const { score, error } = parseStageScore(pivotYaml);
+      expect(error).toBeNull();
+      expect(score).not.toBeNull();
+
+      expect(score!.entities[0].pivotRatio).toBe(0);
+      expect(score!.entities[1].pivotRatio).toBe(0.5);
+      expect(score!.entities[2].pivotRatio).toBe(1);
+      expect(score!.entities[3].pivotRatio).toBeCloseTo(0.72, 6);
+
+      // Baseline stage_camera targeting center-pivoted tilted drone stays at center (1.0, 2.5, 0.0)
+      expect(score!.stage.defaultStageCameraPose.target.x).toBeCloseTo(1.0, 5);
+      expect(score!.stage.defaultStageCameraPose.target.y).toBeCloseTo(2.5, 5);
+      expect(score!.stage.defaultStageCameraPose.target.z).toBeCloseTo(0.0, 5);
+
+      // Blocking Format B & Format A (including scoped child inheritance & override)
+      expect(score!.blocking![0].pivotRatio).toBe(0.5);
+      expect(score!.blocking![1].pivotRatio).toBe(0.25);
+      expect(score!.blocking![2].pivotRatio).toBe(0);
+
+      // Shot-level entity override
+      expect(score!.shots[0].entities.ground_actor.pivotRatio).toBe(1);
     });
   });
 });

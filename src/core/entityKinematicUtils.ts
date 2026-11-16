@@ -23,6 +23,7 @@ export interface EntityLookAtPose {
   rotationYRad: number;
   pitchRad?: number;
   rollRad?: number;
+  pivotRatio?: number;
   size?: Vec3;
 }
 
@@ -31,6 +32,7 @@ export interface EntityPoseSnapshot {
   rotationYRad: number;
   pitchRad: number;
   rollRad: number;
+  pivotRatio: number;
   visible: boolean;
   size: Vec3;
 }
@@ -45,6 +47,8 @@ export interface ChainedBlockingCueEntry {
   endPitch: number;
   startRoll: number;
   endRoll: number;
+  startPivot: number;
+  endPivot: number;
   startSize: Vec3;
   endSize: Vec3;
   visible: boolean;
@@ -60,6 +64,30 @@ export function lerpAngleShortest(
   u: number
 ): number {
   return startRad + u * shortestAngleDiff(endRad, startRad);
+}
+
+/**
+ * Resolves start and end vertical pivot ratios for a cue:
+ * - endPivot inherits prevPivot when cuePivotRatio is undefined.
+ * - startPivot adopts endPivot immediately when `isCut` is true OR when the entity starts
+ *   the cue upright (|startPitchRad| < 1e-8 && |startRollRad| < 1e-8), since upright poses
+ *   are 100% invariant to pivot ratio (zero world-space jump) and this keeps the hinge fixed
+ *   throughout a 0° -> θ° takeoff/tilt transition.
+ * - When the entity is already tilted at cue start (!isCut && !isStartUpright), startPivot
+ *   starts at prevPivot and eases smoothly to endPivot to preserve C0 world continuity.
+ */
+export function resolveCueStartEndPivot(
+  cuePivotRatio: number | undefined,
+  prevPivot: number,
+  startPitchRad: number,
+  startRollRad: number,
+  isCut: boolean
+): { startPivot: number; endPivot: number } {
+  const endPivot = cuePivotRatio ?? prevPivot;
+  const isStartUpright =
+    Math.abs(startPitchRad) < 1e-8 && Math.abs(startRollRad) < 1e-8;
+  const startPivot = isCut || isStartUpright ? endPivot : prevPivot;
+  return { startPivot, endPivot };
 }
 
 /**
@@ -446,6 +474,7 @@ export function resolveLookAtPoint(
 
       const width = pose?.size?.x ?? def.width ?? def.radius * 2;
       const height = pose?.size?.y ?? def.height;
+      const pivotRatio = pose?.pivotRatio ?? def.pivotRatio ?? 0;
       return computeRotatedSubAnchorPoint(
         pos,
         def.kind,
@@ -454,7 +483,8 @@ export function resolveLookAtPoint(
         yaw,
         pitch,
         roll,
-        matched.recognizedPart
+        matched.recognizedPart,
+        pivotRatio
       );
     }
   }
