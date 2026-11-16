@@ -355,6 +355,48 @@ describe('storyboardMath', () => {
     ).toBe('the_expansion_03_rack_end_14_25s_1080p.webp');
 
     expect(
+      formatStoryboardFrameFilename({
+        scoreIdOrTitle: 'Vector Field',
+        shotNumber: 1,
+        shotId: 'shot-01',
+        beatTag: 'START',
+        stageTimeSec: 0,
+        tier: 1080,
+        format: 'png',
+        targetCamera: 'stage-cam',
+        orderedBeat: true,
+      })
+    ).toBe('vector_field_01_shot_01_01_start_0s_1080p.png');
+
+    expect(
+      formatStoryboardFrameFilename({
+        scoreIdOrTitle: 'Vector Field',
+        shotNumber: 1,
+        shotId: 'shot-01',
+        beatTag: 'MID',
+        stageTimeSec: 0.52,
+        tier: 1080,
+        format: 'png',
+        targetCamera: 'stage-cam',
+        orderedBeat: true,
+      })
+    ).toBe('vector_field_01_shot_01_02_mid_0_52s_1080p.png');
+
+    expect(
+      formatStoryboardFrameFilename({
+        scoreIdOrTitle: 'Vector Field',
+        shotNumber: 1,
+        shotId: 'shot-01',
+        beatTag: 'END',
+        stageTimeSec: 1.03,
+        tier: 1080,
+        format: 'png',
+        targetCamera: 'stage-cam',
+        orderedBeat: true,
+      })
+    ).toBe('vector_field_01_shot_01_03_end_1_03s_1080p.png');
+
+    expect(
       formatStoryboardContactSheetFilename({
         scoreIdOrTitle: 'Vector Field',
         targetCamera: 'stage-cam',
@@ -370,20 +412,24 @@ describe('storyboardMath', () => {
       })
     ).toBe('afraid_storyboard_observer_clean.png');
 
+    const fixedDate = new Date(2026, 10, 16, 16, 36, 1);
+
     expect(
       formatStoryboardZipFilename({
         scoreIdOrTitle: 'The Expansion',
         targetCamera: 'stage-cam',
         tier: 1080,
+        downloadedAt: fixedDate,
       })
-    ).toBe('the_expansion_frames_1080p.zip');
+    ).toBe('the_expansion_frames_20261116_163601_1080p.zip');
 
     expect(
       formatStoryboardZipFilename({
         scoreIdOrTitle: 'Afraid',
         targetCamera: 'observer',
         tier: 720,
+        downloadedAt: fixedDate,
       })
-    ).toBe('afraid_frames_observer_720p.zip');
+    ).toBe('afraid_frames_observer_20261116_163601_720p.zip');
   });
 });

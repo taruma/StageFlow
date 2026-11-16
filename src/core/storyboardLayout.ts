@@ -6,6 +6,7 @@
 
 import { matchEntityTargetKey } from './cameraTargetResolver';
 import {
+  formatLocalClockTag,
   sanitizeExportSlug,
   type ExportResolutionTier,
   type ExportTargetCamera,
@@ -504,9 +505,16 @@ export function summarizeStoryboardSheet(
   };
 }
 
+const ORDERED_BEAT_TOKEN: Record<'START' | 'MID' | 'END', string> = {
+  START: '01_start',
+  MID: '02_mid',
+  END: '03_end',
+};
+
 /**
  * Formats a deterministic single-panel storyboard export filename, e.g.:
- * `afraid_01_shot-01_1_6s_1080p.png` or `afraid_01_shot-01_start_0s_720p.webp`.
+ * - Single download (`orderedBeat = false`): `afraid_01_shot_01_start_0s_1080p.png`
+ * - ZIP entry (`orderedBeat = true`): `afraid_01_shot_01_01_start_0s_1080p.png`
  */
 export function formatStoryboardFrameFilename(params: {
   scoreIdOrTitle: string;
@@ -517,6 +525,7 @@ export function formatStoryboardFrameFilename(params: {
   tier: ExportResolutionTier;
   format: StoryboardExportFormat;
   targetCamera: ExportTargetCamera;
+  orderedBeat?: boolean;
 }): string {
   const slug = sanitizeExportSlug(params.scoreIdOrTitle);
   const shotNum = String(Math.max(1, Math.round(params.shotNumber))).padStart(
@@ -524,7 +533,9 @@ export function formatStoryboardFrameFilename(params: {
     '0'
   );
   const shotSlug = sanitizeExportSlug(params.shotId);
-  const beatPart = params.beatTag ? `_${params.beatTag.toLowerCase()}` : '';
+  const beatPart = params.beatTag
+    ? `_${params.orderedBeat ? ORDERED_BEAT_TOKEN[params.beatTag] : params.beatTag.toLowerCase()}`
+    : '';
   const secRounded = Number(Math.max(0, params.stageTimeSec).toFixed(2));
   const secPart = `${String(secRounded).replace('.', '_')}s`;
   const camPart = params.targetCamera === 'observer' ? '_observer' : '';
@@ -548,15 +559,17 @@ export function formatStoryboardContactSheetFilename(params: {
 }
 
 /**
- * Formats a deterministic Storyboard batch frames ZIP filename, e.g.:
- * `afraid_frames_1080p.zip` or `vector_field_frames_observer_720p.zip`.
+ * Formats a deterministic Storyboard batch frames ZIP filename with download date/time, e.g.:
+ * `afraid_frames_20261116_163601_1080p.zip` or `vector_field_frames_observer_20261116_163601_720p.zip`.
  */
 export function formatStoryboardZipFilename(params: {
   scoreIdOrTitle: string;
   targetCamera: ExportTargetCamera;
   tier: ExportResolutionTier;
+  downloadedAt?: Date;
 }): string {
   const slug = sanitizeExportSlug(params.scoreIdOrTitle);
   const camPart = params.targetCamera === 'observer' ? '_observer' : '';
-  return `${slug}_frames${camPart}_${params.tier}p.zip`;
+  const clockTag = formatLocalClockTag(params.downloadedAt ?? new Date());
+  return `${slug}_frames${camPart}_${clockTag}_${params.tier}p.zip`;
 }

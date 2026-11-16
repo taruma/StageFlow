@@ -326,10 +326,9 @@ export function formatExportMp4Filename(
 }
 
 /**
- * Formats a Date into a local wall-clock timestamp tag (`YYYYMMDD_HHmmss_SSS`)
- * so consecutive snapshots at the same scene time remain uniquely identifiable.
+ * Formats a Date into a local wall-clock timestamp tag (`YYYYMMDD_HHmmss` or `YYYYMMDD_HHmmss_SSS`).
  */
-export function formatSnapshotClockTag(date: Date): string {
+export function formatLocalClockTag(date: Date, includeMillis = false): string {
   const pad2 = (n: number) => String(n).padStart(2, '0');
   const pad3 = (n: number) => String(n).padStart(3, '0');
   const year = date.getFullYear();
@@ -338,8 +337,16 @@ export function formatSnapshotClockTag(date: Date): string {
   const hours = pad2(date.getHours());
   const minutes = pad2(date.getMinutes());
   const seconds = pad2(date.getSeconds());
-  const millis = pad3(date.getMilliseconds());
-  return `${year}${month}${day}_${hours}${minutes}${seconds}_${millis}`;
+  const base = `${year}${month}${day}_${hours}${minutes}${seconds}`;
+  return includeMillis ? `${base}_${pad3(date.getMilliseconds())}` : base;
+}
+
+/**
+ * Formats a Date into a local wall-clock timestamp tag (`YYYYMMDD_HHmmss_SSS`)
+ * so consecutive snapshots at the same scene time remain uniquely identifiable.
+ */
+export function formatSnapshotClockTag(date: Date): string {
+  return formatLocalClockTag(date, true);
 }
 
 /**

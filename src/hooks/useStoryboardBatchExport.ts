@@ -129,6 +129,7 @@ export function useStoryboardBatchExport({
         scoreIdOrTitle: score.id || score.title,
         targetCamera,
         tier,
+        downloadedAt: new Date(),
       });
 
       setProgress({ mode: 'zip', completed: 0, total: samples.length });
@@ -260,6 +261,7 @@ export function useStoryboardBatchExport({
             tier: pendingZipRequest.tier,
             format: actualFormat,
             targetCamera: pendingZipRequest.targetCamera,
+            orderedBeat: true,
           });
 
           const data = new Uint8Array(await blob.arrayBuffer());
