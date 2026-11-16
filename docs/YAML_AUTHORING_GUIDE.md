@@ -1460,7 +1460,7 @@ Chronological summary of **YAML authoring features, syntax additions, and evalua
 - **100% YAML Compatibility**: `v1.1.0`, `v1.1.1`, and `v1.1.2` introduced no new or breaking YAML score fields; all `v1.0.0` scores run unchanged.
 - **Live `duration:` Editing Behavior (`v1.1.1`)**: Editing root `duration:` in the live YAML editor updates the media clock in-place without resetting the playhead or free-orbit camera pose.
 
-### 8.4 `v1.2.0` (`Unreleased`) — 3D Orientation, Pivot, Sub-Anchors & Rig Continuity
+### 8.4 `v1.2.0` (2026-11-16) — 3D Orientation, Pivot, Sub-Anchors & Rig Continuity
 
 - **Entity 3D Tilt (`pitch`, `roll`)** ([§3.4](#section-3-4), [§6.1](#section-6-1), [§6.4](#section-6-4)): Added per-entity `pitch` and `roll` (degrees or `"rad"`) across `entities[]`, `blocking:` (Format A/B), and `shots[].entities` with intrinsic `YXZ` rotation, shortest-arc easing, `cut: true` snapping, and independence from yaw `look_at`.
 - **Optional Entity Rotation Pivot (`pivot`)** ([§3.4](#section-3-4), [§6.1](#section-6-1), [§6.4](#section-6-4)): Added `pivot` (`"base"` = `0.0`, `"center"` = `0.5`, `"top"` = `1.0`, or clamped `0..1`; aliases `pivot_ratio`, `pivotRatio`) across `entities[]`, `blocking:`, and `shots[].entities` for ground-pinned leans vs. mid-air flips/banking, with $C^0$ forward chaining across tilted cues.

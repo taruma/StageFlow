@@ -7,12 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-16
+
+### Changed
+
+- **Version Bump & Release Preparation (`package.json`, `package-lock.json`, `src/ui/AppInfoModal.tsx`, `README.md`, `docs/releases/v1.2.0.md`, `docs/ARCHITECTURE_FILE_MAP.md`, `docs/YAML_AUTHORING_GUIDE.md`)**:
+  - Bumped application version from `1.1.2` to `1.2.0` across package manifest, lockfile, and `AppInfoModal.tsx` (`APP_VERSION`).
+  - Authored GitHub release notes in `docs/releases/v1.2.0.md` and indexed them in `docs/ARCHITECTURE_FILE_MAP.md`.
+  - Updated `README.md` version badge (`1.2.0`) and promoted `§8.4 v1.2.0 (2026-11-16)` in `docs/YAML_AUTHORING_GUIDE.md`.
+
 ### Added
 
 #### Chronological YAML DSL Release History in Authoring Guide
 
 - **YAML Authoring Guide Release History (`docs/YAML_AUTHORING_GUIDE.md`, `src/ui/guide/guideUtils.ts`, `tests/unit/guideUtils.test.ts`)**:
-  - Added `## 8. YAML DSL Release History` at the bottom of `docs/YAML_AUTHORING_GUIDE.md` tracing author-facing YAML DSL features and evaluation behaviors chronologically from `v0.1.0` (`2026-11-03`) through `v1.0.0` (`2026-11-10`), `v1.1.0`–`v1.1.2` (`2026-11-14`–`2026-11-15`), and `v1.2.0` (`Unreleased`).
+  - Added `## 8. YAML DSL Release History` at the bottom of `docs/YAML_AUTHORING_GUIDE.md` tracing author-facing YAML DSL features and evaluation behaviors chronologically from `v0.1.0` (`2026-11-03`) through `v1.0.0` (`2026-11-10`), `v1.1.0`–`v1.1.2` (`2026-11-14`–`2026-11-15`), and `v1.2.0` (`2026-11-16`).
   - Added `{ label: 'Releases', id: 'section-8' }` to `GUIDE_DOC_SHORTCUTS.guide` in `src/ui/guide/guideUtils.ts` and updated `tests/unit/guideUtils.test.ts` (`7` → `8` top-level guide sections).
 
 #### Storyboard Contact Sheet Generator, Viewer & Exports — Phase 1 & Phase 2 (#28)
