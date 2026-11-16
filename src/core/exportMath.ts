@@ -70,14 +70,14 @@ export function roundToEven(value: number): number {
 
 /**
  * Computes H.264-compliant even pixel dimensions (width % 2 === 0, height % 2 === 0)
- * from a resolution tier (720p or 1080p) and score aspect ratio.
+ * from a vertical resolution tier (e.g. 540, 720, 1080) and score aspect ratio.
  *
- * - Wide ratios (>= 16:9, e.g. 16:9, 1.85:1, 2.39:1): anchors width to 1920/1280.
- * - Standard horizontal ratios (1.0 <= r < 16:9, e.g. 4:3): anchors height to 1080/720.
- * - Vertical ratios (r < 1.0, e.g. 9:16): anchors width to 1080/720.
+ * - Wide ratios (>= 16:9, e.g. 16:9, 1.85:1, 2.39:1): anchors width to 960/1280/1920.
+ * - Standard horizontal ratios (1.0 <= r < 16:9, e.g. 4:3): anchors height to tier.
+ * - Vertical ratios (r < 1.0, e.g. 9:16): anchors width to tier.
  */
 export function computeExportDimensions(
-  tier: ExportResolutionTier,
+  tier: number,
   aspectRatio: number
 ): ExportDimensions {
   const safeAspect =
@@ -326,10 +326,9 @@ export function formatExportMp4Filename(
 }
 
 /**
- * Formats a Date into a local wall-clock timestamp tag (`YYYYMMDD_HHmmss_SSS`)
- * so consecutive snapshots at the same scene time remain uniquely identifiable.
+ * Formats a Date into a local wall-clock timestamp tag (`YYYYMMDD_HHmmss` or `YYYYMMDD_HHmmss_SSS`).
  */
-export function formatSnapshotClockTag(date: Date): string {
+export function formatLocalClockTag(date: Date, includeMillis = false): string {
   const pad2 = (n: number) => String(n).padStart(2, '0');
   const pad3 = (n: number) => String(n).padStart(3, '0');
   const year = date.getFullYear();
@@ -338,8 +337,16 @@ export function formatSnapshotClockTag(date: Date): string {
   const hours = pad2(date.getHours());
   const minutes = pad2(date.getMinutes());
   const seconds = pad2(date.getSeconds());
-  const millis = pad3(date.getMilliseconds());
-  return `${year}${month}${day}_${hours}${minutes}${seconds}_${millis}`;
+  const base = `${year}${month}${day}_${hours}${minutes}${seconds}`;
+  return includeMillis ? `${base}_${pad3(date.getMilliseconds())}` : base;
+}
+
+/**
+ * Formats a Date into a local wall-clock timestamp tag (`YYYYMMDD_HHmmss_SSS`)
+ * so consecutive snapshots at the same scene time remain uniquely identifiable.
+ */
+export function formatSnapshotClockTag(date: Date): string {
+  return formatLocalClockTag(date, true);
 }
 
 /**

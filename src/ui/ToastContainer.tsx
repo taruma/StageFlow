@@ -23,7 +23,7 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({
     <div
       aria-live="polite"
       aria-atomic="true"
-      className="fixed top-14 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none select-none"
+      className="fixed top-14 right-4 z-[130] flex flex-col gap-2 max-w-sm w-full pointer-events-none select-none"
     >
       {toasts.map((toast) => {
         const type = toast.type ?? 'info';

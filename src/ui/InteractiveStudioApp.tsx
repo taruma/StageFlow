@@ -63,6 +63,7 @@ import { ScoreLibraryModal, type FilterTab } from './ScoreLibraryModal';
 import { MobileScoreLibraryModal } from './library/MobileScoreLibraryModal';
 import { AppInfoModal } from './AppInfoModal';
 import { CleanVideoExportModal } from './CleanVideoExportModal';
+import { StoryboardModal } from './StoryboardModal';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { ToastContainer } from './ToastContainer';
 import { DirectorialTransportBar } from './DirectorialTransportBar';
@@ -112,6 +113,9 @@ export const InteractiveStudioApp: React.FC = () => {
 
   // In-browser Clean Stage Cam MP4 Export Modal state
   const [isVideoExportOpen, setIsVideoExportOpen] = useState(false);
+
+  // Storyboard Contact Sheet Modal state
+  const [isStoryboardOpen, setIsStoryboardOpen] = useState(false);
 
   // Global '?' shortcut to open Info / Shortcuts Modal
   useEffect(() => {
@@ -829,6 +833,11 @@ export const InteractiveStudioApp: React.FC = () => {
           stageLoop.forceSyncUi();
           setIsVideoExportOpen(true);
         }}
+        onOpenStoryboard={() => {
+          mediaClock.pause();
+          stageLoop.forceSyncUi();
+          setIsStoryboardOpen(true);
+        }}
         onOpenLibrary={(tab) => {
           setLibraryInitialTab(tab);
           setIsLibraryOpen(true);
@@ -1119,6 +1128,15 @@ export const InteractiveStudioApp: React.FC = () => {
         dofBlurEnabled={display.dofBlurEnabled}
         onNotify={showToast}
         onClose={() => setIsVideoExportOpen(false)}
+      />
+
+      {/* Storyboard Contact Sheet Generator & Viewer Modal */}
+      <StoryboardModal
+        isOpen={isStoryboardOpen}
+        score={activeScore}
+        dofBlurEnabled={display.dofBlurEnabled}
+        onNotify={showToast}
+        onClose={() => setIsStoryboardOpen(false)}
       />
 
       {/* Temporary Offscreen Stage Cam Snapshot Canvas (mounted strictly during 1-frame capture) */}
