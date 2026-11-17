@@ -27,6 +27,7 @@ export interface UniversalVideoViewportProps {
   themeCategory?: AppThemeCategory;
   stageSkinUrl?: string | null;
   stageSkinVisible?: boolean;
+  entitySkinUrls?: Record<string, string>;
   onApplyVideoUrlOverride?: (url: string) => void;
 }
 
@@ -45,6 +46,7 @@ export const UniversalVideoViewport: React.FC<UniversalVideoViewportProps> = ({
   themeCategory = 'light',
   stageSkinUrl,
   stageSkinVisible = true,
+  entitySkinUrls,
 }) => {
   return (
     <div className="relative flex-1 w-full h-full aspect-fit-container bg-app select-none overflow-hidden p-2.5 md:p-3">
@@ -88,6 +90,7 @@ export const UniversalVideoViewport: React.FC<UniversalVideoViewportProps> = ({
             themeCategory={themeCategory}
             stageSkinUrl={stageSkinUrl}
             stageSkinVisible={stageSkinVisible}
+            entitySkinUrls={entitySkinUrls}
           />
         )}
       </div>

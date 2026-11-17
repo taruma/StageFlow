@@ -15,6 +15,7 @@ export interface StoryboardCacheVariant {
   themeCategory: AppThemeCategory;
   dofBlurEnabled: boolean;
   stageSkinUrl?: string | null;
+  entitySkinsSignature?: string;
 }
 
 export interface StoryboardBlobCacheOptions {
@@ -63,7 +64,8 @@ export class StoryboardBlobCache {
     const effectiveDof =
       variant.targetCamera === 'stage-cam' && variant.dofBlurEnabled ? 1 : 0;
     const skinKey = variant.stageSkinUrl ?? '';
-    return `${scoreId}|${variant.targetCamera}|${variant.sampleMode}|${variant.themeCategory}|${effectiveDof}|${skinKey}`;
+    const entityKey = variant.entitySkinsSignature ?? '';
+    return `${scoreId}|${variant.targetCamera}|${variant.sampleMode}|${variant.themeCategory}|${effectiveDof}|${skinKey}|${entityKey}`;
   }
 
   get(score: StageScore, variant: StoryboardCacheVariant): Blob[] | null {

@@ -46,6 +46,7 @@ export interface CleanVideoExportModalProps {
   liveViewportPose?: SphericalPose;
   dofBlurEnabled: boolean;
   stageSkinUrl?: string | null;
+  entitySkinUrls?: Record<string, string>;
   onNotify?: (message: string, type?: ToastNotification['type']) => void;
   onClose: () => void;
 }
@@ -57,6 +58,7 @@ export const CleanVideoExportModal: React.FC<CleanVideoExportModalProps> = ({
   liveViewportPose,
   dofBlurEnabled,
   stageSkinUrl,
+  entitySkinUrls,
   onNotify,
   onClose,
 }) => {
@@ -532,6 +534,7 @@ export const CleanVideoExportModal: React.FC<CleanVideoExportModalProps> = ({
           observerAngleMode={effectiveObserverAngleMode}
           customObserverPose={liveViewportPose}
           stageSkinUrl={stageSkinUrl}
+          entitySkinUrls={entitySkinUrls}
         />
       )}
     </div>

@@ -47,12 +47,14 @@ import { useWorkspaceLayout } from '../hooks/useWorkspaceLayout';
 import { useStudioDisplaySettings } from '../hooks/useStudioDisplaySettings';
 import { useToastNotifications } from '../hooks/useToastNotifications';
 import { useStageCamSnapshot } from '../hooks/useStageCamSnapshot';
+import { useStageSkins } from '../hooks/useStageSkins';
 import { DioramaCanvas } from '../stage/DioramaCanvas';
 import { CleanStageCamExportCanvas } from '../stage/CleanStageCamExportCanvas';
 import {
   clearStageEnvironmentSkinCache,
   preloadStageEnvironmentSkin,
 } from '../stage/StageEnvironmentSkin';
+import { AssignStageSkinModal } from './AssignStageSkinModal';
 import { WorkspaceHeader } from './WorkspaceHeader';
 import { ResizableSplitWorkspace } from './ResizableSplitWorkspace';
 import { UniversalVideoViewport } from './UniversalVideoViewport';
@@ -117,24 +119,6 @@ export const InteractiveStudioApp: React.FC = () => {
 
   // In-browser Clean Stage Cam MP4 Export Modal state
   const [isVideoExportOpen, setIsVideoExportOpen] = useState(false);
-
-  // Ephemeral in-memory 3D stage environment skin (.glb / .gltf)
-  const [stageSkin, setStageSkin] = useState<{
-    url: string;
-    name: string;
-  } | null>(null);
-  const [isStageSkinVisible, setIsStageSkinVisible] = useState(true);
-  const stageSkinUrlRef = useRef<string | null>(null);
-  stageSkinUrlRef.current = stageSkin?.url ?? null;
-
-  useEffect(() => {
-    return () => {
-      if (stageSkinUrlRef.current) {
-        clearStageEnvironmentSkinCache(stageSkinUrlRef.current);
-        URL.revokeObjectURL(stageSkinUrlRef.current);
-      }
-    };
-  }, []);
 
   // Storyboard Contact Sheet Modal state
   const [isStoryboardOpen, setIsStoryboardOpen] = useState(false);
@@ -777,50 +761,18 @@ export const InteractiveStudioApp: React.FC = () => {
     [mediaClock, showToast]
   );
 
-  const releaseStageSkinUrl = useCallback((url: string | null | undefined) => {
-    if (!url) return;
-    clearStageEnvironmentSkinCache(url);
-    URL.revokeObjectURL(url);
-  }, []);
-
-  const handleLoadStageSkinBlobUrl = useCallback(
-    (blobUrl: string, fileName: string) => {
-      releaseStageSkinUrl(stageSkinUrlRef.current);
-      preloadStageEnvironmentSkin(blobUrl);
-      setStageSkin({ url: blobUrl, name: fileName });
-      setIsStageSkinVisible(true);
-      showToast(`Loaded 3D stage skin "${fileName}"`, 'success');
-    },
-    [releaseStageSkinUrl, showToast]
-  );
-
-  const handleClearStageSkin = useCallback(() => {
-    releaseStageSkinUrl(stageSkinUrlRef.current);
-    setStageSkin(null);
-    showToast('Removed 3D stage skin', 'info');
-  }, [releaseStageSkinUrl, showToast]);
-
-  const handleStageSkinError = useCallback(
-    (error: Error) => {
-      const failedName = stageSkin?.name ?? 'model';
-      releaseStageSkinUrl(stageSkinUrlRef.current);
-      setStageSkin(null);
-      showToast(
-        `Failed to load 3D skin "${failedName}": ${error.message}`,
-        'error'
-      );
-    },
-    [stageSkin?.name, releaseStageSkinUrl, showToast]
-  );
+  const stageSkins = useStageSkins({
+    entities: activeScore.entities,
+    onPreloadSkin: preloadStageEnvironmentSkin,
+    onReleaseSkinCache: clearStageEnvironmentSkinCache,
+    onNotify: showToast,
+  });
 
   const fileDrop = useFileDropLoader({
     onLoadYamlText: handleLoadYamlFile,
     onLoadVideoBlobUrl: handleLoadVideoBlobUrl,
-    onLoadStageSkinBlobUrl: handleLoadStageSkinBlobUrl,
+    onLoadStageSkinBlobUrl: stageSkins.enqueueSkinDrop,
   });
-
-  const effectiveStageSkinUrl =
-    isStageSkinVisible && stageSkin ? stageSkin.url : null;
 
   const handleSeekAndSync = useCallback(
     (targetSec: number) => {
@@ -843,7 +795,8 @@ export const InteractiveStudioApp: React.FC = () => {
       timestampSec: stageLoop.frameRef.current.timestampSec,
       dofBlurEnabled: display.dofBlurEnabled,
       themeCategory: theme.effectiveDioramaCategory,
-      stageSkinUrl: effectiveStageSkinUrl,
+      stageSkinUrl: stageSkins.effectiveStageSkinUrl,
+      entitySkinUrls: stageSkins.effectiveEntitySkinUrls,
     });
   }, [
     captureSnapshot,
@@ -851,7 +804,8 @@ export const InteractiveStudioApp: React.FC = () => {
     stageLoop.frameRef,
     display.dofBlurEnabled,
     theme.effectiveDioramaCategory,
-    effectiveStageSkinUrl,
+    stageSkins.effectiveStageSkinUrl,
+    stageSkins.effectiveEntitySkinUrls,
   ]);
 
   return (
@@ -943,8 +897,9 @@ export const InteractiveStudioApp: React.FC = () => {
             dofBlurEnabled={display.dofBlurEnabled}
             onToggleDofBlur={display.handleToggleDofBlur}
             themeCategory={theme.effectiveDioramaCategory}
-            stageSkinUrl={stageSkin?.url ?? null}
-            stageSkinVisible={isStageSkinVisible}
+            stageSkinUrl={stageSkins.stageSkin?.url ?? null}
+            stageSkinVisible={stageSkins.isSkinsVisible}
+            entitySkinUrls={stageSkins.entitySkinUrls}
             onApplyVideoUrlOverride={(url) => {
               setVideoOverrideUrl(url);
               mediaClock.seek(0);
@@ -974,8 +929,9 @@ export const InteractiveStudioApp: React.FC = () => {
                   dofBlurEnabled={display.dofBlurEnabled}
                   onToggleDofBlur={display.handleToggleDofBlur}
                   themeCategory={theme.effectiveDioramaCategory}
-                  stageSkinUrl={stageSkin?.url ?? null}
-                  stageSkinVisible={isStageSkinVisible}
+                  stageSkinUrl={stageSkins.stageSkin?.url ?? null}
+                  stageSkinVisible={stageSkins.isSkinsVisible}
+                  entitySkinUrls={stageSkins.entitySkinUrls}
                 />
               ) : undefined
             }
@@ -1002,9 +958,11 @@ export const InteractiveStudioApp: React.FC = () => {
               cameraPresetActionRef={cameraPresetActionRef}
               cameraPresetSeq={cameraPresetSeq}
               sceneResetSeq={sceneResetSeq}
-              stageSkinUrl={stageSkin?.url ?? null}
-              stageSkinVisible={isStageSkinVisible}
-              onStageSkinError={handleStageSkinError}
+              stageSkinUrl={stageSkins.stageSkin?.url ?? null}
+              stageSkinVisible={stageSkins.isSkinsVisible}
+              entitySkinUrls={stageSkins.entitySkinUrls}
+              onStageSkinError={stageSkins.handleStageSkinError}
+              onEntitySkinError={stageSkins.handleEntitySkinError}
             />
 
             {/* Responsive Diorama HUD Overlays & POV Viewfinder Dock */}
@@ -1019,12 +977,13 @@ export const InteractiveStudioApp: React.FC = () => {
               dofBlurEnabled={display.dofBlurEnabled}
               isNarrow={isNarrowDiorama}
               dioramaWidth={dioramaWidth}
-              stageSkinName={stageSkin?.name ?? null}
-              isStageSkinVisible={isStageSkinVisible}
-              onToggleStageSkinVisible={() =>
-                setIsStageSkinVisible((prev) => !prev)
-              }
-              onClearStageSkin={handleClearStageSkin}
+              stageSkin={stageSkins.stageSkin}
+              entitySkins={stageSkins.entitySkins}
+              isSkinsVisible={stageSkins.isSkinsVisible}
+              onToggleSkinsVisible={stageSkins.toggleSkinsVisible}
+              onClearStageSkin={stageSkins.clearStageSkin}
+              onClearEntitySkin={stageSkins.clearEntitySkin}
+              onClearAllSkins={stageSkins.clearAllSkins}
               onSetCameraMode={stageLoop.setCameraMode}
               onSelectPreset={handleSelectCameraPreset}
               onSelectLabelMode={display.handleSelectLabelMode}
@@ -1203,7 +1162,8 @@ export const InteractiveStudioApp: React.FC = () => {
         activeShot={stageLoop.uiSnapshot.frame.activeShot}
         liveViewportPose={stageLoop.uiSnapshot.liveViewportPose}
         dofBlurEnabled={display.dofBlurEnabled}
-        stageSkinUrl={effectiveStageSkinUrl}
+        stageSkinUrl={stageSkins.effectiveStageSkinUrl}
+        entitySkinUrls={stageSkins.effectiveEntitySkinUrls}
         onNotify={showToast}
         onClose={() => setIsVideoExportOpen(false)}
       />
@@ -1213,9 +1173,20 @@ export const InteractiveStudioApp: React.FC = () => {
         isOpen={isStoryboardOpen}
         score={activeScore}
         dofBlurEnabled={display.dofBlurEnabled}
-        stageSkinUrl={effectiveStageSkinUrl}
+        stageSkinUrl={stageSkins.effectiveStageSkinUrl}
+        entitySkinUrls={stageSkins.effectiveEntitySkinUrls}
         onNotify={showToast}
         onClose={() => setIsStoryboardOpen(false)}
+      />
+
+      {/* Direct Target Assignment Modal for Dropped .GLB / .GLTF Skins */}
+      <AssignStageSkinModal
+        pendingDrop={stageSkins.pendingSkinDrop}
+        entities={activeScore.entities}
+        stageSkin={stageSkins.stageSkin}
+        entitySkins={stageSkins.entitySkins}
+        onAssign={stageSkins.assignPendingSkin}
+        onCancel={stageSkins.cancelPendingSkin}
       />
 
       {/* Temporary Offscreen Stage Cam Snapshot Canvas (mounted strictly during 1-frame capture) */}
@@ -1230,6 +1201,7 @@ export const InteractiveStudioApp: React.FC = () => {
           themeCategory={stageCamSnapshot.pendingRequest.themeCategory}
           targetCamera="stage-cam"
           stageSkinUrl={stageCamSnapshot.pendingRequest.stageSkinUrl}
+          entitySkinUrls={stageCamSnapshot.pendingRequest.entitySkinUrls}
         />
       )}
 

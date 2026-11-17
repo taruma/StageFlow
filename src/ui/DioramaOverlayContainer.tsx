@@ -6,8 +6,8 @@
  * Layer 5 UI Component.
  */
 
-import React from 'react';
-import { Box, Eye, EyeOff, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { Box, ChevronDown, Eye, EyeOff, X } from 'lucide-react';
 import type {
   CameraViewMode,
   LabelDisplayMode,
@@ -15,6 +15,7 @@ import type {
   StageFrame,
   StageScore,
 } from '../core/types';
+import type { ActiveSkinEntry } from '../hooks/useStageSkins';
 import type { CameraPresetType } from '../stage/cameraPresets';
 import { CompactDioramaHeader } from './CompactDioramaHeader';
 import { ShotBreakdownHud } from './ShotBreakdownHud';
@@ -35,10 +36,13 @@ export interface DioramaOverlayContainerProps {
   dofBlurEnabled?: boolean;
   isNarrow: boolean;
   dioramaWidth?: number;
-  stageSkinName?: string | null;
-  isStageSkinVisible?: boolean;
-  onToggleStageSkinVisible?: () => void;
+  stageSkin?: ActiveSkinEntry | null;
+  entitySkins?: Record<string, ActiveSkinEntry>;
+  isSkinsVisible?: boolean;
+  onToggleSkinsVisible?: () => void;
   onClearStageSkin?: () => void;
+  onClearEntitySkin?: (entityId: string) => void;
+  onClearAllSkins?: () => void;
   onSetCameraMode: (mode: CameraViewMode) => void;
   onSelectPreset: (preset: CameraPresetType) => void;
   onSelectLabelMode: (mode: LabelDisplayMode) => void;
@@ -57,48 +61,120 @@ export const DioramaOverlayContainer: React.FC<DioramaOverlayContainerProps> = (
   dofBlurEnabled = false,
   isNarrow,
   dioramaWidth,
-  stageSkinName,
-  isStageSkinVisible = true,
-  onToggleStageSkinVisible,
+  stageSkin,
+  entitySkins = {},
+  isSkinsVisible = true,
+  onToggleSkinsVisible,
   onClearStageSkin,
+  onClearEntitySkin,
+  onClearAllSkins,
   onSetCameraMode,
   onSelectPreset,
   onSelectLabelMode,
   onToggleGuides,
   onToggleDofBlur,
 }) => {
-  const skinPill = stageSkinName ? (
-    <div className="flex items-center gap-1 p-0.5 pl-2 rounded-xl bg-surface border border-border-main shadow-xs pointer-events-auto select-none max-w-[200px]">
-      <Box className="w-3 h-3 text-emerald-500 shrink-0" />
-      <span
-        className="text-[10px] font-mono text-text-body truncate"
-        title={`3D Stage Skin: ${stageSkinName}`}
-      >
-        {stageSkinName}
-      </span>
-      {onToggleStageSkinVisible && (
-        <button
-          type="button"
-          onClick={onToggleStageSkinVisible}
-          title={isStageSkinVisible ? 'Hide 3D Stage Skin' : 'Show 3D Stage Skin'}
-          className="p-1 rounded-lg text-text-muted hover:text-text-main hover:bg-surface-subtle transition-colors cursor-pointer"
-        >
-          {isStageSkinVisible ? (
-            <Eye className="w-3 h-3" />
-          ) : (
-            <EyeOff className="w-3 h-3" />
+  const [isSkinListOpen, setIsSkinListOpen] = useState(false);
+
+  const entityEntries = Object.entries(entitySkins);
+  const totalSkinCount = (stageSkin ? 1 : 0) + entityEntries.length;
+  const singleSkinLabel = stageSkin
+    ? `Stage: ${stageSkin.name}`
+    : entityEntries[0]
+    ? `${entityEntries[0][0]}: ${entityEntries[0][1].name}`
+    : '';
+
+  const skinPill = totalSkinCount > 0 ? (
+    <div className="relative pointer-events-auto select-none">
+      <div className="flex items-center gap-1 p-0.5 pl-2 rounded-xl bg-surface border border-border-main shadow-xs max-w-[230px]">
+        <Box className="w-3 h-3 text-emerald-500 shrink-0" />
+        {totalSkinCount > 1 ? (
+          <button
+            type="button"
+            onClick={() => setIsSkinListOpen((prev) => !prev)}
+            className="flex items-center gap-1 text-[10px] font-mono text-text-body hover:text-text-main truncate cursor-pointer"
+            title="Inspect or remove active .GLB skins"
+          >
+            <span>{totalSkinCount} .GLB Skins</span>
+            <ChevronDown className="w-3 h-3 shrink-0" />
+          </button>
+        ) : (
+          <span
+            className="text-[10px] font-mono text-text-body truncate"
+            title={singleSkinLabel}
+          >
+            {singleSkinLabel}
+          </span>
+        )}
+        {onToggleSkinsVisible && (
+          <button
+            type="button"
+            onClick={onToggleSkinsVisible}
+            title={isSkinsVisible ? 'Hide 3D Skins' : 'Show 3D Skins'}
+            className="p-1 rounded-lg text-text-muted hover:text-text-main hover:bg-surface-subtle transition-colors cursor-pointer"
+          >
+            {isSkinsVisible ? (
+              <Eye className="w-3 h-3" />
+            ) : (
+              <EyeOff className="w-3 h-3" />
+            )}
+          </button>
+        )}
+        {onClearAllSkins && (
+          <button
+            type="button"
+            onClick={() => {
+              setIsSkinListOpen(false);
+              onClearAllSkins();
+            }}
+            title={totalSkinCount > 1 ? 'Remove All 3D Skins' : 'Remove 3D Skin'}
+            className="p-1 rounded-lg text-text-muted hover:text-rose-500 hover:bg-surface-subtle transition-colors cursor-pointer"
+          >
+            <X className="w-3 h-3" />
+          </button>
+        )}
+      </div>
+
+      {isSkinListOpen && totalSkinCount > 1 && (
+        <div className="absolute right-0 mt-1.5 w-60 rounded-xl bg-surface border border-border-main shadow-xl p-1.5 space-y-1 z-30">
+          {stageSkin && (
+            <div className="flex items-center justify-between gap-2 px-2 py-1 rounded-lg bg-surface-subtle text-[10px] font-mono">
+              <span className="truncate text-text-body" title={stageSkin.name}>
+                stage: {stageSkin.name}
+              </span>
+              {onClearStageSkin && (
+                <button
+                  type="button"
+                  onClick={onClearStageSkin}
+                  className="text-text-muted hover:text-rose-500 cursor-pointer shrink-0"
+                  title="Remove stage skin"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
           )}
-        </button>
-      )}
-      {onClearStageSkin && (
-        <button
-          type="button"
-          onClick={onClearStageSkin}
-          title="Remove 3D Stage Skin"
-          className="p-1 rounded-lg text-text-muted hover:text-rose-500 hover:bg-surface-subtle transition-colors cursor-pointer"
-        >
-          <X className="w-3 h-3" />
-        </button>
+          {entityEntries.map(([id, entry]) => (
+            <div
+              key={id}
+              className="flex items-center justify-between gap-2 px-2 py-1 rounded-lg bg-surface-subtle text-[10px] font-mono"
+            >
+              <span className="truncate text-text-body" title={`${id}: ${entry.name}`}>
+                #{id}: {entry.name}
+              </span>
+              {onClearEntitySkin && (
+                <button
+                  type="button"
+                  onClick={() => onClearEntitySkin(id)}
+                  className="text-text-muted hover:text-rose-500 cursor-pointer shrink-0"
+                  title={`Remove skin from ${id}`}
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
       )}
     </div>
   ) : null;

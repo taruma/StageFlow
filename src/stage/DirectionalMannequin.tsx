@@ -38,6 +38,7 @@ import type {
   StageFrame,
 } from '../core/types';
 import { StageBillboardLabel } from './StageBillboardLabel';
+import { StageEntitySkin } from './StageEnvironmentSkin';
 
 export interface DirectionalMannequinProps {
   entityId: string;
@@ -47,6 +48,9 @@ export interface DirectionalMannequinProps {
   labelMode?: LabelDisplayMode;
   isPlaying?: boolean;
   cameraMode?: CameraViewMode;
+  skinUrl?: string | null;
+  skinVisible?: boolean;
+  onEntitySkinError?: (entityId: string, error: Error) => void;
 }
 
 export function areDirectionalMannequinPropsEqual(
@@ -59,6 +63,8 @@ export function areDirectionalMannequinPropsEqual(
     prev.labelMode === next.labelMode &&
     prev.isPlaying === next.isPlaying &&
     prev.cameraMode === next.cameraMode &&
+    prev.skinUrl === next.skinUrl &&
+    prev.skinVisible === next.skinVisible &&
     prev.initialState.def === next.initialState.def &&
     prev.initialState.cueId === next.initialState.cueId &&
     prev.initialState.highlighted === next.initialState.highlighted &&
@@ -78,6 +84,9 @@ const DirectionalMannequinComponent: React.FC<DirectionalMannequinProps> = ({
   labelMode = 'all',
   isPlaying = false,
   cameraMode,
+  skinUrl,
+  skinVisible = true,
+  onEntitySkinError,
 }) => {
   const groupRef = useRef<THREE.Group | null>(null);
   const lastSyncedEntityRef = useRef<EvaluatedEntityState | null>(null);
@@ -100,6 +109,7 @@ const DirectionalMannequinComponent: React.FC<DirectionalMannequinProps> = ({
   const charScaleX = radius > 1e-5 ? rx / radius : 1;
   const charScaleZ = radius > 1e-5 ? rz / radius : 1;
   const isBoxProp = def.kind === 'prop' && (def.shape ?? 'box') === 'box';
+  const hasActiveSkin = Boolean(skinUrl && skinVisible);
 
   // Helper to get synchronized live entity state without backward teleports on memoized initialState
   const getSynchronizedEntity = (liveFrame: StageFrame | null) => {
@@ -149,7 +159,7 @@ const DirectionalMannequinComponent: React.FC<DirectionalMannequinProps> = ({
       pivotOffsetRef.current.position.set(0, -pivotOffsetY, 0);
     }
 
-    if (def.kind === 'character') {
+    if (def.kind === 'character' && !hasActiveSkin) {
       if (meshContainerRef.current) {
         meshContainerRef.current.scale.set(1, 1, 1);
       }
@@ -638,7 +648,19 @@ const DirectionalMannequinComponent: React.FC<DirectionalMannequinProps> = ({
           <group ref={pivotOffsetRef}>
             {/* Scaled 3D Mesh Container (Base at Y=0) */}
             <group ref={meshContainerRef}>
-              {def.kind === 'character' ? (
+              {hasActiveSkin && skinUrl ? (
+                <StageEntitySkin
+                  url={skinUrl}
+                  kind={def.kind ?? 'character'}
+                  baseWidth={baseWidth}
+                  height={height}
+                  baseDepth={baseDepth}
+                  hasExplicitWidthDepth={
+                    def.width !== undefined && def.depth !== undefined
+                  }
+                  onError={(err) => onEntitySkinError?.(entityId, err)}
+                />
+              ) : def.kind === 'character' ? (
                 renderCharacter()
               ) : def.kind === 'prop' ? (
                 renderPropShape()

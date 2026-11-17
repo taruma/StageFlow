@@ -28,6 +28,7 @@ export interface StageCamSnapshotRequest {
   dofBlurEnabled: boolean;
   themeCategory: AppThemeCategory;
   stageSkinUrl?: string | null;
+  entitySkinUrls?: Record<string, string>;
   filename: string;
 }
 
@@ -37,6 +38,7 @@ export interface CaptureStageCamSnapshotParams {
   dofBlurEnabled: boolean;
   themeCategory: AppThemeCategory;
   stageSkinUrl?: string | null;
+  entitySkinUrls?: Record<string, string>;
 }
 
 export interface UseStageCamSnapshotOptions {
@@ -83,6 +85,7 @@ export function useStageCamSnapshot({
       dofBlurEnabled,
       themeCategory,
       stageSkinUrl,
+      entitySkinUrls,
     }: CaptureStageCamSnapshotParams) => {
       if (isCapturingRef.current) return;
       isCapturingRef.current = true;
@@ -109,6 +112,7 @@ export function useStageCamSnapshot({
         dofBlurEnabled,
         themeCategory,
         stageSkinUrl,
+        entitySkinUrls,
         filename,
       });
     },

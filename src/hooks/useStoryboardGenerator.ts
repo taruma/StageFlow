@@ -18,6 +18,7 @@ import {
   type StoryboardSamplePoint,
 } from '../core/storyboardMath';
 import type { AppThemeCategory, StageScore } from '../core/types';
+import { buildEntitySkinsSignature } from '../core/skinMath';
 import type { CleanStageCamExportHandle } from '../stage/CleanStageCamExportCanvas';
 import {
   StoryboardBlobCache,
@@ -39,6 +40,7 @@ export interface UseStoryboardGeneratorParams {
   themeCategory: AppThemeCategory;
   dofBlurEnabled: boolean;
   stageSkinUrl?: string | null;
+  entitySkinUrls?: Record<string, string>;
 }
 
 const STORYBOARD_PREVIEW_TIER = 540;
@@ -96,7 +98,12 @@ export function useStoryboardGenerator({
   themeCategory,
   dofBlurEnabled,
   stageSkinUrl,
+  entitySkinUrls,
 }: UseStoryboardGeneratorParams) {
+  const entitySkinsSignature = useMemo(
+    () => buildEntitySkinsSignature(entitySkinUrls),
+    [entitySkinUrls]
+  );
   const canvasRef = useRef<CleanStageCamExportHandle | null>(null);
   const generationIdRef = useRef(0);
   const objectUrlsRef = useRef<string[]>([]);
@@ -154,6 +161,7 @@ export function useStoryboardGenerator({
       themeCategory,
       dofBlurEnabled,
       stageSkinUrl,
+      entitySkinsSignature,
     };
 
     const forceRegenerate = lastHandledRegenSeqRef.current !== regenSeq;
@@ -280,13 +288,14 @@ export function useStoryboardGenerator({
     themeCategory,
     dofBlurEnabled,
     stageSkinUrl,
+    entitySkinsSignature,
     regenSeq,
     revokeAllObjectUrls,
   ]);
 
   return {
     canvasRef,
-    canvasKey: `${regenSeq}-${targetCamera}-${themeCategory}-${dofBlurEnabled}-${stageSkinUrl ?? 'none'}-${dims.width}x${dims.height}`,
+    canvasKey: `${regenSeq}-${targetCamera}-${themeCategory}-${dofBlurEnabled}-${stageSkinUrl ?? 'none'}-${entitySkinsSignature || 'none'}-${dims.width}x${dims.height}`,
     dims,
     samples,
     panels,

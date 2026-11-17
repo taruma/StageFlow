@@ -136,17 +136,26 @@ describe('StoryboardBlobCache', () => {
     const noSkinVariant: StoryboardCacheVariant = {
       ...STAGE_MID_LIGHT,
       stageSkinUrl: null,
+      entitySkinsSignature: '',
     };
     const cafeSkinVariant: StoryboardCacheVariant = {
       ...STAGE_MID_LIGHT,
       stageSkinUrl: 'blob:http://localhost/cafe-skin',
+      entitySkinsSignature: '',
+    };
+    const heroSkinVariant: StoryboardCacheVariant = {
+      ...STAGE_MID_LIGHT,
+      stageSkinUrl: 'blob:http://localhost/cafe-skin',
+      entitySkinsSignature: 'hero=blob:http://localhost/hero-skin',
     };
 
     cache.set(score, noSkinVariant, noSkinBlobs);
     cache.set(score, cafeSkinVariant, cafeSkinBlobs);
+    cache.set(score, heroSkinVariant, makeFakeBlobs(2));
 
-    expect(cache.entryCount).toBe(2);
+    expect(cache.entryCount).toBe(3);
     expect(cache.get(score, STAGE_MID_LIGHT)).toBe(noSkinBlobs);
     expect(cache.get(score, cafeSkinVariant)).toBe(cafeSkinBlobs);
+    expect(cache.get(score, heroSkinVariant)).not.toBeNull();
   });
 });
