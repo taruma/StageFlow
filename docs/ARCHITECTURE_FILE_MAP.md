@@ -52,6 +52,8 @@ stageflow/
 │       ├── serverManager.ts         # Vite server detection & background startup
 │       ├── cameraPresets.ts         # Camera angle presets (isometric, top-down, front, side)
 │       ├── skinResolver.ts          # CLI .glb/.gltf skin resolver (--stage-skin, --entity-skin, --skins-dir)
+│       ├── workerRecorder.ts        # Single-page Playwright + CDP screenshot worker for stateless sharding
+│       ├── workerScheduler.ts       # Auto-optimized parallel worker count, capture format & frame shard math
 │       └── recorderTypes.ts         # Shared CLI & bridge TypeScript interfaces
 ├── public/                          # Static web assets, logos, icons & favicons
 │   ├── StageFlow - LOGO - BLACK.png # Desktop horizontal brand logo (light/warm themes)
@@ -89,6 +91,7 @@ stageflow/
 │   │   ├── shotPoseEvaluator.ts     # Single-shot pose evaluation, Catmull-Rom splines & 3D path sampling
 │   │   ├── trajectoryChain.ts       # Forward pose chaining (P_0 -> P_k) & multi-shot timeline tracks
 │   │   ├── frameEngine.ts           # Master stateless evaluator: computeStageFrame(t, score)
+│   │   ├── frameBoundaryDiff.ts     # Pure shot/entity boundary diff detector for React commit skipping
 │   │   ├── scorePrimitives.ts       # Low-level vector, angle, lens, focus/DoF & enum normalizers
 │   │   ├── cameraCueParser.ts       # Camera poses, shot cue specs, waypoints & observer shots
 │   │   ├── scoreParser.ts           # Resilient YAML/JSON parser & degree/meter normalizer
@@ -230,6 +233,7 @@ stageflow/
         ├── cameraRigs.test.ts
         ├── entityEngine.test.ts
         ├── frameEngine.test.ts
+        ├── frameBoundaryDiff.test.ts
         ├── scoreParser.test.ts
         ├── scoreContract.test.ts
         ├── scoreYamlUtils.test.ts

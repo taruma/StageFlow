@@ -22,6 +22,7 @@ import type {
   ExportTargetCamera,
 } from '../core/exportMath';
 import { sphericalToCartesian } from '../core/sphericalMath';
+import { hasStageFrameBoundaryChanged } from '../core/frameBoundaryDiff';
 import type {
   AppThemeCategory,
   CameraTransform3D,
@@ -139,32 +140,6 @@ const ExportAdvanceBridge: React.FC<{
   return null;
 };
 
-function hasBoundaryStateChanged(prev: StageFrame, next: StageFrame): boolean {
-  if (prev.stageCamera.shotId !== next.stageCamera.shotId) {
-    return true;
-  }
-  if (prev.observerCamera.shotId !== next.observerCamera.shotId) {
-    return true;
-  }
-  if (prev.entitiesList.length !== next.entitiesList.length) {
-    return true;
-  }
-  for (let i = 0; i < next.entitiesList.length; i++) {
-    const a = prev.entitiesList[i];
-    const b = next.entitiesList[i];
-    if (
-      a.id !== b.id ||
-      a.cueId !== b.cueId ||
-      a.highlighted !== b.highlighted ||
-      a.visible !== b.visible ||
-      a.trailPoints !== b.trailPoints
-    ) {
-      return true;
-    }
-  }
-  return false;
-}
-
 function nextAnimationFrame(): Promise<void> {
   return new Promise((resolve) => {
     requestAnimationFrame(() => resolve());
@@ -235,7 +210,7 @@ export const CleanStageCamExportCanvas = forwardRef<
         renderFrame: async (nextFrame: StageFrame): Promise<HTMLCanvasElement> => {
           frameRef.current = nextFrame;
 
-          if (hasBoundaryStateChanged(uiFrameRef.current, nextFrame)) {
+          if (hasStageFrameBoundaryChanged(uiFrameRef.current, nextFrame)) {
             uiFrameRef.current = nextFrame;
             const nextRev = revisionRef.current + 1;
             revisionRef.current = nextRev;

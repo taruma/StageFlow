@@ -152,6 +152,9 @@ All options must be preceded by `--` when invoking via `npm run record`:
 | **`--stage-skin`** | `<file_path>` | None | Mounts a local `.glb`/`.gltf` Stage Environment skin into the headless render via Playwright route interception. |
 | **`--entity-skin`** | `<id>=<file_path>` | None | Replaces an actor/prop/marker entity with a `.glb`/`.gltf` model (repeatable, e.g. `--entity-skin hero=hero.glb`). |
 | **`--skins-dir`** | `<dir_path>` | None | Scans a directory for `.glb`/`.gltf` files and auto-matches them to `stage` or entity IDs via `suggestSkinTargetId`. |
+| **`--workers`** | `<number>` | Auto (`1`–`4`) | Parallel Playwright worker tabs for stateless frame sharding (`mp4`/`webm`/`sequence`), stitched via FFmpeg `-c:v copy`. |
+| **`--capture`** | `jpeg` \| `png` | `jpeg` (`png` for `sequence`) | Intermediate CDP screenshot format (`jpeg q=96` skips slow PNG compression for video; `png` stays lossless). |
+| **`--software-gl`** | — | `false` | Disables hardware ANGLE GPU flags (`--use-angle=d3d11` on Windows) for CPU SwiftShader environments. |
 | **`-o`**, **`--output`**| `<file_path>` | `recordings/...`| Destination file or directory path. |
 | **`--preview`** | — | `false` | Launches Chromium in headed mode so you can watch the frame stepping live. |
 | **`--port`** | `<number>` | `5173` | Local Vite dev server port. |

@@ -15,19 +15,10 @@ import { Line, Edges } from '@react-three/drei';
 import * as THREE from 'three';
 import { ENTITY_DEFAULTS } from '../core/constants';
 import { computeTiltedEntityLabelOffset } from '../core/cameraTargetResolver';
-import type { Vec3 } from '../core/types';
+import { areTrailPointsEqual } from '../core/frameBoundaryDiff';
 import { resolveGatedState } from './stageSyncGate';
 
-export function areTrailPointsEqual(a: Vec3[], b: Vec3[]): boolean {
-  if (a === b) return true;
-  if (a.length !== b.length) return false;
-  for (let i = 0; i < a.length; i++) {
-    if (a[i].x !== b[i].x || a[i].y !== b[i].y || a[i].z !== b[i].z) {
-      return false;
-    }
-  }
-  return true;
-}
+export { areTrailPointsEqual };
 import type {
   CameraViewMode,
   CharacterStyle,

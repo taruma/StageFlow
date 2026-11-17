@@ -329,7 +329,7 @@ Decomposed into 3 focused submodules to preserve the $\le 250$ line modularity s
 
 ### 4.13 Deterministic 60fps Headless Viewport Recorder CLI (`scripts/record/`, `src/recorder/`)
 - Standalone CLI recording tool (`npm run record [scene] [options]`) driven by Playwright and FFmpeg.
-- **Stateless Frame Stepping ($t_i = i / 60\text{s}$)**: Steps through any choreography score frame-by-frame with zero dropped frames or browser pacing lag, streaming PNG frames into an FFmpeg H.264/VP9 pipe.
+- **Stateless Frame Stepping ($t_i = i / 60\text{s}$)**: Steps through any choreography score deterministically with zero dropped frames or pacing lag using synchronous `frameloop="never"` + `advance()`, boundary-only React UI commits (`hasStageFrameBoundaryChanged`), direct CDP `Page.captureScreenshot` (`jpeg q=96` default for video, `png` for image sequences), hardware ANGLE GPU flags (`--use-angle=d3d11` on Windows, `--ignore-gpu-blocklist`), and auto-optimized stateless multi-worker sharding (`--workers`) stitched cleanly via FFmpeg `-c:v copy` concat.
 - **Dedicated Headless Render Route (`?mode=headless-render`)**: `App.tsx` routes to `<HeadlessRecorderView />`, mounting a pure, chrome-free diorama canvas with zero localStorage polling, media clocks, or extraneous listeners.
 - **Two Core Directorial Recording Modes**:
   1. **Scripted Observer View (`--camera scripted`)**: Records the 3D diorama along the authored observer camera path.
@@ -342,6 +342,7 @@ Decomposed into 3 focused submodules to preserve the $\le 250$ line modularity s
   - `--hud`: Includes top-left shot breakdown and bottom-right degree/meter telemetry badges.
   - `--audio <local_path>`: Opt-in audio extraction and muxing from a reference video or sound file (default output remains 100% silent).
   - `--stage-skin <path>`, `--entity-skin <id>=<path>` (repeatable), `--skins-dir <dir>`: Mounts local `.glb`/`.gltf` stage and entity skins into Playwright via virtual `/__stageflow_skin__/*` route interception; `HeadlessRecorderView.tsx` preloads and awaits skin readiness before Frame 0 capture.
+  - `--workers <n>` (auto-optimized by frame count & CPU cores), `--capture jpeg | png`, `--software-gl`: Controls parallel frame sharding, intermediate capture format, and CI SwiftShader fallback.
 - **Cinematic Presets & Slicing**:
   - `--preset isometric (iso) | top-down (top) | front | side`: Sets fixed architectural perspective angles locked to actor chest level.
   - `--shot <shot_id>` or `--start <sec> --end <sec>`: Slices exact shot cues or timestamp windows.

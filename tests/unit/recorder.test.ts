@@ -16,6 +16,11 @@ import {
   parseEntitySkinAssignment,
   resolveRecorderSkins,
 } from '../../scripts/record/skinResolver';
+import {
+  partitionFrameRange,
+  resolveCaptureFormat,
+  resolveOptimalWorkers,
+} from '../../scripts/record/workerScheduler';
 import { computeStageFrame } from '../../src/core/frameEngine';
 import { INITIAL_CATALOG_ITEMS, findCatalogItem } from '../../src/core/scoreCatalog';
 
@@ -215,5 +220,41 @@ describe('Headless Recorder .GLB / .GLTF Skin Resolver', () => {
     expect(() =>
       resolveRecorderSkins({ stageSkinPath: 'nonexistent_stage.glb' }, [])
     ).toThrow(/Stage skin file not found/i);
+  });
+});
+
+describe('Stateless Worker Sharding & Capture Format Scheduler', () => {
+  it('defaults capture format to jpeg for video formats and png for image sequences', () => {
+    expect(resolveCaptureFormat(undefined, 'mp4')).toBe('jpeg');
+    expect(resolveCaptureFormat(undefined, 'webm')).toBe('jpeg');
+    expect(resolveCaptureFormat(undefined, 'gif')).toBe('jpeg');
+    expect(resolveCaptureFormat(undefined, 'sequence')).toBe('png');
+    expect(resolveCaptureFormat('png', 'mp4')).toBe('png');
+    expect(resolveCaptureFormat('jpeg', 'sequence')).toBe('jpeg');
+  });
+
+  it('auto-selects optimal workers based on frame count, format, and CPU cores', () => {
+    expect(resolveOptimalWorkers(60, 'mp4', 16)).toBe(1);
+    expect(resolveOptimalWorkers(2160, 'mp4', 16)).toBe(4);
+    expect(resolveOptimalWorkers(2160, 'mp4', 2)).toBe(2);
+    expect(resolveOptimalWorkers(2160, 'gif', 16)).toBe(1);
+    expect(resolveOptimalWorkers(2160, 'mp4', 16, 6)).toBe(6);
+    expect(resolveOptimalWorkers(2160, 'mp4', 16, 1)).toBe(1);
+    expect(() => resolveOptimalWorkers(200, 'mp4', 8, 0)).toThrow();
+  });
+
+  it('partitions frame ranges contiguously without gaps or overlaps', () => {
+    const shards = partitionFrameRange(10, 4);
+    expect(shards).toEqual([
+      { workerIndex: 0, startFrame: 0, endFrame: 3 },
+      { workerIndex: 1, startFrame: 3, endFrame: 6 },
+      { workerIndex: 2, startFrame: 6, endFrame: 8 },
+      { workerIndex: 3, startFrame: 8, endFrame: 10 },
+    ]);
+    const totalCovered = shards.reduce(
+      (sum, s) => sum + (s.endFrame - s.startFrame),
+      0
+    );
+    expect(totalCovered).toBe(10);
   });
 });
