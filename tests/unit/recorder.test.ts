@@ -2,6 +2,9 @@
  * Unit tests for Headless Viewport Recorder CLI configuration and resolvers.
  */
 
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { CAMERA_PRESETS } from '../../scripts/record/cameraPresets';
 import {
@@ -9,6 +12,10 @@ import {
   type ResolutionPresetKey,
 } from '../../scripts/record/recorderTypes';
 import { resolveFfmpegPath } from '../../scripts/record/ffmpegPipeline';
+import {
+  parseEntitySkinAssignment,
+  resolveRecorderSkins,
+} from '../../scripts/record/skinResolver';
 import { computeStageFrame } from '../../src/core/frameEngine';
 import { INITIAL_CATALOG_ITEMS, findCatalogItem } from '../../src/core/scoreCatalog';
 
@@ -150,5 +157,63 @@ describe('Optics Bokeh Blur Invariant in Headless Recorder', () => {
     // Explicit override via CLI flag
     expect(resolveBlur(false, bp06?.score.optics?.dofBlur)).toBe(false);
     expect(resolveBlur(true, bp01?.score.optics?.dofBlur)).toBe(true);
+  });
+});
+
+describe('Headless Recorder .GLB / .GLTF Skin Resolver', () => {
+  it('parses <entity_id>=<path> assignments and rejects malformed specs', () => {
+    expect(parseEntitySkinAssignment('hero=assets/hero.glb')).toEqual({
+      entityId: 'hero',
+      filePath: 'assets/hero.glb',
+    });
+    expect(parseEntitySkinAssignment('table = C:/sets/a=b.glb')).toEqual({
+      entityId: 'table',
+      filePath: 'C:/sets/a=b.glb',
+    });
+    expect(() => parseEntitySkinAssignment('hero.glb')).toThrow();
+    expect(() => parseEntitySkinAssignment('=hero.glb')).toThrow();
+    expect(() => parseEntitySkinAssignment('hero=')).toThrow();
+  });
+
+  it('auto-matches --skins-dir files, honors explicit overrides, and builds virtual route map', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'stageflow-skins-'));
+    try {
+      const stageGlb = path.join(tmpDir, 'stage-environment.glb');
+      const heroGlb = path.join(tmpDir, 'subject_a.glb');
+      const overrideGlb = path.join(tmpDir, 'custom_hero.gltf');
+      fs.writeFileSync(stageGlb, 'glb-stage');
+      fs.writeFileSync(heroGlb, 'glb-hero');
+      fs.writeFileSync(overrideGlb, '{}');
+
+      const score = INITIAL_CATALOG_ITEMS[0].score;
+      const resolved = resolveRecorderSkins(
+        {
+          skinsDir: tmpDir,
+          entitySkinPaths: { subject_a: overrideGlb },
+        },
+        score.entities
+      );
+
+      expect(resolved.stageSkinFilePath).toBe(stageGlb);
+      expect(resolved.entitySkinFilePaths.subject_a).toBe(overrideGlb);
+      expect(resolved.stageSkinUrl).toBe('/__stageflow_skin__/stage.glb');
+      expect(resolved.entitySkinUrls.subject_a).toMatch(
+        /^\/__stageflow_skin__\/entity_0_subject_a\.gltf$/
+      );
+      expect(resolved.routeMap.get('/__stageflow_skin__/stage.glb')?.contentType).toBe(
+        'model/gltf-binary'
+      );
+      expect(
+        resolved.routeMap.get(resolved.entitySkinUrls.subject_a)?.contentType
+      ).toBe('model/gltf+json');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it('throws a clear error when a configured skin file does not exist', () => {
+    expect(() =>
+      resolveRecorderSkins({ stageSkinPath: 'nonexistent_stage.glb' }, [])
+    ).toThrow(/Stage skin file not found/i);
   });
 });

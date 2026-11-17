@@ -2,9 +2,11 @@
  * Playwright Chromium driver orchestrating deterministic frame-stepping and capture.
  */
 
+import fs from 'node:fs';
 import { chromium } from 'playwright';
 import type { CliOptions } from './recorderTypes';
 import { createFfmpegPipeline } from './ffmpegPipeline';
+import type { ResolvedRecorderSkins } from './skinResolver';
 import type { RecorderConfig } from '../../src/recorder/recorderTypes';
 
 function formatTimestamp(seconds: number): string {
@@ -35,7 +37,8 @@ function renderProgressBar(
 export async function runRecordSession(
   options: CliOptions,
   scoreYaml: string,
-  serverUrl: string
+  serverUrl: string,
+  skins?: ResolvedRecorderSkins
 ): Promise<void> {
   const browser = await chromium.launch({
     headless: !options.preview,
@@ -71,6 +74,23 @@ export async function runRecordSession(
       }
     });
 
+    if (skins && skins.routeMap.size > 0) {
+      await page.route('**/__stageflow_skin__/*', async (route) => {
+        const pathname = new URL(route.request().url()).pathname;
+        const asset = skins.routeMap.get(pathname);
+        if (!asset) {
+          await route.abort();
+          return;
+        }
+        const body = await fs.promises.readFile(asset.filePath);
+        await route.fulfill({
+          status: 200,
+          contentType: asset.contentType,
+          body,
+        });
+      });
+    }
+
     const targetUrl = `${serverUrl}/?mode=headless-render`;
     await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
 
@@ -93,6 +113,11 @@ export async function runRecordSession(
       height: options.height,
       startSec: options.startSec ?? 0,
       endSec: options.endSec ?? 0,
+      stageSkinUrl: skins?.stageSkinUrl,
+      entitySkinUrls:
+        skins && Object.keys(skins.entitySkinUrls).length > 0
+          ? skins.entitySkinUrls
+          : undefined,
       customPose: options.customPose,
     };
 
@@ -131,6 +156,13 @@ export async function runRecordSession(
     console.log(
       `  Audio Track:   ${options.audioPath ? options.audioPath : 'NONE (silent)'}`
     );
+    if (skins && skins.routeMap.size > 0) {
+      const entityCount = Object.keys(skins.entitySkinUrls).length;
+      const parts: string[] = [];
+      if (skins.stageSkinFilePath) parts.push(`stage=${skins.stageSkinFilePath}`);
+      if (entityCount > 0) parts.push(`${entityCount} entity skin(s)`);
+      console.log(`  3D Skins:      ${parts.join(' | ')}`);
+    }
     console.log(`  Framerate:     ${options.fps} fps (locked)`);
     console.log(`  Resolution:    ${options.width}x${options.height}`);
     console.log(`  Total Frames:  ${totalFrames} (${sessionInfo.durationSec.toFixed(2)}s)`);

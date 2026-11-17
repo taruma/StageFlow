@@ -12,6 +12,7 @@ import { computeStageFrame } from '../core/frameEngine';
 import { INITIAL_CATALOG_ITEMS } from '../core/scoreCatalog';
 import { DioramaCanvas } from '../stage/DioramaCanvas';
 import { getDioramaThemeColors } from '../stage/dioramaTheme';
+import { preloadStageEnvironmentSkin } from '../stage/StageEnvironmentSkin';
 import { StageCamViewfinderOverlay } from '../ui/StageCamViewfinderOverlay';
 import { ShotBreakdownHud } from '../ui/ShotBreakdownHud';
 import { CameraTelemetryCapsule } from '../ui/CameraTelemetryCapsule';
@@ -103,6 +104,30 @@ export const HeadlessRecorderView: React.FC = () => {
   const frameRef = useRef<StageFrame>(initialFrame);
   const lastManualSeekIdRef = useRef<number>(0);
   const r3fTickCountRef = useRef<number>(0);
+  const settledSkinUrlsRef = useRef<Set<string>>(new Set());
+  const skinErrorRef = useRef<string | null>(null);
+
+  const handleSkinLoad = useCallback((url: string) => {
+    settledSkinUrlsRef.current.add(url);
+  }, []);
+
+  const handleStageSkinError = useCallback(
+    (error: Error) => {
+      const url = configRef.current.stageSkinUrl;
+      if (url) settledSkinUrlsRef.current.add(url);
+      skinErrorRef.current = `Stage skin failed to load: ${error.message}`;
+    },
+    []
+  );
+
+  const handleEntitySkinError = useCallback(
+    (entityId: string, error: Error) => {
+      const url = configRef.current.entitySkinUrls?.[entityId];
+      if (url) settledSkinUrlsRef.current.add(url);
+      skinErrorRef.current = `Entity skin "${entityId}" failed to load: ${error.message}`;
+    },
+    []
+  );
 
   const configRef = useRef<RecorderConfig>(config);
   configRef.current = config;
@@ -180,6 +205,18 @@ export const HeadlessRecorderView: React.FC = () => {
       ready: true,
       init: async (newConfig: RecorderConfig) => {
         configRef.current = newConfig;
+        settledSkinUrlsRef.current.clear();
+        skinErrorRef.current = null;
+
+        const expectedSkinUrls = [
+          newConfig.stageSkinUrl,
+          ...Object.values(newConfig.entitySkinUrls ?? {}),
+        ].filter((u): u is string => Boolean(u));
+
+        for (const skinUrl of expectedSkinUrls) {
+          preloadStageEnvironmentSkin(skinUrl);
+        }
+
         setConfig(newConfig);
         const res = parseStageScore(newConfig.scoreYaml);
         const parsed = res.score ?? INITIAL_CATALOG_ITEMS[0].score;
@@ -200,14 +237,32 @@ export const HeadlessRecorderView: React.FC = () => {
         frameRef.current = firstFrame;
         setUiFrame(firstFrame);
 
-        // Wait until R3F's useFrame loop has actually executed multiple render cycles
-        // after config/size commit, plus 2 rAFs for compositor + Drei <Html> flush.
-        const targetTick = r3fTickCountRef.current + 4;
-        const deadlineMs = performance.now() + 5000;
-        await new Promise<void>((resolve) => {
+        // Wait until all configured .glb/.gltf skins settle, R3F renders post-load ticks,
+        // and 2 rAFs flush compositor + Drei <Html> overlays before capturing Frame 0.
+        const initialTickFloor = r3fTickCountRef.current + 4;
+        let postSkinTargetTick: number | null =
+          expectedSkinUrls.length === 0 ? initialTickFloor : null;
+        const deadlineMs =
+          performance.now() + (expectedSkinUrls.length > 0 ? 15000 : 5000);
+
+        await new Promise<void>((resolve, reject) => {
           const checkReady = () => {
+            if (skinErrorRef.current) {
+              reject(new Error(skinErrorRef.current));
+              return;
+            }
+
+            const allSkinsSettled = expectedSkinUrls.every((u) =>
+              settledSkinUrlsRef.current.has(u)
+            );
+            if (allSkinsSettled && postSkinTargetTick === null) {
+              postSkinTargetTick = r3fTickCountRef.current + 2;
+            }
+
             if (
-              r3fTickCountRef.current >= targetTick ||
+              (allSkinsSettled &&
+                postSkinTargetTick !== null &&
+                r3fTickCountRef.current >= postSkinTargetTick) ||
               performance.now() >= deadlineMs
             ) {
               requestAnimationFrame(() => {
@@ -259,6 +314,12 @@ export const HeadlessRecorderView: React.FC = () => {
         labelMode={config.labelMode}
         dofBlurEnabled={effectiveDofBlur}
         themeCategory={effectiveTheme}
+        stageSkinUrl={config.stageSkinUrl ?? null}
+        stageSkinVisible={true}
+        entitySkinUrls={config.entitySkinUrls}
+        onSkinLoad={handleSkinLoad}
+        onStageSkinError={handleStageSkinError}
+        onEntitySkinError={handleEntitySkinError}
       />
 
       {/* Stage Camera POV Director's Optical Viewfinder Overlay */}

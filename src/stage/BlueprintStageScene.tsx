@@ -30,6 +30,7 @@ export interface BlueprintStageSceneProps {
   stageSkinUrl?: string | null;
   stageSkinVisible?: boolean;
   entitySkinUrls?: Record<string, string>;
+  onSkinLoad?: (url: string) => void;
   onStageSkinError?: (error: Error) => void;
   onEntitySkinError?: (entityId: string, error: Error) => void;
 }
@@ -45,6 +46,7 @@ export const BlueprintStageScene: React.FC<BlueprintStageSceneProps> = ({
   stageSkinUrl,
   stageSkinVisible = true,
   entitySkinUrls,
+  onSkinLoad,
   onStageSkinError,
   onEntitySkinError,
 }) => {
@@ -76,6 +78,7 @@ export const BlueprintStageScene: React.FC<BlueprintStageSceneProps> = ({
         <StageEnvironmentSkin
           url={stageSkinUrl}
           visible={stageSkinVisible}
+          onLoad={onSkinLoad}
           onError={onStageSkinError}
         />
       )}
@@ -103,6 +106,7 @@ export const BlueprintStageScene: React.FC<BlueprintStageSceneProps> = ({
           cameraMode={cameraMode}
           skinUrl={entitySkinUrls?.[entityState.id] ?? null}
           skinVisible={stageSkinVisible}
+          onEntitySkinLoad={onSkinLoad}
           onEntitySkinError={onEntitySkinError}
         />
       ))}

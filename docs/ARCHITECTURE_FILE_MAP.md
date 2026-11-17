@@ -51,6 +51,7 @@ stageflow/
 │       ├── ffmpegPipeline.ts        # FFmpeg pipe encoder (libx264, VP9, GIF, PNG sequence)
 │       ├── serverManager.ts         # Vite server detection & background startup
 │       ├── cameraPresets.ts         # Camera angle presets (isometric, top-down, front, side)
+│       ├── skinResolver.ts          # CLI .glb/.gltf skin resolver (--stage-skin, --entity-skin, --skins-dir)
 │       └── recorderTypes.ts         # Shared CLI & bridge TypeScript interfaces
 ├── public/                          # Static web assets, logos, icons & favicons
 │   ├── StageFlow - LOGO - BLACK.png # Desktop horizontal brand logo (light/warm themes)

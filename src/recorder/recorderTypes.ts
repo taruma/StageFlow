@@ -17,6 +17,8 @@ export interface RecorderConfig {
   height: number;
   startSec: number;
   endSec: number;
+  stageSkinUrl?: string;
+  entitySkinUrls?: Record<string, string>;
   customPose?: {
     pitchDeg?: number;
     yawDeg?: number;

@@ -15,6 +15,7 @@ import type { EntityKind } from '../core/types';
 export interface StageEnvironmentSkinProps {
   url: string;
   visible?: boolean;
+  onLoad?: (url: string) => void;
   onError?: (error: Error) => void;
 }
 
@@ -25,6 +26,7 @@ export interface StageEntitySkinProps {
   height: number;
   baseDepth: number;
   hasExplicitWidthDepth: boolean;
+  onLoad?: (url: string) => void;
   onError?: (error: Error) => void;
 }
 
@@ -115,10 +117,11 @@ export const StageSkinEnvironmentLighting: React.FC = () => {
   return null;
 };
 
-const StageSkinMesh: React.FC<{ url: string; visible: boolean }> = ({
-  url,
-  visible,
-}) => {
+const StageSkinMesh: React.FC<{
+  url: string;
+  visible: boolean;
+  onLoad?: (url: string) => void;
+}> = ({ url, visible, onLoad }) => {
   const gltf = useGLTF(url);
   const invalidate = useThree((state) => state.invalidate);
 
@@ -127,7 +130,8 @@ const StageSkinMesh: React.FC<{ url: string; visible: boolean }> = ({
 
   useLayoutEffect(() => {
     invalidate();
-  }, [clonedScene, visible, invalidate]);
+    onLoad?.(url);
+  }, [clonedScene, visible, invalidate, onLoad, url]);
 
   return (
     <group visible={visible} position={[0, -0.002, 0]}>
@@ -139,12 +143,13 @@ const StageSkinMesh: React.FC<{ url: string; visible: boolean }> = ({
 export const StageEnvironmentSkin: React.FC<StageEnvironmentSkinProps> = ({
   url,
   visible = true,
+  onLoad,
   onError,
 }) => {
   return (
     <SkinErrorBoundary url={url} onError={onError}>
       <Suspense fallback={null}>
-        <StageSkinMesh url={url} visible={visible} />
+        <StageSkinMesh url={url} visible={visible} onLoad={onLoad} />
       </Suspense>
     </SkinErrorBoundary>
   );
@@ -157,6 +162,7 @@ const EntitySkinMesh: React.FC<Omit<StageEntitySkinProps, 'onError'>> = ({
   height,
   baseDepth,
   hasExplicitWidthDepth,
+  onLoad,
 }) => {
   const gltf = useGLTF(url);
   const invalidate = useThree((state) => state.invalidate);
@@ -186,7 +192,8 @@ const EntitySkinMesh: React.FC<Omit<StageEntitySkinProps, 'onError'>> = ({
 
   useLayoutEffect(() => {
     invalidate();
-  }, [clonedScene, norm, invalidate]);
+    onLoad?.(url);
+  }, [clonedScene, norm, invalidate, onLoad, url]);
 
   return (
     <group scale={norm.scale}>
@@ -199,13 +206,14 @@ const EntitySkinMesh: React.FC<Omit<StageEntitySkinProps, 'onError'>> = ({
 
 export const StageEntitySkin: React.FC<StageEntitySkinProps> = ({
   url,
+  onLoad,
   onError,
   ...meshProps
 }) => {
   return (
     <SkinErrorBoundary url={url} onError={onError}>
       <Suspense fallback={null}>
-        <EntitySkinMesh url={url} {...meshProps} />
+        <EntitySkinMesh url={url} onLoad={onLoad} {...meshProps} />
       </Suspense>
     </SkinErrorBoundary>
   );

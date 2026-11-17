@@ -50,6 +50,7 @@ export interface DirectionalMannequinProps {
   cameraMode?: CameraViewMode;
   skinUrl?: string | null;
   skinVisible?: boolean;
+  onEntitySkinLoad?: (url: string) => void;
   onEntitySkinError?: (entityId: string, error: Error) => void;
 }
 
@@ -86,6 +87,7 @@ const DirectionalMannequinComponent: React.FC<DirectionalMannequinProps> = ({
   cameraMode,
   skinUrl,
   skinVisible = true,
+  onEntitySkinLoad,
   onEntitySkinError,
 }) => {
   const groupRef = useRef<THREE.Group | null>(null);
@@ -658,6 +660,7 @@ const DirectionalMannequinComponent: React.FC<DirectionalMannequinProps> = ({
                   hasExplicitWidthDepth={
                     def.width !== undefined && def.depth !== undefined
                   }
+                  onLoad={onEntitySkinLoad}
                   onError={(err) => onEntitySkinError?.(entityId, err)}
                 />
               ) : def.kind === 'character' ? (

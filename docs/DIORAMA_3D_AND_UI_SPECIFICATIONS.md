@@ -341,6 +341,7 @@ Decomposed into 3 focused submodules to preserve the $\le 250$ line modularity s
   - `--guides`: Renders the optical viewfinder safe-action box, rule of thirds, and reticle.
   - `--hud`: Includes top-left shot breakdown and bottom-right degree/meter telemetry badges.
   - `--audio <local_path>`: Opt-in audio extraction and muxing from a reference video or sound file (default output remains 100% silent).
+  - `--stage-skin <path>`, `--entity-skin <id>=<path>` (repeatable), `--skins-dir <dir>`: Mounts local `.glb`/`.gltf` stage and entity skins into Playwright via virtual `/__stageflow_skin__/*` route interception; `HeadlessRecorderView.tsx` preloads and awaits skin readiness before Frame 0 capture.
 - **Cinematic Presets & Slicing**:
   - `--preset isometric (iso) | top-down (top) | front | side`: Sets fixed architectural perspective angles locked to actor chest level.
   - `--shot <shot_id>` or `--start <sec> --end <sec>`: Slices exact shot cues or timestamp windows.

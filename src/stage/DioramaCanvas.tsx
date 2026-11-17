@@ -43,6 +43,7 @@ export interface DioramaCanvasProps {
   stageSkinUrl?: string | null;
   stageSkinVisible?: boolean;
   entitySkinUrls?: Record<string, string>;
+  onSkinLoad?: (url: string) => void;
   onStageSkinError?: (error: Error) => void;
   onEntitySkinError?: (entityId: string, error: Error) => void;
 }
@@ -131,6 +132,7 @@ export const DioramaCanvas: React.FC<DioramaCanvasProps> = ({
   stageSkinUrl,
   stageSkinVisible = true,
   entitySkinUrls,
+  onSkinLoad,
   onStageSkinError,
   onEntitySkinError,
 }) => {
@@ -189,6 +191,7 @@ export const DioramaCanvas: React.FC<DioramaCanvasProps> = ({
           stageSkinUrl={stageSkinUrl}
           stageSkinVisible={stageSkinVisible}
           entitySkinUrls={entitySkinUrls}
+          onSkinLoad={onSkinLoad}
           onStageSkinError={onStageSkinError}
           onEntitySkinError={onEntitySkinError}
         />
