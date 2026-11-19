@@ -32,7 +32,7 @@ import {
   getPresetTransform,
   type CameraPresetType,
 } from './cameraPresets';
-import { resolveGatedState } from './stageSyncGate';
+import { resolveGatedState, STAGE_FRAME_PRIORITY } from './stageSyncGate';
 
 export interface ObserverCameraRigProps {
   cameraMode: CameraViewMode;
@@ -243,6 +243,7 @@ export const ObserverCameraRig: React.FC<ObserverCameraRigProps> = ({
     if (Math.abs(transform.pose.roll) > 1e-6) {
       persp.rotateZ(transform.pose.roll);
     }
+    persp.updateMatrixWorld();
   };
 
   // Apply initial camera pose on mount
@@ -355,7 +356,7 @@ export const ObserverCameraRig: React.FC<ObserverCameraRigProps> = ({
         controls.target.y = MIN_FLOOR_CLEARANCE_M;
       }
     }
-  });
+  }, STAGE_FRAME_PRIORITY.RIG_TRANSFORMS);
 
   // OrbitControls is enabled in 'free' mode or in 'scripted' mode while paused
   const isOrbitEnabled =

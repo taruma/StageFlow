@@ -21,6 +21,7 @@ import {
   getBillboardZIndexRange,
   type BillboardLabelKind,
 } from './labelLodMath';
+import { STAGE_FRAME_PRIORITY } from './stageSyncGate';
 
 export interface StageBillboardLabelProps {
   position: [number, number, number];
@@ -158,12 +159,12 @@ export const StageBillboardLabel: React.FC<StageBillboardLabelProps> = React.mem
       }
     });
 
-    // 60fps/144fps imperative DOM mutation loop (0 React re-renders)
+    // 60fps/144fps imperative DOM mutation loop (runs after rig transforms at priority 0)
     useFrame(({ camera: activeCam, size: canvasSize }) => {
       if (visible) {
         syncDomStyles(activeCam, canvasSize);
       }
-    });
+    }, STAGE_FRAME_PRIORITY.DOM_OVERLAYS);
 
     if (!visible) return null;
 

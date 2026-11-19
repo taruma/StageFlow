@@ -128,11 +128,11 @@ stageflow/
 │   ├── stage/                       # Layer 4: React Three Fiber 3D Blueprint Diorama
 │   │   ├── dioramaTheme.ts          # Adaptive theme clear colors, fog & metric grid line mapping
 │   │   ├── cameraPresets.ts         # Directorial angle presets (Top, Iso, Front, Side) & spherical math
-│   │   ├── DioramaCanvas.tsx        # Root R3F <Canvas>, lighting, fog, and priority -1 frame ticker
+│   │   ├── DioramaCanvas.tsx        # Root R3F <Canvas>, lighting, fog, and priority -2 frame ticker
 │   │   ├── BlueprintStageScene.tsx  # Shared lighting, metric floor grid, optional .glb stage skin, and mannequins
 │   │   ├── StageEnvironmentSkin.tsx # Ephemeral .glb/.gltf stage & entity skin loaders with Box3 normalization & RoomEnvironment IBL
 │   │   ├── BlueprintFloorGrid.tsx   # Metric floor grid (1m / 0.25m), perimeter frame & compass labels
-│   │   ├── stageSyncGate.ts         # Layer 4 boundary desync gate holding last-synced 60fps state across async commits
+│   │   ├── stageSyncGate.ts         # Layer 4 boundary desync gate & STAGE_FRAME_PRIORITY R3F execution ordering constants
 │   │   ├── ObserverCameraRig.tsx    # Viewport PerspectiveCamera + OrbitControls handover & POV cuts
 │   │   ├── StageCameraRig.tsx       # 3D camera prop, rectangular gate frustum, sliding focus plane & path line
 │   │   ├── StageCameraFocusRig.tsx  # 3D Near/Far DoF limit brackets & emerald off-axis focus tether

@@ -8,7 +8,7 @@ import React, { useLayoutEffect, useRef } from 'react';
 import { useThree, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { StageFrame } from '../core/types';
-import { resolveGatedState } from './stageSyncGate';
+import { resolveGatedState, STAGE_FRAME_PRIORITY } from './stageSyncGate';
 
 export interface StageCamViewRigProps {
   frameRef: React.RefObject<StageFrame>;
@@ -45,6 +45,7 @@ export const StageCamViewRig: React.FC<StageCamViewRigProps> = ({
     if (Math.abs(pose.roll) > 1e-6) {
       persp.rotateZ(pose.roll);
     }
+    persp.updateMatrixWorld();
 
     if (forceProjectionUpdate || Math.abs(persp.fov - fovDeg) > 0.01) {
       persp.fov = fovDeg;
@@ -60,7 +61,7 @@ export const StageCamViewRig: React.FC<StageCamViewRigProps> = ({
     const frame = frameRef.current;
     if (!frame) return;
     syncCamera(frame, false);
-  });
+  }, STAGE_FRAME_PRIORITY.RIG_TRANSFORMS);
 
   return null;
 };
