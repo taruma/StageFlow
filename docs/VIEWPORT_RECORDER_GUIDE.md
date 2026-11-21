@@ -149,6 +149,9 @@ All options must be preceded by `--` when invoking via `npm run record`:
 | **`--start`** | `<seconds>` | `0.0` | Custom starting timestamp in seconds. |
 | **`--end`** | `<seconds>` | Scene duration | Custom ending timestamp in seconds. |
 | **`--audio`** | `<file_path>` | None | Muxes audio track from reference media file onto output with exact sync. |
+| **`--stage-skin`** | `<file_path>` | None | Mounts a local `.glb`/`.gltf` Stage Environment skin into the headless render via Playwright route interception. |
+| **`--entity-skin`** | `<id>=<file_path>` | None | Replaces an actor/prop/marker entity with a `.glb`/`.gltf` model (repeatable, e.g. `--entity-skin hero=hero.glb`). |
+| **`--skins-dir`** | `<dir_path>` | None | Scans a directory for `.glb`/`.gltf` files and auto-matches them to `stage` or entity IDs via `suggestSkinTargetId`. |
 | **`-o`**, **`--output`**| `<file_path>` | `recordings/...`| Destination file or directory path. |
 | **`--preview`** | — | `false` | Launches Chromium in headed mode so you can watch the frame stepping live. |
 | **`--port`** | `<number>` | `5173` | Local Vite dev server port. |

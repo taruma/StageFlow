@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Ephemeral `.glb` / `.gltf` 3D Stage & Entity Skins (`src/core/skinMath.ts`, `src/stage/StageEnvironmentSkin.tsx`, `src/stage/DirectionalMannequin.tsx`, `src/stage/BlueprintStageScene.tsx`, `src/stage/DioramaCanvas.tsx`, `src/stage/StageCamMonitorCanvas.tsx`, `src/stage/CleanStageCamExportCanvas.tsx`, `src/hooks/useFileDropLoader.ts`, `src/hooks/useStageSkins.ts`, `src/hooks/useStageCamSnapshot.ts`, `src/hooks/storyboardBlobCache.ts`, `src/hooks/useStoryboardGenerator.ts`, `src/ui/AssignStageSkinModal.tsx`, `src/ui/InteractiveStudioApp.tsx`, `src/ui/DioramaOverlayContainer.tsx`, `src/ui/header/FileMenuDropdown.tsx`, `src/ui/UniversalVideoViewport.tsx`, `src/ui/CleanVideoExportModal.tsx`, `src/ui/StoryboardModal.tsx`)**:
+  - Added drag-and-drop and `File ▾` picker support for `.glb` / `.gltf` 3D models held strictly in ephemeral session memory (`URL.createObjectURL` with automatic revocation and `useGLTF.clear` cache cleanup), keeping YAML choreography scores untouched.
+  - Added `useStageSkins.ts` and `AssignStageSkinModal.tsx` so dropping a `.glb`/`.gltf` lets the user assign it in 1 click to **Stage Environment** or any **Character / Prop / Marker** entity (with `suggestSkinTargetId` filename auto-matching).
+  - Added `StageEnvironmentSkin`, `StageEntitySkin`, and shared `StageSkinEnvironmentLighting` (`RoomEnvironment` PMREM IBL) in `StageEnvironmentSkin.tsx` wrapping `@react-three/drei` `useGLTF` inside a `SkinErrorBoundary` + `Suspense`, cloning the parsed scene graph per R3F canvas across the Diorama, Stage Cam Monitor, PNG Snapshot, MP4 Export, and Storyboard Contact Sheet, applying `-0.002m` Y-offset on stage sets to prevent floor grid Z-fighting, and triggering `invalidate()` for `frameloop="demand"`.
+  - Integrated `StageEntitySkin` inside `DirectionalMannequin.tsx` using pure Layer 1 `computeGlbEntityNormalization` (`Box3` centering on `X/Z`, `Y = 0` grounding, uniform `height` fit for characters, and box/height fit for props) so live 60fps YAML `rotation`, `facing`, `look_at`, `pitch`/`roll`, `width`/`height`/`depth`, `scale`, ground contact rings, `+Z` chevrons, trails, and billboard labels all continue to drive the `.glb` seamlessly.
+  - Added a compact floating Skins pill in `DioramaOverlayContainer.tsx` (show/hide eye toggle, per-skin popover removal when 2+ skins are active, and clear-all button), and keyed `StoryboardBlobCache` by `stageSkinUrl` and `entitySkinsSignature`.
+- **Headless CLI Recorder `.glb` / `.gltf` Skin Support (`scripts/record/cli.ts`, `scripts/record/skinResolver.ts`, `scripts/record/playwrightDriver.ts`, `scripts/record/recorderTypes.ts`, `src/recorder/recorderTypes.ts`, `src/recorder/HeadlessRecorderView.tsx`)**:
+  - Added `--stage-skin <path>`, repeatable `--entity-skin <id>=<path>`, and `--skins-dir <dir>` CLI options (with `resolveRecorderSkins` auto-matching via `suggestSkinTargetId` and virtual `/__stageflow_skin__/*` Playwright route interception so large `.glb` assets stream directly from disk without base64 bloat).
+  - Updated `HeadlessRecorderView.tsx` `init()` and `StageEnvironmentSkin.tsx` (`onLoad` callback) to preload and await all configured `.glb`/`.gltf` skins plus post-load R3F ticks before capturing Frame 0.
+
 ### Fixed
 
 - **Headless Viewport Recorder Frame 0 Black Screen (`src/recorder/HeadlessRecorderView.tsx`, `src/stage/DioramaCanvas.tsx`)**:

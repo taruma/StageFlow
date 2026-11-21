@@ -8,11 +8,13 @@ import { useState, useCallback } from 'react';
 export interface UseFileDropLoaderOptions {
   onLoadYamlText: (rawYaml: string, fileName: string) => void;
   onLoadVideoBlobUrl: (blobUrl: string, fileName: string) => void;
+  onLoadStageSkinBlobUrl?: (blobUrl: string, fileName: string) => void;
 }
 
 export function useFileDropLoader({
   onLoadYamlText,
   onLoadVideoBlobUrl,
+  onLoadStageSkinBlobUrl,
 }: UseFileDropLoaderOptions) {
   const [isDraggingOver, setIsDraggingOver] = useState(false);
 
@@ -36,10 +38,18 @@ export function useFileDropLoader({
         ) {
           const blobUrl = URL.createObjectURL(file);
           onLoadVideoBlobUrl(blobUrl, file.name);
+        } else if (
+          lower.endsWith('.glb') ||
+          lower.endsWith('.gltf') ||
+          file.type === 'model/gltf-binary' ||
+          file.type === 'model/gltf+json'
+        ) {
+          const blobUrl = URL.createObjectURL(file);
+          onLoadStageSkinBlobUrl?.(blobUrl, file.name);
         }
       }
     },
-    [onLoadYamlText, onLoadVideoBlobUrl]
+    [onLoadYamlText, onLoadVideoBlobUrl, onLoadStageSkinBlobUrl]
   );
 
   const handleDragOver = useCallback((e: React.DragEvent) => {

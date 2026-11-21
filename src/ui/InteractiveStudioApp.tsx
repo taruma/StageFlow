@@ -47,8 +47,14 @@ import { useWorkspaceLayout } from '../hooks/useWorkspaceLayout';
 import { useStudioDisplaySettings } from '../hooks/useStudioDisplaySettings';
 import { useToastNotifications } from '../hooks/useToastNotifications';
 import { useStageCamSnapshot } from '../hooks/useStageCamSnapshot';
+import { useStageSkins } from '../hooks/useStageSkins';
 import { DioramaCanvas } from '../stage/DioramaCanvas';
 import { CleanStageCamExportCanvas } from '../stage/CleanStageCamExportCanvas';
+import {
+  clearStageEnvironmentSkinCache,
+  preloadStageEnvironmentSkin,
+} from '../stage/StageEnvironmentSkin';
+import { AssignStageSkinModal } from './AssignStageSkinModal';
 import { WorkspaceHeader } from './WorkspaceHeader';
 import { ResizableSplitWorkspace } from './ResizableSplitWorkspace';
 import { UniversalVideoViewport } from './UniversalVideoViewport';
@@ -755,9 +761,17 @@ export const InteractiveStudioApp: React.FC = () => {
     [mediaClock, showToast]
   );
 
+  const stageSkins = useStageSkins({
+    entities: activeScore.entities,
+    onPreloadSkin: preloadStageEnvironmentSkin,
+    onReleaseSkinCache: clearStageEnvironmentSkinCache,
+    onNotify: showToast,
+  });
+
   const fileDrop = useFileDropLoader({
     onLoadYamlText: handleLoadYamlFile,
     onLoadVideoBlobUrl: handleLoadVideoBlobUrl,
+    onLoadStageSkinBlobUrl: stageSkins.enqueueSkinDrop,
   });
 
   const handleSeekAndSync = useCallback(
@@ -781,6 +795,8 @@ export const InteractiveStudioApp: React.FC = () => {
       timestampSec: stageLoop.frameRef.current.timestampSec,
       dofBlurEnabled: display.dofBlurEnabled,
       themeCategory: theme.effectiveDioramaCategory,
+      stageSkinUrl: stageSkins.effectiveStageSkinUrl,
+      entitySkinUrls: stageSkins.effectiveEntitySkinUrls,
     });
   }, [
     captureSnapshot,
@@ -788,6 +804,8 @@ export const InteractiveStudioApp: React.FC = () => {
     stageLoop.frameRef,
     display.dofBlurEnabled,
     theme.effectiveDioramaCategory,
+    stageSkins.effectiveStageSkinUrl,
+    stageSkins.effectiveEntitySkinUrls,
   ]);
 
   return (
@@ -801,10 +819,10 @@ export const InteractiveStudioApp: React.FC = () => {
       {fileDrop.isDraggingOver && (
         <div className="absolute inset-0 z-50 bg-overlay-heavy backdrop-blur-md border-2 border-dashed border-text-main flex flex-col items-center justify-center gap-2 pointer-events-none">
           <span className="text-lg font-mono font-bold text-text-main">
-            Drop .MP4 / .WebM Video or .YAML Choreography Score
+            Drop .YAML Score, .MP4 Video, or .GLB Stage Skin
           </span>
           <span className="text-xs font-mono text-text-muted">
-            Videos are held in session memory; YAML scores are saved in IndexedDB
+            Videos & .GLB skins stay in session memory; YAML scores save in IndexedDB
           </span>
         </div>
       )}
@@ -879,6 +897,9 @@ export const InteractiveStudioApp: React.FC = () => {
             dofBlurEnabled={display.dofBlurEnabled}
             onToggleDofBlur={display.handleToggleDofBlur}
             themeCategory={theme.effectiveDioramaCategory}
+            stageSkinUrl={stageSkins.stageSkin?.url ?? null}
+            stageSkinVisible={stageSkins.isSkinsVisible}
+            entitySkinUrls={stageSkins.entitySkinUrls}
             onApplyVideoUrlOverride={(url) => {
               setVideoOverrideUrl(url);
               mediaClock.seek(0);
@@ -908,6 +929,9 @@ export const InteractiveStudioApp: React.FC = () => {
                   dofBlurEnabled={display.dofBlurEnabled}
                   onToggleDofBlur={display.handleToggleDofBlur}
                   themeCategory={theme.effectiveDioramaCategory}
+                  stageSkinUrl={stageSkins.stageSkin?.url ?? null}
+                  stageSkinVisible={stageSkins.isSkinsVisible}
+                  entitySkinUrls={stageSkins.entitySkinUrls}
                 />
               ) : undefined
             }
@@ -934,6 +958,11 @@ export const InteractiveStudioApp: React.FC = () => {
               cameraPresetActionRef={cameraPresetActionRef}
               cameraPresetSeq={cameraPresetSeq}
               sceneResetSeq={sceneResetSeq}
+              stageSkinUrl={stageSkins.stageSkin?.url ?? null}
+              stageSkinVisible={stageSkins.isSkinsVisible}
+              entitySkinUrls={stageSkins.entitySkinUrls}
+              onStageSkinError={stageSkins.handleStageSkinError}
+              onEntitySkinError={stageSkins.handleEntitySkinError}
             />
 
             {/* Responsive Diorama HUD Overlays & POV Viewfinder Dock */}
@@ -948,6 +977,13 @@ export const InteractiveStudioApp: React.FC = () => {
               dofBlurEnabled={display.dofBlurEnabled}
               isNarrow={isNarrowDiorama}
               dioramaWidth={dioramaWidth}
+              stageSkin={stageSkins.stageSkin}
+              entitySkins={stageSkins.entitySkins}
+              isSkinsVisible={stageSkins.isSkinsVisible}
+              onToggleSkinsVisible={stageSkins.toggleSkinsVisible}
+              onClearStageSkin={stageSkins.clearStageSkin}
+              onClearEntitySkin={stageSkins.clearEntitySkin}
+              onClearAllSkins={stageSkins.clearAllSkins}
               onSetCameraMode={stageLoop.setCameraMode}
               onSelectPreset={handleSelectCameraPreset}
               onSelectLabelMode={display.handleSelectLabelMode}
@@ -1126,6 +1162,8 @@ export const InteractiveStudioApp: React.FC = () => {
         activeShot={stageLoop.uiSnapshot.frame.activeShot}
         liveViewportPose={stageLoop.uiSnapshot.liveViewportPose}
         dofBlurEnabled={display.dofBlurEnabled}
+        stageSkinUrl={stageSkins.effectiveStageSkinUrl}
+        entitySkinUrls={stageSkins.effectiveEntitySkinUrls}
         onNotify={showToast}
         onClose={() => setIsVideoExportOpen(false)}
       />
@@ -1135,8 +1173,20 @@ export const InteractiveStudioApp: React.FC = () => {
         isOpen={isStoryboardOpen}
         score={activeScore}
         dofBlurEnabled={display.dofBlurEnabled}
+        stageSkinUrl={stageSkins.effectiveStageSkinUrl}
+        entitySkinUrls={stageSkins.effectiveEntitySkinUrls}
         onNotify={showToast}
         onClose={() => setIsStoryboardOpen(false)}
+      />
+
+      {/* Direct Target Assignment Modal for Dropped .GLB / .GLTF Skins */}
+      <AssignStageSkinModal
+        pendingDrop={stageSkins.pendingSkinDrop}
+        entities={activeScore.entities}
+        stageSkin={stageSkins.stageSkin}
+        entitySkins={stageSkins.entitySkins}
+        onAssign={stageSkins.assignPendingSkin}
+        onCancel={stageSkins.cancelPendingSkin}
       />
 
       {/* Temporary Offscreen Stage Cam Snapshot Canvas (mounted strictly during 1-frame capture) */}
@@ -1150,6 +1200,8 @@ export const InteractiveStudioApp: React.FC = () => {
           dofBlurEnabled={stageCamSnapshot.pendingRequest.dofBlurEnabled}
           themeCategory={stageCamSnapshot.pendingRequest.themeCategory}
           targetCamera="stage-cam"
+          stageSkinUrl={stageCamSnapshot.pendingRequest.stageSkinUrl}
+          entitySkinUrls={stageCamSnapshot.pendingRequest.entitySkinUrls}
         />
       )}
 

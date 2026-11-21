@@ -17,6 +17,10 @@ import { runRecordSession } from './playwrightDriver';
 import type { CliOptions, ResolutionPresetKey } from './recorderTypes';
 import { RESOLUTION_PRESETS } from './recorderTypes';
 import { ensureViteServer } from './serverManager';
+import {
+  parseEntitySkinAssignment,
+  resolveRecorderSkins,
+} from './skinResolver';
 
 function printHelp(): void {
   console.log(`
@@ -44,6 +48,9 @@ Options:
   --start <sec>           Custom start timestamp in seconds
   --end <sec>             Custom end timestamp in seconds
   --audio <file>          Path to reference video/audio to slap audio track onto output
+  --stage-skin <path>     Path to .glb/.gltf file for the Stage Environment skin
+  --entity-skin <id=path> Assign .glb/.gltf to an entity ID (repeatable, e.g. hero=hero.glb)
+  --skins-dir <dir>       Auto-match .glb/.gltf skins in a directory by entity ID / stage
   --fps <number>          Locked framerate (default: 60)
   --res <preset>          Resolution preset: 1080p, 4k, 720p, square, vertical
   --width <w>             Custom pixel width (e.g. 1920)
@@ -135,6 +142,9 @@ function parseArgs(args: string[]): CliOptions {
   let startSec: number | undefined;
   let endSec: number | undefined;
   let audioPath: string | undefined;
+  let stageSkinPath: string | undefined;
+  let entitySkinPaths: Record<string, string> | undefined;
+  let skinsDir: string | undefined;
   let format: 'mp4' | 'webm' | 'gif' | 'sequence' = 'mp4';
   let outputPath: string | undefined;
   let preview = false;
@@ -181,6 +191,14 @@ function parseArgs(args: string[]): CliOptions {
       format = args[++i] as 'mp4' | 'webm' | 'gif' | 'sequence';
     } else if (arg === '--audio' && args[i + 1]) {
       audioPath = args[++i];
+    } else if (arg === '--stage-skin' && args[i + 1]) {
+      stageSkinPath = args[++i];
+    } else if (arg === '--entity-skin' && args[i + 1]) {
+      const { entityId, filePath } = parseEntitySkinAssignment(args[++i]);
+      entitySkinPaths = entitySkinPaths ?? {};
+      entitySkinPaths[entityId] = filePath;
+    } else if (arg === '--skins-dir' && args[i + 1]) {
+      skinsDir = args[++i];
     } else if ((arg === '-o' || arg === '--output') && args[i + 1]) {
       outputPath = args[++i];
     } else if (arg === '--preview') {
@@ -231,6 +249,9 @@ function parseArgs(args: string[]): CliOptions {
     endSec,
     shotId,
     audioPath,
+    stageSkinPath,
+    entitySkinPaths,
+    skinsDir,
     format,
     outputPath,
     preview,
@@ -241,26 +262,31 @@ function parseArgs(args: string[]): CliOptions {
 async function main(): Promise<void> {
   const options = parseArgs(process.argv.slice(2));
   const { yaml, id: sceneId } = resolveScoreYaml(options.sceneInput);
+  const needsParsedScore = Boolean(
+    options.shotId || options.skinsDir || options.stageSkinPath || options.entitySkinPaths
+  );
+  const parsedScore = needsParsedScore ? parseStageScore(yaml).score : null;
 
   // If a specific shot was requested, extract shot timestamps
   if (options.shotId) {
-    const parsed = parseStageScore(yaml);
-    const targetShot = parsed.score?.shots.find(
+    const targetShot = parsedScore?.shots.find(
       (s) => s.id.toLowerCase() === options.shotId!.toLowerCase()
     );
     if (!targetShot) {
       throw new Error(
-        `Shot "${options.shotId}" not found in scene "${sceneId}". Available shots: ${parsed.score?.shots.map((s) => s.id).join(', ')}`
+        `Shot "${options.shotId}" not found in scene "${sceneId}". Available shots: ${parsedScore?.shots.map((s) => s.id).join(', ')}`
       );
     }
     options.startSec = targetShot.startSec;
     options.endSec = targetShot.endSec;
   }
 
+  const skins = resolveRecorderSkins(options, parsedScore?.entities ?? []);
+
   const server = await ensureViteServer(options.port);
 
   try {
-    await runRecordSession(options, yaml, server.url);
+    await runRecordSession(options, yaml, server.url, skins);
   } finally {
     await server.close();
   }

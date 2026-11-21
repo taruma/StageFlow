@@ -40,6 +40,12 @@ export interface DioramaCanvasProps {
   } | null>;
   cameraPresetSeq?: number;
   sceneResetSeq?: number;
+  stageSkinUrl?: string | null;
+  stageSkinVisible?: boolean;
+  entitySkinUrls?: Record<string, string>;
+  onSkinLoad?: (url: string) => void;
+  onStageSkinError?: (error: Error) => void;
+  onEntitySkinError?: (entityId: string, error: Error) => void;
 }
 
 const FrameLoopTicker: React.FC<{ onTick: () => void }> = ({ onTick }) => {
@@ -60,6 +66,9 @@ const CanvasDemandInvalidator: React.FC<{
   themeCategory: AppThemeCategory;
   cameraPresetSeq: number;
   sceneResetSeq: number;
+  stageSkinUrl?: string | null;
+  stageSkinVisible?: boolean;
+  entitySkinUrls?: Record<string, string>;
   evaluateTick60fps: () => void;
 }> = ({
   score,
@@ -71,6 +80,9 @@ const CanvasDemandInvalidator: React.FC<{
   themeCategory,
   cameraPresetSeq,
   sceneResetSeq,
+  stageSkinUrl,
+  stageSkinVisible,
+  entitySkinUrls,
   evaluateTick60fps,
 }) => {
   const invalidate = useThree((state) => state.invalidate);
@@ -90,6 +102,9 @@ const CanvasDemandInvalidator: React.FC<{
     themeCategory,
     cameraPresetSeq,
     sceneResetSeq,
+    stageSkinUrl,
+    stageSkinVisible,
+    entitySkinUrls,
     size.width,
     size.height,
     evaluateTick60fps,
@@ -114,6 +129,12 @@ export const DioramaCanvas: React.FC<DioramaCanvasProps> = ({
   cameraPresetActionRef,
   cameraPresetSeq = 0,
   sceneResetSeq = 0,
+  stageSkinUrl,
+  stageSkinVisible = true,
+  entitySkinUrls,
+  onSkinLoad,
+  onStageSkinError,
+  onEntitySkinError,
 }) => {
   const themeColors = useMemo(
     () => getDioramaThemeColors(themeCategory),
@@ -152,6 +173,9 @@ export const DioramaCanvas: React.FC<DioramaCanvasProps> = ({
           themeCategory={themeCategory}
           cameraPresetSeq={cameraPresetSeq}
           sceneResetSeq={sceneResetSeq}
+          stageSkinUrl={stageSkinUrl}
+          stageSkinVisible={stageSkinVisible}
+          entitySkinUrls={entitySkinUrls}
           evaluateTick60fps={evaluateTick60fps}
         />
 
@@ -164,6 +188,12 @@ export const DioramaCanvas: React.FC<DioramaCanvasProps> = ({
           isPlaying={isPlaying}
           cameraMode={cameraMode}
           themeCategory={themeCategory}
+          stageSkinUrl={stageSkinUrl}
+          stageSkinVisible={stageSkinVisible}
+          entitySkinUrls={entitySkinUrls}
+          onSkinLoad={onSkinLoad}
+          onStageSkinError={onStageSkinError}
+          onEntitySkinError={onEntitySkinError}
         />
 
         {/* 2. Viewport Observer Camera & Free-Orbit Handover Rig */}

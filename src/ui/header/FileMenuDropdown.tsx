@@ -100,7 +100,7 @@ export const FileMenuDropdown: React.FC<FileMenuDropdownProps> = ({
       <input
         ref={fileInputRef}
         type="file"
-        accept=".yaml,.yml,.json,.mp4,.webm,.mov,video/*"
+        accept=".yaml,.yml,.json,.mp4,.webm,.mov,.glb,.gltf,video/*"
         multiple
         className="hidden"
         onChange={(e) => {
@@ -128,10 +128,10 @@ export const FileMenuDropdown: React.FC<FileMenuDropdownProps> = ({
                 fileInputRef.current?.click();
               }}
               className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-text-body hover:text-text-main hover:bg-surface-subtle transition-colors text-left cursor-pointer"
-              title="Load local .yaml score or .mp4/.webm video file"
+              title="Load local .yaml score, .mp4/.webm video, or .glb/.gltf stage skin"
             >
               <FolderOpen className="w-3.5 h-3.5 text-sky-500 shrink-0" />
-              <span>Open Video or Score...</span>
+              <span>Open Video, Score or Skin...</span>
             </button>
 
             <button

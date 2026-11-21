@@ -30,6 +30,9 @@ export interface CliOptions {
   endSec?: number;
   shotId?: string;
   audioPath?: string;
+  stageSkinPath?: string;
+  entitySkinPaths?: Record<string, string>;
+  skinsDir?: string;
   format: 'mp4' | 'webm' | 'gif' | 'sequence';
   outputPath: string;
   preview: boolean;
