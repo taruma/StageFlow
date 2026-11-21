@@ -371,3 +371,5 @@ All video export geometry, dual-handle range clamping, storyboard shot sampling,
 - **Ephemeral `.glb` / `.gltf` Skin Normalization (`src/core/skinMath.ts`)**:
   - `computeGlbEntityNormalization()` computes closed-form local `[offset, scale]` from a raw mesh `Box3` (`min`, `max`) so the model centers at `X/Z = 0`, pins `min.y = 0`, scales characters uniformly to `height`, and fits explicitly dimensioned props to `[width, height, depth]` while preserving live 60fps YAML `scale`/`rotation`/`tilt` transforms outside the wrapper.
   - `suggestSkinTargetId()` matches dropped `.glb`/`.gltf` filenames against entity `id`/`label` tokens (`'stage'` fallback), and `buildEntitySkinsSignature()` produces deterministic sorted cache keys for `StoryboardBlobCache`.
+- **Stateless Frame Boundary Diff (`src/core/frameBoundaryDiff.ts`)**:
+  - `hasStageFrameBoundaryChanged()` detects changes across `stageCamera.shotId`, `observerCamera.shotId`, and entity `id` / `cueId` / `highlighted` / `visible` / `trailPoints` references so offscreen and headless WebGL renderers skip redundant React JSX reconciliations within continuous shots.

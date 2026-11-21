@@ -9,6 +9,7 @@ import type { SphericalPose, StageFrame, StageScore, Vec3 } from '../core/types'
 import { degToRad, sphericalToCartesian } from '../core/sphericalMath';
 import { parseStageScore } from '../core/scoreParser';
 import { computeStageFrame } from '../core/frameEngine';
+import { hasStageFrameBoundaryChanged } from '../core/frameBoundaryDiff';
 import { INITIAL_CATALOG_ITEMS } from '../core/scoreCatalog';
 import { DioramaCanvas } from '../stage/DioramaCanvas';
 import { getDioramaThemeColors } from '../stage/dioramaTheme';
@@ -102,10 +103,23 @@ export const HeadlessRecorderView: React.FC = () => {
 
   const [uiFrame, setUiFrame] = useState<StageFrame>(initialFrame);
   const frameRef = useRef<StageFrame>(initialFrame);
+  const lastCommittedUiFrameRef = useRef<StageFrame>(initialFrame);
   const lastManualSeekIdRef = useRef<number>(0);
   const r3fTickCountRef = useRef<number>(0);
+  const advanceRef = useRef<((timestamp: number) => void) | null>(null);
+  const rendererInfoRef = useRef<string | undefined>(undefined);
   const settledSkinUrlsRef = useRef<Set<string>>(new Set());
   const skinErrorRef = useRef<string | null>(null);
+
+  const handleAdvanceReady = useCallback(
+    (advance: (timestamp: number) => void, glRenderer?: string) => {
+      advanceRef.current = advance;
+      if (glRenderer) {
+        rendererInfoRef.current = glRenderer;
+      }
+    },
+    []
+  );
 
   const handleSkinLoad = useCallback((url: string) => {
     settledSkinUrlsRef.current.add(url);
@@ -171,23 +185,33 @@ export const HeadlessRecorderView: React.FC = () => {
       const rawFrame = computeStageFrame(currentTimestampSec, currentScore);
       const nextFrame = applyCustomPoseToFrame(rawFrame, cfg.customPose);
       frameRef.current = nextFrame;
-      setUiFrame(nextFrame);
       lastManualSeekIdRef.current += 1;
 
-      // Two animation frames ensure React state flush + R3F WebGL draw + Drei HTML positioning
-      requestAnimationFrame(() => {
+      const boundaryChanged = hasStageFrameBoundaryChanged(
+        lastCommittedUiFrameRef.current,
+        nextFrame
+      );
+      if (boundaryChanged) {
+        lastCommittedUiFrameRef.current = nextFrame;
+        setUiFrame(nextFrame);
+      }
+
+      const finishStep = () => {
+        advanceRef.current?.(performance.now());
+        const shotId = nextFrame.activeShot?.id ?? null;
+        const total = Math.max(
+          1,
+          Math.ceil(
+            ((cfg.endSec > cfg.startSec
+              ? cfg.endSec
+              : currentScore.durationSec) -
+              cfg.startSec) *
+              cfg.fps
+          )
+        );
+
+        // Single rAF ensures WebGL canvas & Drei <Html> transforms flush to compositor
         requestAnimationFrame(() => {
-          const shotId = nextFrame.activeShot?.id ?? null;
-          const total = Math.max(
-            1,
-            Math.ceil(
-              ((cfg.endSec > cfg.startSec
-                ? cfg.endSec
-                : currentScore.durationSec) -
-                cfg.startSec) *
-                cfg.fps
-            )
-          );
           resolve({
             frameIndex,
             timestampSec: currentTimestampSec,
@@ -195,7 +219,14 @@ export const HeadlessRecorderView: React.FC = () => {
             totalFrames: total,
           });
         });
-      });
+      };
+
+      if (boundaryChanged) {
+        // Wait 1 rAF so React commits boundary JSX (trails, HUD, labels) before advance()
+        requestAnimationFrame(finishStep);
+      } else {
+        finishStep();
+      }
     });
   }, []);
 
@@ -235,10 +266,11 @@ export const HeadlessRecorderView: React.FC = () => {
           newConfig.customPose
         );
         frameRef.current = firstFrame;
+        lastCommittedUiFrameRef.current = firstFrame;
         setUiFrame(firstFrame);
 
-        // Wait until all configured .glb/.gltf skins settle, R3F renders post-load ticks,
-        // and 2 rAFs flush compositor + Drei <Html> overlays before capturing Frame 0.
+        // Wait until R3F advance bridge + all configured .glb/.gltf skins settle,
+        // execute post-load synchronous advance() ticks, and flush compositor before Frame 0.
         const initialTickFloor = r3fTickCountRef.current + 4;
         let postSkinTargetTick: number | null =
           expectedSkinUrls.length === 0 ? initialTickFloor : null;
@@ -252,15 +284,20 @@ export const HeadlessRecorderView: React.FC = () => {
               return;
             }
 
+            if (advanceRef.current) {
+              advanceRef.current(performance.now());
+            }
+
             const allSkinsSettled = expectedSkinUrls.every((u) =>
               settledSkinUrlsRef.current.has(u)
             );
-            if (allSkinsSettled && postSkinTargetTick === null) {
+            if (allSkinsSettled && postSkinTargetTick === null && advanceRef.current) {
               postSkinTargetTick = r3fTickCountRef.current + 2;
             }
 
             if (
               (allSkinsSettled &&
+                advanceRef.current &&
                 postSkinTargetTick !== null &&
                 r3fTickCountRef.current >= postSkinTargetTick) ||
               performance.now() >= deadlineMs
@@ -279,6 +316,7 @@ export const HeadlessRecorderView: React.FC = () => {
           totalFrames: total,
           durationSec: effectiveEnd - newConfig.startSec,
           fps: newConfig.fps,
+          rendererInfo: rendererInfoRef.current,
         };
       },
       stepFrame,
@@ -305,7 +343,9 @@ export const HeadlessRecorderView: React.FC = () => {
       <DioramaCanvas
         score={score}
         cameraMode={config.cameraMode}
-        isPlaying={true}
+        isPlaying={false}
+        frameloopMode="never"
+        onAdvanceReady={handleAdvanceReady}
         frameRef={frameRef}
         uiFrame={uiFrame}
         lastManualSeekIdRef={lastManualSeekIdRef}

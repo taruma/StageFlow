@@ -14,7 +14,11 @@ import type {
 } from '../../src/core/types';
 import { CAMERA_PRESETS } from './cameraPresets';
 import { runRecordSession } from './playwrightDriver';
-import type { CliOptions, ResolutionPresetKey } from './recorderTypes';
+import type {
+  CaptureFormat,
+  CliOptions,
+  ResolutionPresetKey,
+} from './recorderTypes';
 import { RESOLUTION_PRESETS } from './recorderTypes';
 import { ensureViteServer } from './serverManager';
 import {
@@ -51,6 +55,9 @@ Options:
   --stage-skin <path>     Path to .glb/.gltf file for the Stage Environment skin
   --entity-skin <id=path> Assign .glb/.gltf to an entity ID (repeatable, e.g. hero=hero.glb)
   --skins-dir <dir>       Auto-match .glb/.gltf skins in a directory by entity ID / stage
+  --workers <n>           Parallel Playwright worker tabs (default: auto-optimized)
+  --capture <fmt>         Intermediate capture: "jpeg" (q=96, default for video) or "png"
+  --software-gl           Disable hardware ANGLE GPU preference (CI SwiftShader fallback)
   --fps <number>          Locked framerate (default: 60)
   --res <preset>          Resolution preset: 1080p, 4k, 720p, square, vertical
   --width <w>             Custom pixel width (e.g. 1920)
@@ -145,6 +152,9 @@ function parseArgs(args: string[]): CliOptions {
   let stageSkinPath: string | undefined;
   let entitySkinPaths: Record<string, string> | undefined;
   let skinsDir: string | undefined;
+  let workers: number | undefined;
+  let captureFormat: CaptureFormat | undefined;
+  let softwareGl = false;
   let format: 'mp4' | 'webm' | 'gif' | 'sequence' = 'mp4';
   let outputPath: string | undefined;
   let preview = false;
@@ -199,6 +209,16 @@ function parseArgs(args: string[]): CliOptions {
       entitySkinPaths[entityId] = filePath;
     } else if (arg === '--skins-dir' && args[i + 1]) {
       skinsDir = args[++i];
+    } else if (arg === '--workers' && args[i + 1]) {
+      workers = parseInt(args[++i], 10);
+    } else if (arg === '--capture' && args[i + 1]) {
+      const cap = args[++i].toLowerCase();
+      if (cap !== 'jpeg' && cap !== 'png') {
+        throw new Error(`Invalid --capture "${cap}". Expected "jpeg" or "png".`);
+      }
+      captureFormat = cap;
+    } else if (arg === '--software-gl') {
+      softwareGl = true;
     } else if ((arg === '-o' || arg === '--output') && args[i + 1]) {
       outputPath = args[++i];
     } else if (arg === '--preview') {
@@ -252,6 +272,9 @@ function parseArgs(args: string[]): CliOptions {
     stageSkinPath,
     entitySkinPaths,
     skinsDir,
+    workers,
+    captureFormat,
+    softwareGl,
     format,
     outputPath,
     preview,

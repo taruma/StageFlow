@@ -37,7 +37,12 @@ export interface RecorderFrameResult {
 export interface HeadlessRecorderBridge {
   init: (
     config: RecorderConfig
-  ) => Promise<{ totalFrames: number; durationSec: number; fps: number }>;
+  ) => Promise<{
+    totalFrames: number;
+    durationSec: number;
+    fps: number;
+    rendererInfo?: string;
+  }>;
   stepFrame: (frameIndex: number) => Promise<RecorderFrameResult>;
   ready: boolean;
 }
