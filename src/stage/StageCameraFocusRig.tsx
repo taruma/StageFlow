@@ -21,7 +21,7 @@ import * as THREE from 'three';
 import type { StageFrame } from '../core/types';
 import { BLUEPRINT_PALETTE, OPTICS_DOF_DEFAULTS } from '../core/constants';
 import { computeFrustumGateDimensions } from '../core/opticsMath';
-import { resolveGatedState } from './stageSyncGate';
+import { resolveGatedState, STAGE_FRAME_PRIORITY } from './stageSyncGate';
 
 const UNIT_PLANE_FRAME: Array<[number, number, number]> = [
   [-1, 1, 0],
@@ -109,7 +109,7 @@ export const StageCameraDofBrackets: React.FC<StageCameraDofBracketsProps> = ({
 
   useFrame(() => {
     syncBrackets(frameRef.current);
-  });
+  }, STAGE_FRAME_PRIORITY.RIG_TRANSFORMS);
 
   return (
     <group ref={rootGroupRef} visible={false}>
@@ -293,7 +293,7 @@ export const StageCameraFocusTether: React.FC<StageCameraFocusTetherProps> = ({
 
   useFrame(() => {
     syncFocusTether(frameRef.current);
-  });
+  }, STAGE_FRAME_PRIORITY.RIG_TRANSFORMS);
 
   return (
     <group ref={groupRef} visible={false}>

@@ -16,7 +16,7 @@ import * as THREE from 'three';
 import { ENTITY_DEFAULTS } from '../core/constants';
 import { computeTiltedEntityLabelOffset } from '../core/cameraTargetResolver';
 import { areTrailPointsEqual } from '../core/frameBoundaryDiff';
-import { resolveGatedState } from './stageSyncGate';
+import { resolveGatedState, STAGE_FRAME_PRIORITY } from './stageSyncGate';
 
 export { areTrailPointsEqual };
 import type {
@@ -201,10 +201,10 @@ const DirectionalMannequinComponent: React.FC<DirectionalMannequinProps> = ({
     syncEntityTransform(getSynchronizedEntity(frameRef.current));
   });
 
-  // Imperatively sync 3D position, facing rotation, and scale at 60fps
+  // Imperatively sync 3D position, facing rotation, and scale before DOM label overlays project
   useFrame(() => {
     syncEntityTransform(getSynchronizedEntity(frameRef.current));
-  });
+  }, STAGE_FRAME_PRIORITY.RIG_TRANSFORMS);
 
   // Floor trail points in world space
   const trailLinePoints = useMemo<Array<[number, number, number]>>(() => {

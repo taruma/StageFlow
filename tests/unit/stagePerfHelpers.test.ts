@@ -28,7 +28,10 @@ import {
 } from '../../src/stage/StageCameraRigMount';
 import { computeDofOpticalScale } from '../../src/stage/StageCamDofEffect';
 import { haveEndpointsChanged } from '../../src/stage/StageCameraFocusRig';
-import { resolveGatedState } from '../../src/stage/stageSyncGate';
+import {
+  resolveGatedState,
+  STAGE_FRAME_PRIORITY,
+} from '../../src/stage/stageSyncGate';
 
 function clonePose(pose: SphericalPose): SphericalPose {
   return { ...pose, target: { ...pose.target } };
@@ -733,6 +736,18 @@ describe('stagePerfHelpers — Issue #9 deterministic performance guards', () =>
 
       expect(onLiveEditFreeOrbit.nextCameraMode).toBe('free');
       expect(onLiveEditFreeOrbit.nextViewportPose).toEqual(customOrbitedPose);
+    });
+  });
+
+  describe('STAGE_FRAME_PRIORITY', () => {
+    it('orders frame evaluation, OrbitControls (-1), rig transforms, DOM overlays, and post-effect passes', () => {
+      expect(STAGE_FRAME_PRIORITY.EVALUATE_FRAME).toBeLessThan(-1);
+      expect(STAGE_FRAME_PRIORITY.RIG_TRANSFORMS).toBeGreaterThan(-1);
+      expect(STAGE_FRAME_PRIORITY.RIG_TRANSFORMS).toBeLessThan(
+        STAGE_FRAME_PRIORITY.DOM_OVERLAYS
+      );
+      expect(STAGE_FRAME_PRIORITY.DOM_OVERLAYS).toBeLessThanOrEqual(0);
+      expect(STAGE_FRAME_PRIORITY.POST_EFFECT).toBeGreaterThan(0);
     });
   });
 });

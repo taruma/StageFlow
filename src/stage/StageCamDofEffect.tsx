@@ -17,7 +17,7 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { StageFrame } from '../core/types';
-import { resolveGatedState } from './stageSyncGate';
+import { resolveGatedState, STAGE_FRAME_PRIORITY } from './stageSyncGate';
 import {
   FULL_FRAME_SENSOR_WIDTH_MM,
   OPTICS_DOF_DEFAULTS,
@@ -284,7 +284,7 @@ export const StageCamDofEffect: React.FC<StageCamDofEffectProps> = ({
     // 2. Render thin-lens DoF bokeh composite to screen
     gl.setRenderTarget(null);
     gl.render(quadScene, quadCamera);
-  }, 1);
+  }, STAGE_FRAME_PRIORITY.POST_EFFECT);
 
   return null;
 };

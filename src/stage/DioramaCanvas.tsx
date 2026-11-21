@@ -20,6 +20,7 @@ import { ObserverCameraRig } from './ObserverCameraRig';
 import { StageCameraRig } from './StageCameraRig';
 import { StageCamDofEffect } from './StageCamDofEffect';
 import { getDioramaThemeColors } from './dioramaTheme';
+import { STAGE_FRAME_PRIORITY } from './stageSyncGate';
 import type { CameraPresetType } from './cameraPresets';
 
 export interface DioramaCanvasProps {
@@ -80,10 +81,10 @@ const HeadlessAdvanceBridge: React.FC<{
 };
 
 const FrameLoopTicker: React.FC<{ onTick: () => void }> = ({ onTick }) => {
-  // Run priority -1 so `frameRef.current` is freshly computed before Camera and Mannequin rigs read it
+  // Run before OrbitControls (-1) and rig transforms (-0.5) so `frameRef.current` is freshly computed
   useFrame(() => {
     onTick();
-  }, -1);
+  }, STAGE_FRAME_PRIORITY.EVALUATE_FRAME);
   return null;
 };
 

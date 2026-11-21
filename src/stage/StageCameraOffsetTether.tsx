@@ -17,7 +17,7 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { StageFrame } from '../core/types';
 import { haveEndpointsChanged, type LineEndpoints6 } from './StageCameraFocusRig';
-import { resolveGatedState } from './stageSyncGate';
+import { resolveGatedState, STAGE_FRAME_PRIORITY } from './stageSyncGate';
 
 export interface StageCameraOffsetTetherProps {
   frameRef: React.RefObject<StageFrame>;
@@ -128,7 +128,7 @@ export const StageCameraOffsetTether: React.FC<StageCameraOffsetTetherProps> = (
   // Imperative 60fps/144fps frame update
   useFrame(() => {
     updateTetherTransform(frameRef.current);
-  });
+  }, STAGE_FRAME_PRIORITY.RIG_TRANSFORMS);
 
   return (
     <group ref={groupRef} visible={false}>

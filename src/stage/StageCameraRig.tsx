@@ -26,7 +26,7 @@ import {
 } from './StageCameraFocusRig';
 import { StageCameraOffsetTether } from './StageCameraOffsetTether';
 import { StageCameraRigMount } from './StageCameraRigMount';
-import { resolveGatedState } from './stageSyncGate';
+import { resolveGatedState, STAGE_FRAME_PRIORITY } from './stageSyncGate';
 
 /**
  * Static normalized unit frustum pyramid coordinates (depth Z = 1, bounds [-1, 1]).
@@ -199,7 +199,7 @@ export const StageCameraRig: React.FC<StageCameraRigProps> = ({
       trajectoryGroupRef.current.visible =
         stageCam.showPath && !isShotDesynced;
     }
-  });
+  }, STAGE_FRAME_PRIORITY.RIG_TRANSFORMS);
 
   // Hide the 3D camera body mesh when viewing directly through Stage Camera POV
   const isBodyVisible = cameraMode !== 'stage-pov';
