@@ -2,6 +2,24 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Html5MediaDriver } from '../../src/media/html5MediaDriver';
 import { YouTubeMediaDriver } from '../../src/media/youtubeMediaDriver';
 import { ProceduralMediaDriver } from '../../src/media/proceduralMediaDriver';
+import { classifyMediaSource, extractYouTubeId } from '../../src/media/mediaTypes';
+
+describe('mediaTypes — Video Source Classification', () => {
+  it('classifies YouTube URLs, Local MP4 paths, and Procedural slates identically', () => {
+    expect(extractYouTubeId('https://www.youtube.com/watch?v=dQw4w9WgXcQ')).toBe('dQw4w9WgXcQ');
+    expect(extractYouTubeId('https://youtu.be/dQw4w9WgXcQ')).toBe('dQw4w9WgXcQ');
+
+    const ytSource = classifyMediaSource('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+    expect(ytSource.kind).toBe('youtube');
+    expect(ytSource.youtubeId).toBe('dQw4w9WgXcQ');
+
+    const localSource = classifyMediaSource('/media/demo_scene.mp4');
+    expect(localSource.kind).toBe('html5');
+
+    const procSource = classifyMediaSource('procedural://demo-blueprint');
+    expect(procSource.kind).toBe('procedural');
+  });
+});
 
 describe('MediaClockDrivers - Optimistic In-Flight Seek Synchronization', () => {
   describe('Html5MediaDriver', () => {

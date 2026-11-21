@@ -7,7 +7,6 @@
 import { describe, expect, it } from 'vitest';
 import { parseStageScore } from '../../src/core/scoreParser';
 import { computeStageFrame } from '../../src/core/frameEngine';
-import { findCatalogItem } from '../../src/core/scoreCatalog';
 import { radToDeg } from '../../src/core/sphericalMath';
 
 describe('cameraRigs — Kinematic Invariants & DSL Contracts', () => {
@@ -294,48 +293,6 @@ shots:
     const f3 = computeStageFrame(10.0, score!);
     expect(f3.stageCamera.showRig).toBe(false);
     expect(f3.stageCamera.rig).toBeUndefined(); // Legacy shot has no rig attached
-  });
-
-  it('validates Blueprint 07 (Camera Rigs & Dolly Masterclass) compiles and runs cleanly across all 4 shots', () => {
-    const bp07Item = findCatalogItem('blueprint-07');
-    expect(bp07Item).toBeDefined();
-    const bp07 = bp07Item!.score;
-
-    expect(bp07.durationSec).toBe(24.0);
-    expect(bp07.shots).toHaveLength(4);
-
-    // Shot 1: Tripod
-    const f1 = computeStageFrame(3.0, bp07);
-    expect(f1.activeShot?.id).toBe('shot-01-tripod');
-    expect(f1.stageCamera.rig?.type).toBe('tripod');
-    expect(f1.stageCamera.transform.position.y).toBeCloseTo(1.55, 2);
-    expect(f1.observerCamera.transform.pose.distance).toBeCloseTo(16.5, 2);
-
-    // Shot 2: Linear Dolly Track (Two-Shot Glide)
-    const f2 = computeStageFrame(9.0, bp07);
-    expect(f2.activeShot?.id).toBe('shot-02-dolly-track');
-    expect(f2.stageCamera.rig?.type).toBe('track');
-    expect(f2.stageCamera.rig?.railPoints.length).toBeGreaterThanOrEqual(2);
-    expect(f2.stageCamera.baseTarget).toBeDefined();
-    expect(f2.observerCamera.transform.pose.distance).toBeCloseTo(16.5, 2);
-
-    // Shot 3: Sideways Truck (no target lock)
-    const f3 = computeStageFrame(15.0, bp07);
-    expect(f3.activeShot?.id).toBe('shot-03-sideways-truck');
-    expect(f3.stageCamera.rig?.type).toBe('track');
-    expect(f3.stageCamera.rig?.hasTargetLock).toBe(false);
-    expect(f3.observerCamera.transform.pose.distance).toBeCloseTo(16.5, 2);
-
-    // Shot 4: Curved Spline Track with Two-Shot Centroid & Rack Focus
-    const f4 = computeStageFrame(21.0, bp07);
-    expect(f4.activeShot?.id).toBe('shot-04-spline-track');
-    expect(f4.stageCamera.rig?.type).toBe('spline_track');
-    expect(f4.stageCamera.dof.enabled).toBe(true);
-    expect(f4.stageCamera.baseTarget).toBeDefined();
-    expect(f4.observerCamera.transform.pose.distance).toBeCloseTo(16.5, 2);
-    // Midpoint X is between protagonist and interlocutor (X = 2.5)
-    expect(f4.stageCamera.baseTarget!.x).toBeGreaterThan(-2.0);
-    expect(f4.stageCamera.baseTarget!.x).toBeLessThan(2.5);
   });
 
   it('inherits prevEndPose eye E_prev on continuous rigs (track, 1-pt spline_track, tripod) even when target switches', () => {

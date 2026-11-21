@@ -222,21 +222,35 @@ stageflow/
 │   ├── main.tsx                     # Application entry point
 │   └── index.css                    # Tailwind CSS v4 + blueprint design tokens
 └── tests/
+    ├── helpers/                     # Shared typed test fixtures & YAML builders
+    │   └── scoreFixtures.ts
+    ├── integration/                 # Bundled choreography catalog & blueprint regression suites
+    │   ├── bundledScores.test.ts
+    │   └── scoreContract.test.ts
     └── unit/                        # Vitest deterministic unit test suites
         ├── opticsMath.test.ts
         ├── skinMath.test.ts
         ├── exportMath.test.ts
         ├── exportScrubberMath.test.ts
         ├── storyboardMath.test.ts
+        ├── storyboardLayout.test.ts
         ├── storyboardBlobCache.test.ts
         ├── zipBuilder.test.ts
         ├── sphericalMath.test.ts
         ├── cameraRigs.test.ts
+        ├── cameraTargetResolver.test.ts
+        ├── shotPoseEvaluator.test.ts
+        ├── dofEvaluator.test.ts
+        ├── trajectoryChain.test.ts
         ├── entityEngine.test.ts
+        ├── entityKinematicUtils.test.ts
+        ├── entityBlockingEvaluator.test.ts
+        ├── entityLegacyEvaluator.test.ts
         ├── frameEngine.test.ts
         ├── frameBoundaryDiff.test.ts
+        ├── scorePrimitives.test.ts
+        ├── cameraCueParser.test.ts
         ├── scoreParser.test.ts
-        ├── scoreContract.test.ts
         ├── scoreYamlUtils.test.ts
         ├── scoreUrlLoader.test.ts
         ├── telemetryYamlFormatter.test.ts
