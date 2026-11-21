@@ -25,6 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **CLI Recorder Default Output Path for External & Nested YAML Scores (`scripts/record/cli.ts`, `scripts/record/cliArgs.ts`, `tests/unit/recorder.test.ts`, `docs/ARCHITECTURE_FILE_MAP.md`)**:
+  - Extracted `parseArgs`, `printHelp`, `extractSceneSlug`, and `resolveDefaultOutputPath` into `scripts/record/cliArgs.ts` so omitting `-o` / `--output` for custom Windows/POSIX YAML file paths (e.g. `d:\Download\Edge\custom.yaml` or `src/scores/studies/afraid.yaml`) resolves cleanly to `recordings/<basename>_<camera>.<ext>` instead of concatenating raw drive letters or directories inside `recordings/`.
+  - Added directory-target `-o <dir>/` handling when `format !== 'sequence'` and unit tests in `tests/unit/recorder.test.ts`.
 - **Headless Viewport Recorder Frame 0 Black Screen (`src/recorder/HeadlessRecorderView.tsx`, `src/stage/DioramaCanvas.tsx`)**:
   - Updated `HeadlessRecorderView` `init()` to track R3F `useFrame` execution ticks (`r3fTickCountRef`) via `evaluateTick60fps` and await 4 R3F render ticks (with a 5s safety deadline) plus 2 `requestAnimationFrame`s before resolving, ensuring WebGL shader compilation, canvas resizing, and Drei `<Html>` overlays complete before `stepFrame(0)` captures Frame 0.
   - Enabled `preserveDrawingBuffer: true` in `DioramaCanvas` `<Canvas gl={...}>` options so the WebGL drawing buffer is preserved between swaps during headless `page.screenshot()` captures.

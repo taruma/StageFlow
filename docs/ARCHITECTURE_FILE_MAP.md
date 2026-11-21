@@ -45,7 +45,8 @@ stageflow/
 │   └── VIEWPORT_RECORDER_GUIDE.md   # Deterministic 60fps Playwright + FFmpeg recorder operating manual (SSOT)
 ├── scripts/                         # CLI Automation & Offline Tooling
 │   └── record/                      # 60fps Playwright + FFmpeg Viewport Recorder
-│       ├── cli.ts                   # CLI entry point, argument parsing & usage help
+│       ├── cli.ts                   # CLI entry point & score YAML resolution
+│       ├── cliArgs.ts               # CLI argument parsing, usage help & default output path resolution
 │       ├── batchRecord.ts           # Automated batch recorder for factory blueprints BP01–BP07
 │       ├── playwrightDriver.ts      # Headless Chromium lifecycle & frame-stepping loop
 │       ├── ffmpegPipeline.ts        # FFmpeg pipe encoder (libx264, VP9, GIF, PNG sequence)

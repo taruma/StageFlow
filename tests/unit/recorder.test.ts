@@ -8,6 +8,11 @@ import path from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { CAMERA_PRESETS } from '../../scripts/record/cameraPresets';
 import {
+  extractSceneSlug,
+  parseArgs,
+  resolveDefaultOutputPath,
+} from '../../scripts/record/cliArgs';
+import {
   RESOLUTION_PRESETS,
   type ResolutionPresetKey,
 } from '../../scripts/record/recorderTypes';
@@ -256,5 +261,67 @@ describe('Stateless Worker Sharding & Capture Format Scheduler', () => {
       0
     );
     expect(totalCovered).toBe(10);
+  });
+});
+
+describe('CLI Default Output Path Resolution', () => {
+  it('extracts a clean scene slug from Windows paths, relative paths, and bundled shortcuts', () => {
+    expect(
+      extractSceneSlug('d:\\Download\\Edge\\custom-custom-project-mwkx2snh-mwkyxzpe.yaml')
+    ).toBe('custom-custom-project-mwkx2snh-mwkyxzpe');
+    expect(extractSceneSlug('src/scores/studies/afraid.yaml')).toBe('afraid');
+    expect(extractSceneSlug('01')).toBe('01');
+    expect(extractSceneSlug('vf')).toBe('vf');
+    expect(extractSceneSlug('blueprint_01_two_shot_arc')).toBe(
+      'blueprint_01_two_shot_arc'
+    );
+  });
+
+  it('defaults output path into recordings/ using the extracted basename', () => {
+    expect(
+      resolveDefaultOutputPath(
+        'd:\\Download\\Edge\\custom-custom-project-mwkx2snh-mwkyxzpe.yaml',
+        'scripted',
+        'mp4'
+      )
+    ).toBe(
+      path.join('recordings', 'custom-custom-project-mwkx2snh-mwkyxzpe_scripted.mp4')
+    );
+
+    expect(
+      resolveDefaultOutputPath(
+        'd:\\Download\\Edge\\custom-custom-project-mwkx2snh-mwkyxzpe.yaml',
+        'stage-pov',
+        'mp4'
+      )
+    ).toBe(
+      path.join('recordings', 'custom-custom-project-mwkx2snh-mwkyxzpe_stage-pov.mp4')
+    );
+
+    expect(resolveDefaultOutputPath('01', 'scripted', 'sequence')).toBe(
+      path.join('recordings', '01_scripted')
+    );
+  });
+
+  it('parses CLI arguments and resolves directory -o outputs cleanly', () => {
+    const parsedDefault = parseArgs([
+      'd:\\Download\\Edge\\custom-custom-project-mwkx2snh-mwkyxzpe.yaml',
+      '--camera',
+      'stage-pov',
+      '--theme',
+      'light',
+      '--fps',
+      '30',
+    ]);
+    expect(parsedDefault.outputPath).toBe(
+      path.join('recordings', 'custom-custom-project-mwkx2snh-mwkyxzpe_stage-pov.mp4')
+    );
+
+    const parsedDir = parseArgs([
+      'd:\\Download\\Edge\\custom.yaml',
+      '-o',
+      'recordings/',
+    ]);
+    expect(parsedDir.outputPath).toBe(path.join('recordings', 'custom_scripted.mp4'));
   });
 });
