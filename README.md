@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/taruma/stageflow/releases"><img src="https://img.shields.io/badge/version-1.2.0-blue.svg?style=flat-square" alt="Version 1.2.0" /></a>
+  <a href="https://github.com/taruma/stageflow/releases"><img src="https://img.shields.io/badge/version-1.3.0-blue.svg?style=flat-square" alt="Version 1.3.0" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-yellow.svg?style=flat-square" alt="License MIT" /></a>
   <a href="https://github.com/taruma/stageflow"><img src="https://img.shields.io/badge/tests-354%20passed-brightgreen.svg?style=flat-square" alt="Vitest 354 Passed" /></a>
   <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.8-blue.svg?style=flat-square" alt="TypeScript 5.8" /></a>

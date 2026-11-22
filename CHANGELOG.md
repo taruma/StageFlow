@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-11-23
+
 ### Added
 
 - **Markdown `.md` Download Button in Guide & Spec Modes (`src/ui/guide/ScoreAuthoringGuideView.tsx`, `src/ui/guide/guideUtils.ts`, `tests/unit/guideUtils.test.ts`, `docs/ARCHITECTURE_FILE_MAP.md`)**:
@@ -38,6 +40,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Version Bump & Release Preparation (`package.json`, `package-lock.json`, `src/ui/AppInfoModal.tsx`, `README.md`, `docs/releases/v1.3.0.md`, `docs/ARCHITECTURE_FILE_MAP.md`, `docs/YAML_AUTHORING_GUIDE.md`)**:
+  - Bumped application version from `1.2.0` to `1.3.0` across package manifest, lockfile, and `AppInfoModal.tsx` (`APP_VERSION`).
+  - Authored GitHub release notes in `docs/releases/v1.3.0.md` and indexed them in `docs/ARCHITECTURE_FILE_MAP.md`.
+  - Updated `README.md` version badge (`1.3.0`) and promoted `§8.5 v1.3.0 (2026-11-23)` in `docs/YAML_AUTHORING_GUIDE.md`.
 - **Pre-Release Living Documentation Sync (`AGENTS.md`, `README.md`, `src/ui/AppInfoModal.tsx`, `docs/ARCHITECTURE_FILE_MAP.md`, `docs/YAML_AUTHORING_GUIDE.md`, `docs/VIEWPORT_RECORDER_GUIDE.md`)**:
   - Updated Vitest test suite counts to `354` tests across `41` suites in `AGENTS.md` and `README.md`, and refreshed `README.md` capabilities to cover `.glb`/`.gltf` skins, pane-scoped drag-and-drop, `.md` manual downloads, and the live 2D Stage Minimap.
   - Added the `M` hotkey (Minimap toggle) to `QUICK_SHORTCUTS` in `src/ui/AppInfoModal.tsx` and `README.md`.

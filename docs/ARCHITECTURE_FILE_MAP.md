@@ -33,7 +33,8 @@ stageflow/
 │   │   ├── v1.1.0.md                # Release notes for StageFlow v1.1.0 feature release
 │   │   ├── v1.1.1.md                # Release notes for StageFlow v1.1.1 patch release
 │   │   ├── v1.1.2.md                # Release notes for StageFlow v1.1.2 patch release
-│   │   └── v1.2.0.md                # Release notes for StageFlow v1.2.0 feature release
+│   │   ├── v1.2.0.md                # Release notes for StageFlow v1.2.0 feature release
+│   │   └── v1.3.0.md                # Release notes for StageFlow v1.3.0 feature release
 │   ├── ARCHITECTURE_FILE_MAP.md     # Exhaustive repository file tree & 5-layer module index
 │   ├── STAGEFLOW_SCRIPT_SPECIFICATION.md # Engine SSOT: mathematical model, optics & AST contract
 │   ├── YAML_AUTHORING_GUIDE.md      # Authoring SSOT: quickstart, YAML schema, aliases & cookbook

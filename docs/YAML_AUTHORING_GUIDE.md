@@ -1437,7 +1437,7 @@ shots:
 
 ## 8. YAML DSL Release History
 
-Chronological summary of **YAML authoring features, syntax additions, and evaluator behaviors** from the earliest release (`v0.1.0`) through `v1.2.0`. All scores remain 100% backward-compatible across upcoming releases. For non-YAML Studio UI, WebCodecs export, and rendering changes, see [`CHANGELOG.md`](../CHANGELOG.md).
+Chronological summary of **YAML authoring features, syntax additions, and evaluator behaviors** from the earliest release (`v0.1.0`) through `v1.3.0`. All scores remain 100% backward-compatible across versions. For non-YAML Studio UI, WebCodecs export, and rendering changes, see [`CHANGELOG.md`](../CHANGELOG.md).
 
 ### 8.1 `v0.1.0` (2026-11-03) — Core Score & Dual-Timeline Foundation
 
@@ -1467,3 +1467,8 @@ Chronological summary of **YAML authoring features, syntax additions, and evalua
 - **Dot-Notation Entity Target Sub-Anchors (`<entityKey>.<part>`)** ([§4.2](#section-4-2), [§6.1](#section-6-1)): Target specific body regions (`.head`/`.eyes`/`.eye`, `.shoulder`/`.chest`, `.shoulder_l`, `.shoulder_r`, `.waist`/`.center`, `.feet`/`.base`, `.top`) across `target`, `from`, `focus`, `focus_start`/`focus_end`, multi-entity arrays, `waypoints`, baseline `stage` cameras, and order-independent `look_at` (with exact-first ID matching for dotted entity IDs).
 - **Continuous Rig Eye Inheritance (`E_prev`)** ([§4.9](#section-4-9), [§5.2](#section-5-2)): Continuous `track`, 1-point `spline_track`, and `tripod` camera rigs that omit `rig.from`/`rig.position` now inherit the previous shot's terminal eye position $\vec{E}_{\text{prev}}$ even when `target:` changes or moves.
 - **Parser & Alias Parity** ([§3.1](#section-3-1), [§3.3](#section-3-3), [§4.6](#section-4-6)): Added `stage.gridStep` camelCase alias, flat root `optics` aliases (`blur`, `depth_of_field`/`depthOfField`, `f_stop`/`fStop`), and flat shot-root optical overrides (`f_stop_start`, `dof_start`, `f_stop_end`, `dof_end`).
+
+### 8.5 `v1.3.0` (2026-11-23) — 3D Skins, Live Minimap & Studio Parity (No Schema Changes)
+
+- **100% YAML Compatibility**: `v1.3.0` introduces no new or breaking YAML score fields; all `v1.0.0`–`v1.2.0` scores run unchanged.
+- **Ephemeral `.glb` / `.gltf` Skins & Filename Auto-Matching**: Dropped or picked `.glb`/`.gltf` 3D stage and entity skins stay strictly in session memory without altering YAML scores, auto-matching entity `id` / `label` tokens and inheriting all 60fps YAML `position`, `rotation`, `facing`, `look_at`, `pitch`/`roll`, `width`/`height`/`depth`, and `scale` transforms.
