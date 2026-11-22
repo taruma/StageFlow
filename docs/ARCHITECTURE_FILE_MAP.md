@@ -204,7 +204,7 @@ stageflow/
 │   │   ├── LabelDisplayModeToggle.tsx # Floating 3-mode 3D diorama label toggle (All / Cam / Off)
 │   │   ├── StageCamViewfinderOverlay.tsx # Optical film gate, look-around mask & composition guides
 │   │   ├── ConfirmResetModal.tsx    # Accessible confirmation dialog modal for discarding drafts
-│   │   ├── AssignStageSkinModal.tsx # 1-click single & batch target assignment modal for dropped/picked .glb/.gltf stage & entity skins
+│   │   ├── AssignStageSkinModal.tsx # Single (radio + Apply) & batch target assignment modal for dropped/picked .glb/.gltf stage & entity skins
 │   │   ├── BatchSkinAssignmentList.tsx # Multi-skin batch target selector, duplicate conflict warning & skip controls
 │   │   ├── ConfirmRemoteScoreModal.tsx # Accessible confirmation & conflict dialog modal for external/remote scores
 │   │   ├── CleanVideoExportModal.tsx # In-browser Clean Stage Cam & Observer MP4 export progress modal

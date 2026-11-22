@@ -148,11 +148,12 @@ export const AssignStageSkinModal: React.FC<AssignStageSkinModalProps> = ({
       <button
         key={ent.id}
         type="button"
-        onClick={() => onAssign(ent.id)}
-        onMouseEnter={() => setSelectedId(ent.id)}
+        role="radio"
+        aria-checked={isSelected}
+        onClick={() => setSelectedId(ent.id)}
         className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl border text-left transition-colors cursor-pointer ${
           isSelected
-            ? 'bg-surface-subtle border-text-main text-text-main'
+            ? 'bg-surface-subtle border-text-main text-text-main ring-1 ring-text-main/15'
             : 'bg-surface border-border-main text-text-body hover:bg-surface-subtle'
         }`}
       >
@@ -170,7 +171,7 @@ export const AssignStageSkinModal: React.FC<AssignStageSkinModalProps> = ({
           </span>
         </div>
 
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
           {existing && (
             <span className="text-[10px] font-mono text-amber-500 truncate max-w-[90px]">
               replaces {existing.name}
@@ -181,7 +182,16 @@ export const AssignStageSkinModal: React.FC<AssignStageSkinModalProps> = ({
               Match
             </span>
           )}
-          {isSelected && <Check className="w-3.5 h-3.5 text-text-main" />}
+          <span
+            aria-hidden="true"
+            className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${
+              isSelected
+                ? 'bg-btn-primary-bg border-btn-primary-bg text-btn-primary-text'
+                : 'border-border-main bg-surface'
+            }`}
+          >
+            {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+          </span>
         </div>
       </button>
     );
@@ -231,7 +241,7 @@ export const AssignStageSkinModal: React.FC<AssignStageSkinModalProps> = ({
           </button>
         </div>
 
-        {/* Body: Batch List or 1-Click Single Target List */}
+        {/* Body: Batch List or Radio Target Picker */}
         {isBatchMode ? (
           <BatchSkinAssignmentList
             pendingDrops={pendingDrops}
@@ -242,14 +252,19 @@ export const AssignStageSkinModal: React.FC<AssignStageSkinModalProps> = ({
             onChangeTarget={handleBatchTargetChange}
           />
         ) : (
-          <div className="p-4 space-y-3 max-h-[60vh] overflow-y-auto">
+          <div
+            role="radiogroup"
+            aria-label="Target assignment"
+            className="p-4 space-y-3 max-h-[60vh] overflow-y-auto"
+          >
             <button
               type="button"
-              onClick={() => onAssign('stage')}
-              onMouseEnter={() => setSelectedId('stage')}
+              role="radio"
+              aria-checked={selectedId === 'stage'}
+              onClick={() => setSelectedId('stage')}
               className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border text-left transition-colors cursor-pointer ${
                 selectedId === 'stage'
-                  ? 'bg-surface-subtle border-text-main text-text-main'
+                  ? 'bg-surface-subtle border-text-main text-text-main ring-1 ring-text-main/15'
                   : 'bg-surface border-border-main text-text-body hover:bg-surface-subtle'
               }`}
             >
@@ -262,15 +277,24 @@ export const AssignStageSkinModal: React.FC<AssignStageSkinModalProps> = ({
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-1.5 shrink-0">
+              <div className="flex items-center gap-2 shrink-0">
                 {stageSkin && (
                   <span className="text-[10px] font-mono text-amber-500 truncate max-w-[90px]">
                     replaces {stageSkin.name}
                   </span>
                 )}
-                {selectedId === 'stage' && (
-                  <Check className="w-3.5 h-3.5 text-text-main" />
-                )}
+                <span
+                  aria-hidden="true"
+                  className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${
+                    selectedId === 'stage'
+                      ? 'bg-btn-primary-bg border-btn-primary-bg text-btn-primary-text'
+                      : 'border-border-main bg-surface'
+                  }`}
+                >
+                  {selectedId === 'stage' && (
+                    <Check className="w-2.5 h-2.5 stroke-[3]" />
+                  )}
+                </span>
               </div>
             </button>
 
@@ -311,11 +335,7 @@ export const AssignStageSkinModal: React.FC<AssignStageSkinModalProps> = ({
 
         {/* Footer */}
         <div className="px-4 py-2.5 border-t border-border-subtle bg-surface-subtle flex items-center justify-between gap-2 text-[10px] font-mono text-text-muted">
-          <span>
-            {isBatchMode
-              ? 'Session-only overlay · Press Enter to apply'
-              : 'Session-only overlay · Press Enter to apply'}
-          </span>
+          <span>Session-only overlay</span>
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -324,7 +344,7 @@ export const AssignStageSkinModal: React.FC<AssignStageSkinModalProps> = ({
             >
               {isBatchMode ? 'Cancel All' : 'Cancel'}
             </button>
-            {isBatchMode && (
+            {isBatchMode ? (
               <button
                 type="button"
                 onClick={handleConfirmBatch}
@@ -334,6 +354,14 @@ export const AssignStageSkinModal: React.FC<AssignStageSkinModalProps> = ({
                 {applyCount === 0
                   ? 'Nothing Selected'
                   : `Apply ${applyCount} Skin${applyCount === 1 ? '' : 's'}`}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => onAssign(selectedId)}
+                className="px-3 py-1.5 rounded-lg bg-btn-primary-bg text-btn-primary-text font-bold hover:opacity-90 transition-opacity cursor-pointer"
+              >
+                Apply Skin
               </button>
             )}
           </div>
