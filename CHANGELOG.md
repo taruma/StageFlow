@@ -50,6 +50,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Touchscreen & Tablet Split Divider Dragging (`src/ui/ResizableSplitWorkspace.tsx`, `docs/DIORAMA_3D_AND_UI_SPECIFICATIONS.md`)**:
+  - Added `touch-none` (`touch-action: none`), `setPointerCapture`, `pointercancel`/`blur` drag cleanup, and expanded `~24px` touch hit areas on coarse pointers (`@media (pointer: coarse)`) across all 3 split dividers (`horizontal`, `left`, `right`) so touch drags on tablets are not hijacked by browser scroll/overscroll.
+  - Added `role="separator"` / `aria-orientation` semantics and minimum `22%` Center Diorama width clamping when both Left and Right columns are open simultaneously.
 - **3D `<Html>` Label 1-Frame Lag & Multi-Worker Boundary Stutter (`src/stage/stageSyncGate.ts`, `src/stage/DioramaCanvas.tsx`, `src/stage/ObserverCameraRig.tsx`, `src/stage/DirectionalMannequin.tsx`, `src/stage/StageCameraRig.tsx`, `src/stage/StageCameraRigMount.tsx`, `src/stage/StageCameraFocusRig.tsx`, `src/stage/StageCameraOffsetTether.tsx`, `src/stage/StageCamViewRig.tsx`, `src/stage/StageBillboardLabel.tsx`, `src/stage/StageCamDofEffect.tsx`)**:
   - Added `STAGE_FRAME_PRIORITY` in `stageSyncGate.ts` ordering R3F `useFrame` execution strictly per frame: `EVALUATE_FRAME (-2)` $\to$ Drei `OrbitControls (-1)` $\to$ `RIG_TRANSFORMS (-0.5)` $\to$ `DOM_OVERLAYS (0)` $\to$ `POST_EFFECT (1)`.
   - Added `persp.updateMatrixWorld()` in `ObserverCameraRig.tsx` and `StageCamViewRig.tsx` after imperative pose updates so Drei `<Html>` and `StageBillboardLabel` project against finalized same-frame matrices, eliminating the 1-frame label jump at parallel recorder worker boundaries (e.g. `t = 2.50s`) and during live 60fps playback.

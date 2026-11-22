@@ -192,10 +192,10 @@ Scene entities (`character`, `prop`, `marker`) are rendered with unambiguous ori
   - `Full + Edit OFF`: 100% 3D Diorama stage. Reference video is mounted offscreen (`fixed -left-[99999px]`) to maintain media clock and audio sync without interruption.
   - `Full + Edit ON`: 2-Column Mode (Diorama 60% | YAML 40%, video cleanly offscreened). Perfect for procedural blueprint scores.
 - **Continuous 3-Way Resizing**:
-  - Left vertical divider (col-resize) adjusts Left Column width ($18\%$ to $45\%$).
-  - Right vertical divider (col-resize) adjusts Right Column width ($18\%$ to $45\%$).
+  - Left vertical divider (col-resize) adjusts Left Column width ($18\%$ to $45\%$, clamped to preserve $\ge 22\%$ Center Diorama width when YAML Studio is open).
+  - Right vertical divider (col-resize) adjusts Right Column width ($18\%$ to $45\%$, clamped to preserve $\ge 22\%$ Center Diorama width when Left Column is visible).
   - Left horizontal divider (row-resize) adjusts Video container height ($180\text{px}$ min video, $140\text{px}$ min subpanel).
-  - Enforces `.is-resizing-split` during any drag operation to maintain 60fps responsiveness across WebGL and IFrames.
+  - Enforces `touch-none` (`touch-action: none`), `setPointerCapture`, `pointercancel`/`blur` cleanup, expanded `~24px` touch hit targets on coarse pointers (`@media (pointer: coarse)`), and `.is-resizing-split` during any drag operation for reliable tablet touch dragging and 60fps mouse responsiveness across WebGL and IFrames.
 - **Mobile & Narrow Viewports (`< md` / `< 768px`)**:
   - **Dynamic Aspect Ratio Fitting with 40% Maximum Height Clamp**: On mobile, the Left/Top Column is not locked to an arbitrary static height. Instead, it scales dynamically to hug the rounded video card based on the exact aspect ratio of the video (`min(40%, calc((100vw - 20px) / var(--aspect-ratio) + 20px))`). Widescreen media (`16:9`, `2.39:1`) fits with uniform 10px padding on all four sides without excessive vertical dead space above or below, automatically releasing extra vertical height to the 3D Blueprint Diorama (e.g. 68%–75% for widescreen). Taller media (`4:3`, `1:1`) is clamped cleanly at the 40% height threshold to guarantee the 3D diorama retains at least 60% of the screen height.
   - **Tactile Rounded Card Presentation**: Retains the signature `rounded-2xl border border-border-main shadow-xl` floating card aesthetic with balanced 10px outer frame padding (`p-2.5 md:p-3`), preserving visual parity with desktop cards while eliminating unbalanced top/bottom voids.
