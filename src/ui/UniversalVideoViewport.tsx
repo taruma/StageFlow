@@ -28,6 +28,7 @@ export interface UniversalVideoViewportProps {
   stageSkinUrl?: string | null;
   stageSkinVisible?: boolean;
   entitySkinUrls?: Record<string, string>;
+  disableIframePointerEvents?: boolean;
   onApplyVideoUrlOverride?: (url: string) => void;
 }
 
@@ -47,6 +48,7 @@ export const UniversalVideoViewport: React.FC<UniversalVideoViewportProps> = ({
   stageSkinUrl,
   stageSkinVisible = true,
   entitySkinUrls,
+  disableIframePointerEvents = false,
 }) => {
   return (
     <div className="relative flex-1 w-full h-full aspect-fit-container bg-app select-none overflow-hidden p-2.5 md:p-3">
@@ -73,7 +75,7 @@ export const UniversalVideoViewport: React.FC<UniversalVideoViewportProps> = ({
           ref={youtubeContainerRef}
           className={`w-full h-full ${
             sourceInfo.kind === 'youtube' ? 'block' : 'hidden'
-          }`}
+          } ${disableIframePointerEvents ? 'pointer-events-none' : ''}`}
         />
 
         {/* 3. True 3D Optical Stage Cam Monitor Viewport */}

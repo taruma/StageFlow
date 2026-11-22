@@ -73,6 +73,7 @@ stageflow/
 │   ├── core/                        # Layer 1: Pure TypeScript Math, Optics & Stateless Frame Engine
 │   │   ├── types.ts                 # Canonical interfaces (StageScore, ShotCue, ObserverShotCue, BlockingCueSpec, StageFrame)
 │   │   ├── constants.ts             # Metric bounds, sensor constants, blueprint color palette
+│   │   ├── fileDropClassifier.ts    # Pure asset classifier (.yaml/.video/.glb) & file-drag DataTransfer guard
 │   │   ├── skinMath.ts              # Pure .glb Box3 normalization math, filename target matcher & skin cache signatures
 │   │   ├── opticsMath.ts            # Focal length (mm) <-> Vertical FOV (deg), Rectangular Gate & Thin-Lens DoF math
 │   │   ├── exportMath.ts            # Pure even-dimension H.264 bounds, bitrate, time-range & MP4 filename helpers
@@ -110,7 +111,7 @@ stageflow/
 │   ├── hooks/                       # Layer 3: Dual-Tier State & Bridge Hooks
 │   │   ├── useMediaClock.ts         # Transport controls, frame-stepping ([ / ]), loop-shot, hotkeys
 │   │   ├── useStageFrameLoop.ts     # 60fps ref evaluation tick + ~10Hz throttled React UI sync
-│   │   ├── useFileDropLoader.ts     # Drag-and-drop & file picker loader for .yaml, .mp4/.webm, and .glb/.gltf skins
+│   │   ├── useFileDropLoader.ts     # Pane-scoped drag-and-drop (anti-flicker depth counter) & file-picker loader for .yaml, video, and .glb/.gltf skins
 │   │   ├── useStageSkins.ts         # Ephemeral session .glb/.gltf stage & entity skin queue, visibility & blob cleanup
 │   │   ├── useScorePersistence.ts   # Startup hydration, draft auto-saving & confirmed reset
 │   │   ├── useWorkspaceLayout.ts    # Split workspace presets, column percentages & storage sync
@@ -229,6 +230,7 @@ stageflow/
     │   └── scoreContract.test.ts
     └── unit/                        # Vitest deterministic unit test suites
         ├── opticsMath.test.ts
+        ├── fileDropClassifier.test.ts
         ├── skinMath.test.ts
         ├── exportMath.test.ts
         ├── exportScrubberMath.test.ts
