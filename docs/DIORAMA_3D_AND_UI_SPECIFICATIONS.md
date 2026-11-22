@@ -170,13 +170,14 @@ Scene entities (`character`, `prop`, `marker`) are rendered with unambiguous ori
   - **Fluid Category Filter Chips**: Replaces desktop segmented tabs with horizontally scrollable touch pills (`All`, `Studies`, `Blueprints`, `Custom`), omitting desktop-only search and inspector toggles.
   - **Collapsed Blueprints by Default**: In the "All" tab, the `Bundled Blueprints` section defaults to collapsed (showing chevron and count `7`), keeping `Scene Studies` and user `Custom Projects` instantly accessible without excessive vertical scrolling.
 - **Desktop (`lg+`) 3-Column Studio Workspace Architecture (`ResizableSplitWorkspace.tsx`)**:
-  - **Left Column (~30%)**: Houses the reference video player (anchored top, aspect-fit), a continuous horizontal drag divider, and the modular **`VideoWorkspaceSubpanel.tsx`** (Scene Desk). Features a dual-mode **`[ Brief | Stage Cam ]`** header toggle when reference video is present, hosting either:
+  - **Left Column (~30%)**: Houses the reference video player (anchored top, aspect-fit), a continuous horizontal drag divider, and the modular **`VideoWorkspaceSubpanel.tsx`** (Scene Desk). Features a multi-mode **`[ Brief | Stage Cam | Map ]`** header toggle (`Stage Cam` shown when a reference video is attached), hosting:
     - **Mode A (`Brief`)**: The Executive Scene Production Sheet & Call Sheet (`SceneProductionBrief.tsx`, `SceneEntityRoster.tsx`) organized into a high-density 4-card architecture:
       1. **Glance Stat Ribbon**: Single-line slate summary displaying Duration, Shots count, Film Gate aspect ratio, and Media Engine.
       2. **Scene Premise & Directorial Notes**: Title, subtitle, and Markdown-rendered premise notes.
       3. **Camera & Optical Package**: Prime lens package and camera maneuver chips.
       4. **Cast & Props Lineup**: Compact, streamlined entity tags with theme color dots and 3D dimensions.
     - **Mode B (`Stage Cam`)**: The virtual 3D Stage Cam monitor POV simulator directly beneath the video while capping active WebGL contexts at 2.
+    - **Mode C (`Map`)**: The live 60fps 2D SVG top-down stage minimap (`DioramaMinimap` in `variant="panel"`), scaled cleanly to fit the Scene Desk without adding any WebGL context.
     Utilizes pure CSS container-query aspect-fit containment (`.aspect-fit-container` and `.aspect-fit-box` via `min(100cqw, calc(100cqh * ratio))`) across both viewports, strictly maintaining film aspect ratios (16:9, 2.39:1) with automatic letterboxing/pillarboxing and SMPTE 90% safe-action guides without vertical squishing.
   - **Center Column (~40%)**: Dedicated, uninterrupted 3D Blueprint Diorama viewport with 4-corner directorial HUD.
   - **Right Column (~30%)**: Dedicated, full-height YAML Score Studio (`YamlStudioPanel.tsx` in flex column mode) for real-time score authoring and validation.
@@ -212,7 +213,7 @@ Adopts professional 3D viewport convention (Blender, Unreal Engine, Maya) distri
      - **Optics & Rig Row**: Focal length, aperture stop, film gate aspect ratio (`16:9 Gate`, `2.39:1 Gate`), compass rig/maneuver badge, and focus distance.
      - **Directorial Tracking Row**: Look-At Target with crosshair and entity theme color dot (`🎯 ● Ruby (Hero)` resolved via `shotBreakdownUtils.ts`), full 3D signed offset vector (`Δ [+0.15, -0.12, +0.00]m`), and shot timing (`Start 42.0s · Dur 16.0s`).
      - **Directorial Staging Note**: Rendered as simple, elegant italic text (`text-[11px] font-sans italic text-text-muted leading-relaxed`) separated by a subtle top border divider, keeping the card light and distraction-free.
-2. **Top-Right (Display & Legend)**: [`LabelDisplayModeToggle.tsx`](../src/ui/LabelDisplayModeToggle.tsx) providing rapid toggles for 3D character/camera billboard labels (`All`, `Cam`, `Off`) and viewfinder composition guides.
+2. **Top-Right (Display, Minimap & Legend)**: [`LabelDisplayModeToggle.tsx`](../src/ui/LabelDisplayModeToggle.tsx) providing rapid toggles for 3D character/camera billboard labels (`All`, `Cam`, `Off`), viewfinder composition guides, DoF blur, and the live top-down SVG stage minimap ([`DioramaMinimap.tsx`](../src/ui/DioramaMinimap.tsx)).
 3. **Bottom-Left (Camera Workstation Dock)**: 2-tier stacked dock positioned immediately above the transport scrubber deck:
    - **Upper Tier ([`CameraPresetControls.tsx`](../src/ui/CameraPresetControls.tsx))**: 1-click angle snaps featuring bespoke **isometric 3D ViewCube SVG icons** (Top plan, Iso 45°, Front proscenium, Side profile, and Reset) with rich tooltips, eliminating text clutter and avoiding popup menus.
    - **Lower Tier ([`CameraModeSwitcher.tsx`](../src/ui/CameraModeSwitcher.tsx))**: Tactile segmented 3-way POV mode switcher (`Scripted` [👁️], `Free Orbit` [🌐], `Stage Cam` [🎥]).
@@ -312,7 +313,7 @@ Decomposed into 3 focused submodules to preserve the $\le 250$ line modularity s
 - **Transient Toast Feedback (`ToastContainer.tsx`)**: Lightweight 3-second floating feedback banners (`z-[130]` above open modals) confirming file drops, auto-forks, project deletions, and exports.
 - **Legacy Draft Auto-Migration**: On startup hydration, any legacy drafts in IndexedDB that modified bundled presets are automatically migrated into standalone Custom Projects with zero data loss.
 
-### 4.11 Viewport Label, Composition Guides & Optical DoF Blur Controls (`LabelDisplayModeToggle.tsx`)
+### 4.11 Viewport Label, Composition Guides, Optical DoF Blur & Top-Down Minimap Controls (`LabelDisplayModeToggle.tsx`, `DioramaMinimap.tsx`)
 - Floating top-right glassmorphic pill overlay mounted on the 3D diorama canvas.
 - Conditioned so the `Guides` and `Blur` toggle buttons appear strictly when in `Stage Cam POV` (`cameraMode === 'stage-pov'`), keeping the 3D Observer view chrome uncluttered.
 - Supports 3 distinct directorial visibility modes (`LabelDisplayMode`):
@@ -322,7 +323,8 @@ Decomposed into 3 focused submodules to preserve the $\le 250$ line modularity s
 - **Global Hotkey `L`**: Cycles through `'all' -> 'camera-only' -> 'off' -> 'all'` at any time (ignored while typing in text inputs or code editors).
 - **Composition Guides Toggle (`[ Guides ]` / Hotkey `G`)**: Toggles the 90% safe-action boundary, rule-of-thirds grid, and center reticle across both the right Viewfinder and the left Procedural Monitor.
 - **Optical DoF Blur Toggle (`[ Blur ]` / Hotkey `B`)**: Toggles real-time thin-lens Depth-of-Field bokeh simulation across both the Stage Cam POV viewfinder and the Procedural Stage Cam Monitor (`stageflow:ui:dof-blur`).
-- **Synchronous Persistence**: Preferences are remembered across reloads via `localStorage` (`stageflow:ui:label-mode`, `stageflow:ui:viewfinder-guides`, `stageflow:ui:dof-blur`).
+- **Live Top-Down SVG Stage Minimap (`DioramaMinimap.tsx`, `dioramaMinimapRenderer.ts`, `minimapMath.ts`, `[ Map ]` / Hotkey `M`)**: Open by default on wide viewports (`>= 768px`, persisted via `stageflow:ui:diorama-minimap`), tucked in the Top-Right corner beneath `LabelDisplayModeToggle` and `skinPill` so it never collides with `CameraTelemetryHoverCard` in Bottom-Right. Computes static scene-wide `viewBox` bounds once per score (`computeDioramaMinimapBounds`), uses zero extra WebGL contexts, and mutates SVG element attributes imperatively at 60fps via `frameRef` / `liveViewportPoseRef` during playback (and synchronously on pause/scrub/orbit) to display live entities (no trails), the Stage Camera horizontal FOV cone + emerald focus plane bar, and the sky-blue Observer marker (clamped cleanly to the radar edge when zoomed out, hidden in `Stage Cam POV`).
+- **Synchronous Persistence**: Preferences are remembered across reloads via `localStorage` (`stageflow:ui:label-mode`, `stageflow:ui:viewfinder-guides`, `stageflow:ui:dof-blur`, `stageflow:ui:diorama-minimap`).
 
 ### 4.12 Director's Optical Viewfinder Overlay (`StageCamViewfinderOverlay.tsx`)
 - Engages automatically whenever the 3D diorama switches to **`Stage Cam POV`** (`cameraMode === 'stage-pov'`).

@@ -7,9 +7,11 @@
 import { useState, useCallback, useEffect } from 'react';
 import type { LabelDisplayMode } from '../core/types';
 import {
+  loadStoredDioramaMinimap,
   loadStoredDofBlur,
   loadStoredLabelMode,
   loadStoredViewfinderGuides,
+  saveStoredDioramaMinimap,
   saveStoredDofBlur,
   saveStoredLabelMode,
   saveStoredViewfinderGuides,
@@ -26,6 +28,10 @@ export function useStudioDisplaySettings() {
 
   const [dofBlurEnabled, setDofBlurState] = useState<boolean>(
     () => loadStoredDofBlur() ?? false
+  );
+
+  const [showMinimap, setShowMinimapState] = useState<boolean>(
+    () => loadStoredDioramaMinimap() ?? true
   );
 
   const handleSelectLabelMode = useCallback((mode: LabelDisplayMode) => {
@@ -63,7 +69,15 @@ export function useStudioDisplaySettings() {
     saveStoredDofBlur(enabled);
   }, []);
 
-  // Global hotkeys: 'L' cycles label modes, 'G' toggles composition guides, 'B' toggles DoF blur
+  const handleToggleMinimap = useCallback(() => {
+    setShowMinimapState((prev) => {
+      const next = !prev;
+      saveStoredDioramaMinimap(next);
+      return next;
+    });
+  }, []);
+
+  // Global hotkeys: 'L' labels, 'G' guides, 'B' DoF blur, 'M' top-down minimap
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
@@ -86,21 +100,31 @@ export function useStudioDisplaySettings() {
       } else if (e.key === 'b' || e.key === 'B') {
         e.preventDefault();
         handleToggleDofBlur();
+      } else if (e.key === 'm' || e.key === 'M') {
+        e.preventDefault();
+        handleToggleMinimap();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleCycleLabelMode, handleToggleGuides, handleToggleDofBlur]);
+  }, [
+    handleCycleLabelMode,
+    handleToggleGuides,
+    handleToggleDofBlur,
+    handleToggleMinimap,
+  ]);
 
   return {
     labelMode,
     showGuides,
     dofBlurEnabled,
+    showMinimap,
     handleSelectLabelMode,
     handleCycleLabelMode,
     handleToggleGuides,
     handleToggleDofBlur,
+    handleToggleMinimap,
     setDofBlurEnabled,
   };
 }

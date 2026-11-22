@@ -24,16 +24,20 @@ import { CameraPresetControls } from './CameraPresetControls';
 import { CameraModeSwitcher } from './CameraModeSwitcher';
 import { CameraTelemetryCapsule } from './CameraTelemetryCapsule';
 import { StageCamViewfinderOverlay } from './StageCamViewfinderOverlay';
+import { DioramaMinimap } from './DioramaMinimap';
 
 export interface DioramaOverlayContainerProps {
   score: StageScore;
   frame: StageFrame;
+  frameRef?: React.RefObject<StageFrame>;
   liveViewportPose: SphericalPose;
+  liveViewportPoseRef?: React.RefObject<SphericalPose>;
   cameraMode: CameraViewMode;
   isPlaying: boolean;
   labelMode: LabelDisplayMode;
   showGuides: boolean;
   dofBlurEnabled?: boolean;
+  showMinimap?: boolean;
   isNarrow: boolean;
   dioramaWidth?: number;
   stageSkin?: ActiveSkinEntry | null;
@@ -48,17 +52,21 @@ export interface DioramaOverlayContainerProps {
   onSelectLabelMode: (mode: LabelDisplayMode) => void;
   onToggleGuides: () => void;
   onToggleDofBlur?: () => void;
+  onToggleMinimap?: () => void;
 }
 
 export const DioramaOverlayContainer: React.FC<DioramaOverlayContainerProps> = ({
   score,
   frame,
+  frameRef,
   liveViewportPose,
+  liveViewportPoseRef,
   cameraMode,
   isPlaying,
   labelMode,
   showGuides,
   dofBlurEnabled = false,
+  showMinimap = true,
   isNarrow,
   dioramaWidth,
   stageSkin,
@@ -73,7 +81,11 @@ export const DioramaOverlayContainer: React.FC<DioramaOverlayContainerProps> = (
   onSelectLabelMode,
   onToggleGuides,
   onToggleDofBlur,
+  onToggleMinimap,
 }) => {
+  const fallbackFrameRef = React.useRef(frame);
+  fallbackFrameRef.current = frame;
+  const resolvedFrameRef = frameRef ?? fallbackFrameRef;
   const [isSkinListOpen, setIsSkinListOpen] = useState(false);
 
   const entityEntries = Object.entries(entitySkins);
@@ -220,9 +232,9 @@ export const DioramaOverlayContainer: React.FC<DioramaOverlayContainerProps> = (
             isPlaying={isPlaying}
           />
 
-          {/* 2. TOP-RIGHT: 3D Stage Labels, Viewfinder Guides, DoF Blur & Active .GLB Skin */}
+          {/* 2. TOP-RIGHT: 3D Stage Labels, Guides, DoF Blur, Map Toggle, Active .GLB Skin & Minimap */}
           <div className="absolute top-3 right-3 z-10 flex flex-col items-end gap-1.5 pointer-events-none select-none">
-            <div className="flex items-center gap-2 pointer-events-auto">
+            <div className="flex items-center gap-1.5 pointer-events-auto">
               <LabelDisplayModeToggle
                 labelMode={labelMode}
                 onSelectLabelMode={onSelectLabelMode}
@@ -230,10 +242,24 @@ export const DioramaOverlayContainer: React.FC<DioramaOverlayContainerProps> = (
                 onToggleGuides={onToggleGuides}
                 dofBlurEnabled={dofBlurEnabled}
                 onToggleDofBlur={onToggleDofBlur}
+                showMinimap={showMinimap}
+                onToggleMinimap={onToggleMinimap}
                 cameraMode={cameraMode}
               />
             </div>
             {skinPill}
+            {showMinimap && (
+              <DioramaMinimap
+                score={score}
+                frameRef={resolvedFrameRef}
+                liveViewportPoseRef={liveViewportPoseRef}
+                uiFrame={frame}
+                liveViewportPose={liveViewportPose}
+                cameraMode={cameraMode}
+                isPlaying={isPlaying}
+                onClose={onToggleMinimap}
+              />
+            )}
           </div>
 
           {/* 3. BOTTOM-LEFT: Directorial Camera Workstation Dock (ViewCube Presets + Camera POV Modes) */}

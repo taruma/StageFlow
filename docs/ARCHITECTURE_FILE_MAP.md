@@ -74,6 +74,7 @@ stageflow/
 │   │   ├── types.ts                 # Canonical interfaces (StageScore, ShotCue, ObserverShotCue, BlockingCueSpec, StageFrame)
 │   │   ├── constants.ts             # Metric bounds, sensor constants, blueprint color palette
 │   │   ├── fileDropClassifier.ts    # Pure asset classifier (.yaml/.video/.glb) & file-drag DataTransfer guard
+│   │   ├── minimapMath.ts           # Pure 2D XZ top-down minimap bounds, Stage Camera frustum/focus & Observer geometry
 │   │   ├── skinMath.ts              # Pure .glb Box3 normalization math, filename target matcher, batch conflict/plan resolver & skin cache signatures
 │   │   ├── opticsMath.ts            # Focal length (mm) <-> Vertical FOV (deg), Rectangular Gate & Thin-Lens DoF math
 │   │   ├── exportMath.ts            # Pure even-dimension H.264 bounds, bitrate, time-range & MP4 filename helpers
@@ -115,7 +116,7 @@ stageflow/
 │   │   ├── useStageSkins.ts         # Ephemeral session .glb/.gltf stage & entity skin queue, visibility & blob cleanup
 │   │   ├── useScorePersistence.ts   # Startup hydration, draft auto-saving & confirmed reset
 │   │   ├── useWorkspaceLayout.ts    # Split workspace presets, column percentages & storage sync
-│   │   ├── useStudioDisplaySettings.ts # 3D diorama label modes, guides, DoF blur & 'L'/'G'/'B' hotkeys
+│   │   ├── useStudioDisplaySettings.ts # 3D diorama label modes, guides, DoF blur, top-down minimap & 'L'/'G'/'B'/'M' hotkeys
 │   │   ├── useToastNotifications.ts # Floating toast notification queue & auto-dismiss timers
 │   │   ├── useIsMobile.ts           # Zero-polling responsive mobile breakpoint tracker (<768px)
 │   │   ├── useAppShellTheme.ts      # SceneFlow theme hook (Auto/Dark/Warm/Light) & transition suppression
@@ -155,7 +156,7 @@ stageflow/
 │   │   │   ├── ActiveScoreIndicator.tsx # Interactive active score context chip with 1-click library open
 │   │   │   └── ThemeSelectorDropdown.tsx # Accessible 4-mode theme switcher (Auto, Dark, Warm, Light)
 │   │   ├── left-panel/              # Modular left column submodules
-│   │   │   ├── VideoWorkspaceSubpanel.tsx # Collapsible Scene Desk container with [Brief | Stage Cam] header toggle
+│   │   │   ├── VideoWorkspaceSubpanel.tsx # Collapsible Scene Desk container with [Brief | Stage Cam | Map] header toggle
 │   │   │   ├── SceneProductionBrief.tsx   # Executive Scene Production Sheet & Call Sheet (Premise, specs, lenses)
 │   │   │   ├── SceneMetadataCard.tsx      # Collapsible scene-wide metadata card (music, gear, notes, markdown)
 │   │   │   └── SceneEntityRoster.tsx      # Categorized Cast, Props & Markers lineup with dimension badges
@@ -201,7 +202,9 @@ stageflow/
 │   │   ├── DirectorialTransportBar.tsx # Shot-marker scrubber, shot chips, speed (0.25x-2x) & POV toggle
 │   │   ├── YamlInspectorDrawer.tsx  # Slide-out live YAML editor with read-only protection & fork-on-edit
 │   │   ├── ToastContainer.tsx       # Floating animated toast notification banners
-│   │   ├── LabelDisplayModeToggle.tsx # Floating 3-mode 3D diorama label toggle (All / Cam / Off)
+│   │   ├── LabelDisplayModeToggle.tsx # Floating 3-mode 3D diorama label toggle (All / Cam / Off), Guides, Blur & Map toggle
+│   │   ├── DioramaMinimap.tsx       # Live 60fps imperative SVG top-down stage minimap overlay (entities, Stage Cam frustum/focus, Observer)
+│   │   ├── dioramaMinimapRenderer.ts # Imperative SVG attribute updater for DioramaMinimap (zero React re-renders during playback)
 │   │   ├── StageCamViewfinderOverlay.tsx # Optical film gate, look-around mask & composition guides
 │   │   ├── ConfirmResetModal.tsx    # Accessible confirmation dialog modal for discarding drafts
 │   │   ├── AssignStageSkinModal.tsx # Single (radio + Apply) & batch target assignment modal for dropped/picked .glb/.gltf stage & entity skins
@@ -231,6 +234,7 @@ stageflow/
     │   └── scoreContract.test.ts
     └── unit/                        # Vitest deterministic unit test suites
         ├── opticsMath.test.ts
+        ├── minimapMath.test.ts
         ├── fileDropClassifier.test.ts
         ├── skinMath.test.ts
         ├── exportMath.test.ts

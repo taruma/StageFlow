@@ -78,6 +78,7 @@ import { useIsMobile } from '../hooks/useIsMobile';
 import { ToastContainer } from './ToastContainer';
 import { DirectorialTransportBar } from './DirectorialTransportBar';
 import { DioramaOverlayContainer } from './DioramaOverlayContainer';
+import { DioramaMinimap } from './DioramaMinimap';
 
 const DIORAMA_ACCEPTED_KINDS: readonly DroppedAssetKind[] = ['yaml', 'skin'];
 const VIDEO_ACCEPTED_KINDS: readonly DroppedAssetKind[] = ['video'];
@@ -1045,6 +1046,18 @@ export const InteractiveStudioApp: React.FC = () => {
                 />
               ) : undefined
             }
+            mapSlot={
+              <DioramaMinimap
+                variant="panel"
+                score={activeScore}
+                frameRef={stageLoop.frameRef}
+                liveViewportPoseRef={stageLoop.liveViewportPoseRef}
+                uiFrame={stageLoop.uiSnapshot.frame}
+                liveViewportPose={stageLoop.uiSnapshot.liveViewportPose}
+                cameraMode={stageLoop.cameraMode}
+                isPlaying={mediaClock.isPlaying}
+              />
+            }
           />
         }
         centerStagePane={
@@ -1083,12 +1096,15 @@ export const InteractiveStudioApp: React.FC = () => {
             <DioramaOverlayContainer
               score={activeScore}
               frame={stageLoop.uiSnapshot.frame}
+              frameRef={stageLoop.frameRef}
               liveViewportPose={stageLoop.uiSnapshot.liveViewportPose}
+              liveViewportPoseRef={stageLoop.liveViewportPoseRef}
               cameraMode={stageLoop.cameraMode}
               isPlaying={mediaClock.isPlaying}
               labelMode={display.labelMode}
               showGuides={display.showGuides}
               dofBlurEnabled={display.dofBlurEnabled}
+              showMinimap={display.showMinimap}
               isNarrow={isNarrowDiorama}
               dioramaWidth={dioramaWidth}
               stageSkin={stageSkins.stageSkin}
@@ -1103,6 +1119,7 @@ export const InteractiveStudioApp: React.FC = () => {
               onSelectLabelMode={display.handleSelectLabelMode}
               onToggleGuides={display.handleToggleGuides}
               onToggleDofBlur={display.handleToggleDofBlur}
+              onToggleMinimap={display.handleToggleMinimap}
             />
 
             {/* Diorama Pane Scoped Drop Overlay */}
