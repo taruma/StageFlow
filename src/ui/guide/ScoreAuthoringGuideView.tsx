@@ -10,14 +10,16 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
-import { ArrowLeft, BookOpen, Compass, FileText, List, X } from 'lucide-react';
+import { ArrowLeft, BookOpen, Check, Compass, Download, FileText, List, X } from 'lucide-react';
 import 'katex/dist/katex.min.css';
 import yamlAuthoringGuideRaw from '../../../docs/YAML_AUTHORING_GUIDE.md?raw';
 import scriptSpecificationRaw from '../../../docs/STAGEFLOW_SCRIPT_SPECIFICATION.md?raw';
 import { useAppShellTheme } from '../../hooks/useAppShellTheme';
 import { ThemeSelectorDropdown } from '../header/ThemeSelectorDropdown';
 import {
+  downloadMarkdownFile,
   extractGuideToc,
+  getGuideDownloadFilename,
   type GuideDocType,
 } from './guideUtils';
 import { createGuideMarkdownComponents } from './guideMarkdownComponents';
@@ -42,13 +44,23 @@ export const ScoreAuthoringGuideView: React.FC<ScoreAuthoringGuideViewProps> = (
   const [filterInput, setFilterInput] = useState('');
   const [activeId, setActiveId] = useState<string>('section-1');
   const [isMobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const [downloadedDoc, setDownloadedDoc] = useState<GuideDocType | null>(null);
 
   const handleClearFilter = useCallback(() => {
     setFilterInput('');
   }, []);
 
   const currentRawDoc = activeDoc === 'spec' ? scriptSpecificationRaw : yamlAuthoringGuideRaw;
+  const currentDownloadFilename = getGuideDownloadFilename(activeDoc);
   const tocItems = useMemo(() => extractGuideToc(currentRawDoc), [currentRawDoc]);
+
+  const handleDownloadMarkdown = () => {
+    downloadMarkdownFile(currentDownloadFilename, currentRawDoc);
+    setDownloadedDoc(activeDoc);
+    setTimeout(() => {
+      setDownloadedDoc((prev) => (prev === activeDoc ? null : prev));
+    }, 1800);
+  };
 
   const handleSwitchDoc = (nextDoc?: GuideDocType, anchor?: string) => {
     if (nextDoc && nextDoc !== activeDoc) {
@@ -201,6 +213,27 @@ export const ScoreAuthoringGuideView: React.FC<ScoreAuthoringGuideViewProps> = (
             effectiveCategory={theme.effectiveCategory}
             onSelectThemeMode={theme.setThemeMode}
           />
+
+          <button
+            type="button"
+            onClick={handleDownloadMarkdown}
+            className={`px-3 py-1.5 rounded-xl border text-xs font-mono flex items-center gap-1.5 cursor-pointer transition-all shadow-2xs active:scale-95 ${
+              downloadedDoc === activeDoc
+                ? 'border-emerald-500/50 bg-emerald-500/15 text-emerald-600 dark:text-emerald-300'
+                : 'border-border-main bg-surface hover:bg-surface-hover text-text-body hover:text-text-main'
+            }`}
+            title={`Download ${currentDownloadFilename}`}
+            aria-label={`Download ${currentDownloadFilename}`}
+          >
+            {downloadedDoc === activeDoc ? (
+              <Check className="w-3.5 h-3.5" />
+            ) : (
+              <Download className="w-3.5 h-3.5 text-emerald-500" />
+            )}
+            <span className="hidden sm:inline">
+              {downloadedDoc === activeDoc ? 'Saved' : 'Download .md'}
+            </span>
+          </button>
 
           <button
             type="button"

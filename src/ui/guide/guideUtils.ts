@@ -45,6 +45,24 @@ export const GUIDE_DOC_SHORTCUTS: Record<GuideDocType, GuideSectionShortcut[]> =
 
 export const SECTION_SHORTCUTS = GUIDE_DOC_SHORTCUTS.guide;
 
+export const getGuideDownloadFilename = (docType: GuideDocType): string =>
+  docType === 'spec'
+    ? 'STAGEFLOW_SCRIPT_SPECIFICATION.md'
+    : 'YAML_AUTHORING_GUIDE.md';
+
+export const downloadMarkdownFile = (fileName: string, markdown: string): void => {
+  if (typeof document === 'undefined' || typeof window === 'undefined') return;
+  const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+
 export const getNodeText = (node: React.ReactNode): string => {
   if (node == null || typeof node === 'boolean') return '';
   if (typeof node === 'string' || typeof node === 'number') return String(node);
