@@ -41,6 +41,8 @@ export interface WorkspaceHeaderProps {
   onSelectSplitPreset: (preset: SplitPreset) => void;
   onToggleEditMode: () => void;
   onUploadFiles: (files: FileList) => void;
+  activeSkinsCount?: number;
+  onClearAllSkins?: () => void;
   onExportActiveScore: () => void;
   onOpenVideoExport?: () => void;
   onOpenStoryboard?: () => void;
@@ -67,6 +69,8 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
   onSelectSplitPreset,
   onToggleEditMode,
   onUploadFiles,
+  activeSkinsCount = 0,
+  onClearAllSkins,
   onExportActiveScore,
   onOpenVideoExport,
   onOpenStoryboard,
@@ -141,9 +145,11 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
           <FileMenuDropdown
             isOpen={isFileMenuOpen}
             customScoresCount={customScores.length}
+            activeSkinsCount={activeSkinsCount}
             onToggle={() => setIsFileMenuOpen((prev) => !prev)}
             onClose={() => setIsFileMenuOpen(false)}
             onUploadFiles={onUploadFiles}
+            onClearAllSkins={onClearAllSkins}
             onExportActiveScore={onExportActiveScore}
             onOpenVideoExport={onOpenVideoExport}
             onOpenStoryboard={onOpenStoryboard}

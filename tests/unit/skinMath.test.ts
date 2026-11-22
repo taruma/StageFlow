@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   buildEntitySkinsSignature,
   computeGlbEntityNormalization,
+  findDuplicateBatchTargetIds,
+  resolveBatchSkinPlan,
   suggestSkinTargetId,
 } from '../../src/core/skinMath';
 import type { SceneEntityDef } from '../../src/core/types';
@@ -97,5 +99,35 @@ describe('skinMath', () => {
         a: 'blob:1',
       })
     ).toBe('a=blob:1;b=blob:2');
+  });
+
+  it('detects duplicate batch targets while ignoring skipped items', () => {
+    const dups = findDuplicateBatchTargetIds([
+      { url: 'blob:1', name: 'stage_a.glb', targetId: 'stage' },
+      { url: 'blob:2', name: 'stage_b.glb', targetId: 'stage' },
+      { url: 'blob:3', name: 'hero.glb', targetId: 'hero' },
+      { url: 'blob:4', name: 'extra_1.glb', targetId: null },
+      { url: 'blob:5', name: 'extra_2.glb', targetId: null },
+    ]);
+    expect(dups).toEqual(['stage']);
+  });
+
+  it('resolves batch skin plans and collects skipped or shadowed blob URLs', () => {
+    const plan = resolveBatchSkinPlan([
+      { url: 'blob:stage1', name: 'set_old.glb', targetId: 'stage' },
+      { url: 'blob:hero', name: 'hero.glb', targetId: 'hero' },
+      { url: 'blob:skip', name: 'unused.glb', targetId: null },
+      { url: 'blob:stage2', name: 'set_new.glb', targetId: 'stage' },
+    ]);
+
+    expect(plan.nextStageSkin).toEqual({
+      url: 'blob:stage2',
+      name: 'set_new.glb',
+    });
+    expect(plan.nextEntitySkins).toEqual({
+      hero: { url: 'blob:hero', name: 'hero.glb' },
+    });
+    expect(plan.discardedBatchUrls).toEqual(['blob:skip', 'blob:stage1']);
+    expect(plan.appliedSlotCount).toBe(2);
   });
 });

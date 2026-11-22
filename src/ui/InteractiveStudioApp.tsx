@@ -932,6 +932,8 @@ export const InteractiveStudioApp: React.FC = () => {
         onToggleEditMode={layout.handleToggleEditMode}
         onResetLayout={layout.handleResetLayout}
         onUploadFiles={menuFileDrop.processFiles}
+        activeSkinsCount={stageSkins.activeSkinsCount}
+        onClearAllSkins={stageSkins.clearAllSkins}
         onExportActiveScore={handleExportActiveScore}
         onOpenVideoExport={() => {
           mediaClock.pause();
@@ -1303,14 +1305,16 @@ export const InteractiveStudioApp: React.FC = () => {
         onClose={() => setIsStoryboardOpen(false)}
       />
 
-      {/* Direct Target Assignment Modal for Dropped .GLB / .GLTF Skins */}
+      {/* Direct Target Assignment Modal for Dropped / Picked .GLB / .GLTF Skins */}
       <AssignStageSkinModal
-        pendingDrop={stageSkins.pendingSkinDrop}
+        pendingDrops={stageSkins.pendingSkinQueue}
         entities={activeScore.entities}
         stageSkin={stageSkins.stageSkin}
         entitySkins={stageSkins.entitySkins}
         onAssign={stageSkins.assignPendingSkin}
+        onAssignBatch={stageSkins.assignPendingBatch}
         onCancel={stageSkins.cancelPendingSkin}
+        onCancelAll={stageSkins.cancelAllPendingSkins}
       />
 
       {/* Temporary Offscreen Stage Cam Snapshot Canvas (mounted strictly during 1-frame capture) */}

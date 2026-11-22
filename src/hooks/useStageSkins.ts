@@ -5,7 +5,11 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { suggestSkinTargetId } from '../core/skinMath';
+import {
+  resolveBatchSkinPlan,
+  suggestSkinTargetId,
+  type BatchSkinAssignmentInput,
+} from '../core/skinMath';
 import type { SceneEntityDef, ToastNotification } from '../core/types';
 
 export interface ActiveSkinEntry {
@@ -131,6 +135,91 @@ export function useStageSkins({
     releaseUrl(current.url);
   }, [releaseUrl]);
 
+  const assignPendingBatch = useCallback(
+    (assignments: ReadonlyArray<{ url: string; targetId: string | null }>) => {
+      const queueByUrl = new Map(
+        pendingQueueRef.current.map((item) => [item.url, item])
+      );
+      const inputs: BatchSkinAssignmentInput[] = [];
+      const processedUrls = new Set<string>();
+
+      for (const assignment of assignments) {
+        const queued = queueByUrl.get(assignment.url);
+        if (!queued) continue;
+        processedUrls.add(assignment.url);
+        inputs.push({
+          url: queued.url,
+          name: queued.name,
+          targetId: assignment.targetId,
+        });
+      }
+
+      if (inputs.length === 0) return;
+
+      const plan = resolveBatchSkinPlan(inputs);
+
+      for (const discardedUrl of plan.discardedBatchUrls) {
+        releaseUrl(discardedUrl);
+      }
+
+      setPendingQueue((prev) =>
+        prev.filter((item) => !processedUrls.has(item.url))
+      );
+
+      if (plan.appliedSlotCount === 0) return;
+
+      setIsSkinsVisible(true);
+
+      if (plan.nextStageSkin) {
+        releaseUrl(stageSkinRef.current?.url);
+        setStageSkin(plan.nextStageSkin);
+      }
+
+      const entityEntries = Object.entries(plan.nextEntitySkins);
+      if (entityEntries.length > 0) {
+        for (const [entityId] of entityEntries) {
+          releaseUrl(entitySkinsRef.current[entityId]?.url);
+        }
+        setEntitySkins((prev) => ({
+          ...prev,
+          ...plan.nextEntitySkins,
+        }));
+      }
+
+      if (plan.appliedSlotCount === 1) {
+        if (plan.nextStageSkin) {
+          onNotifyRef.current?.(
+            `Applied "${plan.nextStageSkin.name}" to Stage Environment`,
+            'success'
+          );
+        } else if (entityEntries[0]) {
+          const [targetId, entry] = entityEntries[0];
+          const matched = entities.find((e) => e.id === targetId);
+          const targetLabel = matched?.label || targetId;
+          onNotifyRef.current?.(
+            `Applied "${entry.name}" to ${targetLabel}`,
+            'success'
+          );
+        }
+      } else {
+        onNotifyRef.current?.(
+          `Applied ${plan.appliedSlotCount} 3D skins`,
+          'success'
+        );
+      }
+    },
+    [entities, releaseUrl]
+  );
+
+  const cancelAllPendingSkins = useCallback(() => {
+    const queued = pendingQueueRef.current;
+    if (queued.length === 0) return;
+    setPendingQueue([]);
+    for (const item of queued) {
+      releaseUrl(item.url);
+    }
+  }, [releaseUrl]);
+
   const clearStageSkin = useCallback(() => {
     if (!stageSkinRef.current) return;
     releaseUrl(stageSkinRef.current.url);
@@ -213,17 +302,24 @@ export function useStageSkins({
     return isSkinsVisible ? entitySkinUrls : {};
   }, [isSkinsVisible, entitySkinUrls]);
 
+  const activeSkinsCount =
+    (stageSkin ? 1 : 0) + Object.keys(entitySkins).length;
+
   return {
     stageSkin,
     entitySkins,
+    activeSkinsCount,
     entitySkinUrls,
     effectiveStageSkinUrl,
     effectiveEntitySkinUrls,
     isSkinsVisible,
     pendingSkinDrop: pendingQueue[0] ?? null,
+    pendingSkinQueue: pendingQueue,
     enqueueSkinDrop,
     assignPendingSkin,
+    assignPendingBatch,
     cancelPendingSkin,
+    cancelAllPendingSkins,
     clearStageSkin,
     clearEntitySkin,
     clearAllSkins,

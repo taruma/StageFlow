@@ -1,58 +1,138 @@
 /**
- * Minimal Direct Assignment Modal for Dropped .GLB / .GLTF 3D Skins.
- * Appears only when a user drops a .glb/.gltf file, letting them assign it
- * in 1 click to the Stage Environment or any active entity (Actor / Prop / Marker).
+ * Direct Assignment Modal for Dropped / Picked .GLB / .GLTF 3D Skins.
+ * Single file: 1-click target picker.
+ * Multiple files (2+): Batch assignment list with auto-matched targets & Apply All.
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Box, Check, Layers, MapPin, User, X } from 'lucide-react';
 import type { SceneEntityDef } from '../core/types';
 import type { ActiveSkinEntry, PendingSkinDrop } from '../hooks/useStageSkins';
+import {
+  BatchSkinAssignmentList,
+  SKIP_SKIN_TARGET,
+} from './BatchSkinAssignmentList';
 import { UI_TOKENS } from './tokens/ui';
 
 export interface AssignStageSkinModalProps {
-  pendingDrop: PendingSkinDrop | null;
+  pendingDrops: PendingSkinDrop[];
   entities: SceneEntityDef[];
   stageSkin: ActiveSkinEntry | null;
   entitySkins: Record<string, ActiveSkinEntry>;
   onAssign: (targetId: string) => void;
+  onAssignBatch: (
+    assignments: ReadonlyArray<{ url: string; targetId: string | null }>
+  ) => void;
   onCancel: () => void;
+  onCancelAll: () => void;
 }
 
 export const AssignStageSkinModal: React.FC<AssignStageSkinModalProps> = ({
-  pendingDrop,
+  pendingDrops,
   entities,
   stageSkin,
   entitySkins,
   onAssign,
+  onAssignBatch,
   onCancel,
+  onCancelAll,
 }) => {
+  const isBatchMode = pendingDrops.length > 1;
+  const singleDrop = pendingDrops.length === 1 ? pendingDrops[0] : null;
+
   const [selectedId, setSelectedId] = useState<string>('stage');
+  const [batchTargets, setBatchTargets] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (pendingDrop) {
-      setSelectedId(pendingDrop.suggestedTargetId || 'stage');
+    if (singleDrop) {
+      setSelectedId(singleDrop.suggestedTargetId || 'stage');
     }
-  }, [pendingDrop]);
+  }, [singleDrop]);
 
   useEffect(() => {
-    if (!pendingDrop) return;
+    if (pendingDrops.length <= 1) {
+      setBatchTargets({});
+      return;
+    }
+    setBatchTargets((prev) => {
+      const next: Record<string, string> = {};
+      for (const item of pendingDrops) {
+        next[item.url] = prev[item.url] ?? (item.suggestedTargetId || 'stage');
+      }
+      return next;
+    });
+  }, [pendingDrops]);
+
+  const handleBatchTargetChange = useCallback(
+    (url: string, targetId: string) => {
+      setBatchTargets((prev) => ({ ...prev, [url]: targetId }));
+    },
+    []
+  );
+
+  const batchAssignments = useMemo(
+    () =>
+      pendingDrops.map((item) => {
+        const raw = batchTargets[item.url] ?? item.suggestedTargetId ?? 'stage';
+        return {
+          url: item.url,
+          targetId: raw === SKIP_SKIN_TARGET ? null : raw,
+        };
+      }),
+    [pendingDrops, batchTargets]
+  );
+
+  const applyCount = useMemo(
+    () => batchAssignments.filter((item) => item.targetId !== null).length,
+    [batchAssignments]
+  );
+
+  const handleConfirmBatch = useCallback(() => {
+    if (applyCount === 0) {
+      onCancelAll();
+      return;
+    }
+    onAssignBatch(batchAssignments);
+  }, [applyCount, batchAssignments, onAssignBatch, onCancelAll]);
+
+  useEffect(() => {
+    if (pendingDrops.length === 0) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
-        onCancel();
+        if (isBatchMode) {
+          onCancelAll();
+        } else {
+          onCancel();
+        }
       } else if (e.key === 'Enter') {
+        const activeTag = (e.target as HTMLElement | null)?.tagName;
+        if (activeTag === 'SELECT') return;
         e.preventDefault();
-        onAssign(selectedId);
+        if (isBatchMode) {
+          handleConfirmBatch();
+        } else {
+          onAssign(selectedId);
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [pendingDrop, selectedId, onAssign, onCancel]);
+  }, [
+    pendingDrops.length,
+    isBatchMode,
+    selectedId,
+    onAssign,
+    onCancel,
+    onCancelAll,
+    handleConfirmBatch,
+  ]);
 
-  if (!pendingDrop) return null;
+  if (pendingDrops.length === 0) return null;
 
-  const characters = entities.filter((e) => (e.kind ?? 'character') === 'character');
+  const characters = entities.filter(
+    (e) => (e.kind ?? 'character') === 'character'
+  );
   const props = entities.filter((e) => e.kind === 'prop');
   const markers = entities.filter((e) => e.kind === 'marker');
 
@@ -60,7 +140,7 @@ export const AssignStageSkinModal: React.FC<AssignStageSkinModalProps> = ({
     ent: SceneEntityDef,
     Icon: React.FC<{ className?: string }>
   ) => {
-    const isSuggested = pendingDrop.suggestedTargetId === ent.id;
+    const isSuggested = singleDrop?.suggestedTargetId === ent.id;
     const isSelected = selectedId === ent.id;
     const existing = entitySkins[ent.id];
 
@@ -107,18 +187,22 @@ export const AssignStageSkinModal: React.FC<AssignStageSkinModalProps> = ({
     );
   };
 
+  const dismissModal = isBatchMode ? onCancelAll : onCancel;
+
   return (
     <div
       className={UI_TOKENS.modal.overlay}
       onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onCancel();
+        if (e.target === e.currentTarget) dismissModal();
       }}
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="assign-skin-title"
-        className="bg-surface w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-border-main text-text-main animate-in zoom-in-95 duration-200"
+        className={`bg-surface w-full ${
+          isBatchMode ? 'max-w-lg' : 'max-w-md'
+        } rounded-2xl shadow-2xl overflow-hidden border border-border-main text-text-main animate-in zoom-in-95 duration-200`}
       >
         {/* Header */}
         <div className={UI_TOKENS.modal.header}>
@@ -127,15 +211,19 @@ export const AssignStageSkinModal: React.FC<AssignStageSkinModalProps> = ({
               id="assign-skin-title"
               className="text-sm font-bold text-text-main truncate"
             >
-              Assign 3D .GLB Skin
+              {isBatchMode
+                ? `Assign ${pendingDrops.length} 3D .GLB Skins`
+                : 'Assign 3D .GLB Skin'}
             </h2>
             <p className="text-[11px] font-mono text-text-muted truncate mt-0.5">
-              {pendingDrop.name}
+              {isBatchMode
+                ? 'Auto-matched by filename · Adjust targets or skip before applying'
+                : singleDrop?.name}
             </p>
           </div>
           <button
             type="button"
-            onClick={onCancel}
+            onClick={dismissModal}
             className="p-1.5 rounded-lg text-text-muted hover:text-text-main hover:bg-surface-muted transition-colors cursor-pointer"
             title="Cancel (Esc)"
           >
@@ -143,84 +231,112 @@ export const AssignStageSkinModal: React.FC<AssignStageSkinModalProps> = ({
           </button>
         </div>
 
-        {/* Target List */}
-        <div className="p-4 space-y-3 max-h-[60vh] overflow-y-auto">
-          {/* Stage Environment Target */}
-          <button
-            type="button"
-            onClick={() => onAssign('stage')}
-            onMouseEnter={() => setSelectedId('stage')}
-            className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border text-left transition-colors cursor-pointer ${
-              selectedId === 'stage'
-                ? 'bg-surface-subtle border-text-main text-text-main'
-                : 'bg-surface border-border-main text-text-body hover:bg-surface-subtle'
-            }`}
-          >
-            <div className="flex items-center gap-2 min-w-0">
-              <Layers className="w-4 h-4 text-emerald-500 shrink-0" />
-              <div className="min-w-0">
-                <div className="text-xs font-bold">Stage Environment</div>
-                <div className="text-[10px] font-mono text-text-muted">
-                  Full set / architecture at world origin (0, 0, 0)
+        {/* Body: Batch List or 1-Click Single Target List */}
+        {isBatchMode ? (
+          <BatchSkinAssignmentList
+            pendingDrops={pendingDrops}
+            assignments={batchTargets}
+            entities={entities}
+            stageSkin={stageSkin}
+            entitySkins={entitySkins}
+            onChangeTarget={handleBatchTargetChange}
+          />
+        ) : (
+          <div className="p-4 space-y-3 max-h-[60vh] overflow-y-auto">
+            <button
+              type="button"
+              onClick={() => onAssign('stage')}
+              onMouseEnter={() => setSelectedId('stage')}
+              className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border text-left transition-colors cursor-pointer ${
+                selectedId === 'stage'
+                  ? 'bg-surface-subtle border-text-main text-text-main'
+                  : 'bg-surface border-border-main text-text-body hover:bg-surface-subtle'
+              }`}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <Layers className="w-4 h-4 text-emerald-500 shrink-0" />
+                <div className="min-w-0">
+                  <div className="text-xs font-bold">Stage Environment</div>
+                  <div className="text-[10px] font-mono text-text-muted">
+                    Full set / architecture at world origin (0, 0, 0)
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="flex items-center gap-1.5 shrink-0">
-              {stageSkin && (
-                <span className="text-[10px] font-mono text-amber-500 truncate max-w-[90px]">
-                  replaces {stageSkin.name}
-                </span>
-              )}
-              {selectedId === 'stage' && (
-                <Check className="w-3.5 h-3.5 text-text-main" />
-              )}
-            </div>
-          </button>
+              <div className="flex items-center gap-1.5 shrink-0">
+                {stageSkin && (
+                  <span className="text-[10px] font-mono text-amber-500 truncate max-w-[90px]">
+                    replaces {stageSkin.name}
+                  </span>
+                )}
+                {selectedId === 'stage' && (
+                  <Check className="w-3.5 h-3.5 text-text-main" />
+                )}
+              </div>
+            </button>
 
-          {characters.length > 0 && (
-            <div className="space-y-1.5">
-              <div className="text-[10px] font-mono uppercase tracking-wider text-text-faint font-bold px-1">
-                Cast ({characters.length})
+            {characters.length > 0 && (
+              <div className="space-y-1.5">
+                <div className="text-[10px] font-mono uppercase tracking-wider text-text-faint font-bold px-1">
+                  Cast ({characters.length})
+                </div>
+                <div className="space-y-1">
+                  {characters.map((ent) => renderEntityRow(ent, User))}
+                </div>
               </div>
-              <div className="space-y-1">
-                {characters.map((ent) => renderEntityRow(ent, User))}
-              </div>
-            </div>
-          )}
+            )}
 
-          {props.length > 0 && (
-            <div className="space-y-1.5">
-              <div className="text-[10px] font-mono uppercase tracking-wider text-text-faint font-bold px-1">
-                Set Props ({props.length})
+            {props.length > 0 && (
+              <div className="space-y-1.5">
+                <div className="text-[10px] font-mono uppercase tracking-wider text-text-faint font-bold px-1">
+                  Set Props ({props.length})
+                </div>
+                <div className="space-y-1">
+                  {props.map((ent) => renderEntityRow(ent, Box))}
+                </div>
               </div>
-              <div className="space-y-1">
-                {props.map((ent) => renderEntityRow(ent, Box))}
-              </div>
-            </div>
-          )}
+            )}
 
-          {markers.length > 0 && (
-            <div className="space-y-1.5">
-              <div className="text-[10px] font-mono uppercase tracking-wider text-text-faint font-bold px-1">
-                Spike Marks ({markers.length})
+            {markers.length > 0 && (
+              <div className="space-y-1.5">
+                <div className="text-[10px] font-mono uppercase tracking-wider text-text-faint font-bold px-1">
+                  Spike Marks ({markers.length})
+                </div>
+                <div className="space-y-1">
+                  {markers.map((ent) => renderEntityRow(ent, MapPin))}
+                </div>
               </div>
-              <div className="space-y-1">
-                {markers.map((ent) => renderEntityRow(ent, MapPin))}
-              </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         {/* Footer */}
-        <div className="px-4 py-2.5 border-t border-border-subtle bg-surface-subtle flex items-center justify-between text-[10px] font-mono text-text-muted">
-          <span>Session-only overlay · Press Enter to apply</span>
-          <button
-            type="button"
-            onClick={onCancel}
-            className="px-2.5 py-1 rounded-lg hover:bg-surface text-text-body cursor-pointer"
-          >
-            Cancel
-          </button>
+        <div className="px-4 py-2.5 border-t border-border-subtle bg-surface-subtle flex items-center justify-between gap-2 text-[10px] font-mono text-text-muted">
+          <span>
+            {isBatchMode
+              ? 'Session-only overlay · Press Enter to apply'
+              : 'Session-only overlay · Press Enter to apply'}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={dismissModal}
+              className="px-2.5 py-1 rounded-lg hover:bg-surface text-text-body cursor-pointer"
+            >
+              {isBatchMode ? 'Cancel All' : 'Cancel'}
+            </button>
+            {isBatchMode && (
+              <button
+                type="button"
+                onClick={handleConfirmBatch}
+                disabled={applyCount === 0}
+                className="px-3 py-1.5 rounded-lg bg-btn-primary-bg text-btn-primary-text font-bold hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {applyCount === 0
+                  ? 'Nothing Selected'
+                  : `Apply ${applyCount} Skin${applyCount === 1 ? '' : 's'}`}
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -74,7 +74,7 @@ stageflow/
 │   │   ├── types.ts                 # Canonical interfaces (StageScore, ShotCue, ObserverShotCue, BlockingCueSpec, StageFrame)
 │   │   ├── constants.ts             # Metric bounds, sensor constants, blueprint color palette
 │   │   ├── fileDropClassifier.ts    # Pure asset classifier (.yaml/.video/.glb) & file-drag DataTransfer guard
-│   │   ├── skinMath.ts              # Pure .glb Box3 normalization math, filename target matcher & skin cache signatures
+│   │   ├── skinMath.ts              # Pure .glb Box3 normalization math, filename target matcher, batch conflict/plan resolver & skin cache signatures
 │   │   ├── opticsMath.ts            # Focal length (mm) <-> Vertical FOV (deg), Rectangular Gate & Thin-Lens DoF math
 │   │   ├── exportMath.ts            # Pure even-dimension H.264 bounds, bitrate, time-range & MP4 filename helpers
 │   │   ├── exportScrubberMath.ts    # Pure dual-handle export scrubber quantization & drag clamping math
@@ -204,7 +204,8 @@ stageflow/
 │   │   ├── LabelDisplayModeToggle.tsx # Floating 3-mode 3D diorama label toggle (All / Cam / Off)
 │   │   ├── StageCamViewfinderOverlay.tsx # Optical film gate, look-around mask & composition guides
 │   │   ├── ConfirmResetModal.tsx    # Accessible confirmation dialog modal for discarding drafts
-│   │   ├── AssignStageSkinModal.tsx # Minimal 1-click assignment modal for dropped .glb/.gltf stage & entity skins
+│   │   ├── AssignStageSkinModal.tsx # 1-click single & batch target assignment modal for dropped/picked .glb/.gltf stage & entity skins
+│   │   ├── BatchSkinAssignmentList.tsx # Multi-skin batch target selector, duplicate conflict warning & skip controls
 │   │   ├── ConfirmRemoteScoreModal.tsx # Accessible confirmation & conflict dialog modal for external/remote scores
 │   │   ├── CleanVideoExportModal.tsx # In-browser Clean Stage Cam & Observer MP4 export progress modal
 │   │   ├── CleanVideoExportConfigForm.tsx # Export camera, angle, resolution, fps, range & palette form controls

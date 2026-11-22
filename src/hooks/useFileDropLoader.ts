@@ -1,6 +1,6 @@
 /**
- * Hook for handling pane-scoped drag-and-drop or file-picker loading of
- * `.yaml` scores, `.mp4`/`.webm`/`.mov` videos, and `.glb`/`.gltf` 3D skins.
+ * Hook for handling pane-scoped drag-and-drop (files and folders) or file-picker
+ * loading of `.yaml` scores, `.mp4`/`.webm`/`.mov` videos, and `.glb`/`.gltf` 3D skins.
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react';
@@ -15,6 +15,54 @@ const DEFAULT_ACCEPTED_KINDS: readonly DroppedAssetKind[] = [
   'video',
   'skin',
 ];
+
+function readFileEntry(entry: FileSystemFileEntry): Promise<File | null> {
+  return new Promise((resolve) => {
+    entry.file(
+      (file) => resolve(file),
+      () => resolve(null)
+    );
+  });
+}
+
+async function readDirectoryEntry(
+  dirEntry: FileSystemDirectoryEntry
+): Promise<File[]> {
+  const reader = dirEntry.createReader();
+  const childEntries: FileSystemEntry[] = [];
+
+  // Chromium readEntries returns at most ~100 entries per call until an empty array is returned
+  while (true) {
+    const batch = await new Promise<FileSystemEntry[]>((resolve) => {
+      reader.readEntries(
+        (results) => resolve(results),
+        () => resolve([])
+      );
+    });
+    if (batch.length === 0) break;
+    childEntries.push(...batch);
+  }
+
+  childEntries.sort((a, b) => a.name.localeCompare(b.name));
+
+  const collected: File[] = [];
+  for (const child of childEntries) {
+    const nested = await collectEntryFiles(child);
+    collected.push(...nested);
+  }
+  return collected;
+}
+
+async function collectEntryFiles(entry: FileSystemEntry): Promise<File[]> {
+  if (entry.isFile) {
+    const file = await readFileEntry(entry as FileSystemFileEntry);
+    return file ? [file] : [];
+  }
+  if (entry.isDirectory) {
+    return readDirectoryEntry(entry as FileSystemDirectoryEntry);
+  }
+  return [];
+}
 
 export interface UseFileDropLoaderOptions {
   acceptedKinds?: readonly DroppedAssetKind[];
@@ -48,9 +96,13 @@ export function useFileDropLoader({
   }, [resetDragState]);
 
   const processFiles = useCallback(
-    async (files: FileList | File[]) => {
+    async (
+      files: FileList | File[],
+      options?: { ignoreUnsupportedWhenAccepted?: boolean }
+    ) => {
       const fileArray = Array.from(files);
       const rejectedKinds: DroppedAssetKind[] = [];
+      let acceptedCount = 0;
 
       for (const file of fileArray) {
         const kind = classifyDroppedAsset(file.name, file.type);
@@ -61,6 +113,7 @@ export function useFileDropLoader({
           continue;
         }
 
+        acceptedCount += 1;
         if (kind === 'yaml') {
           const text = await file.text();
           onLoadYamlText?.(text, file.name);
@@ -73,8 +126,13 @@ export function useFileDropLoader({
         }
       }
 
-      if (rejectedKinds.length > 0) {
-        onRejectedFiles?.(rejectedKinds);
+      const filteredRejected =
+        options?.ignoreUnsupportedWhenAccepted && acceptedCount > 0
+          ? rejectedKinds.filter((kind) => kind !== 'unsupported')
+          : rejectedKinds;
+
+      if (filteredRejected.length > 0) {
+        onRejectedFiles?.(filteredRejected);
       }
     },
     [
@@ -125,8 +183,33 @@ export function useFileDropLoader({
       e.preventDefault();
       e.stopPropagation();
       resetDragState();
-      if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
-        void processFiles(e.dataTransfer.files);
+
+      const dataTransfer = e.dataTransfer;
+      if (!dataTransfer) return;
+
+      // Extract entries synchronously before the browser clears DataTransfer after return
+      const rawItems = dataTransfer.items ? Array.from(dataTransfer.items) : [];
+      const entries = rawItems
+        .map((item) => item.webkitGetAsEntry?.() ?? null)
+        .filter((entry): entry is FileSystemEntry => entry !== null);
+      const hasDirectory = entries.some((entry) => entry.isDirectory);
+
+      if (hasDirectory) {
+        void (async () => {
+          const collected: File[] = [];
+          for (const entry of entries) {
+            const nested = await collectEntryFiles(entry);
+            collected.push(...nested);
+          }
+          await processFiles(collected, {
+            ignoreUnsupportedWhenAccepted: true,
+          });
+        })();
+        return;
+      }
+
+      if (dataTransfer.files && dataTransfer.files.length > 0) {
+        void processFiles(dataTransfer.files);
       }
     },
     [processFiles, resetDragState]

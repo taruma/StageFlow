@@ -136,3 +136,78 @@ export function buildEntitySkinsSignature(
   entries.sort(([a], [b]) => a.localeCompare(b));
   return entries.map(([id, url]) => `${id}=${url}`).join(';');
 }
+
+export interface BatchSkinAssignmentInput {
+  url: string;
+  name: string;
+  /** 'stage', entity id, or null to skip */
+  targetId: string | null;
+}
+
+export interface BatchSkinPlan {
+  nextStageSkin: { url: string; name: string } | null;
+  nextEntitySkins: Record<string, { url: string; name: string }>;
+  discardedBatchUrls: string[];
+  appliedSlotCount: number;
+}
+
+/**
+ * Returns target IDs ('stage' or entity id) assigned to more than one non-skipped item in a batch.
+ */
+export function findDuplicateBatchTargetIds(
+  items: readonly BatchSkinAssignmentInput[]
+): string[] {
+  const counts = new Map<string, number>();
+  for (const item of items) {
+    if (!item.targetId) continue;
+    counts.set(item.targetId, (counts.get(item.targetId) ?? 0) + 1);
+  }
+  const duplicates: string[] = [];
+  for (const [targetId, count] of counts.entries()) {
+    if (count > 1) duplicates.push(targetId);
+  }
+  return duplicates;
+}
+
+/**
+ * Resolves a batch of skin assignments into final stage/entity skin entries and
+ * returns any skipped or shadowed blob URLs so callers can revoke them safely.
+ */
+export function resolveBatchSkinPlan(
+  items: readonly BatchSkinAssignmentInput[]
+): BatchSkinPlan {
+  let nextStageSkin: { url: string; name: string } | null = null;
+  const nextEntitySkins: Record<string, { url: string; name: string }> = {};
+  const discardedBatchUrls: string[] = [];
+
+  for (const item of items) {
+    if (!item.targetId) {
+      discardedBatchUrls.push(item.url);
+      continue;
+    }
+
+    if (item.targetId === 'stage') {
+      if (nextStageSkin) {
+        discardedBatchUrls.push(nextStageSkin.url);
+      }
+      nextStageSkin = { url: item.url, name: item.name };
+      continue;
+    }
+
+    const prev = nextEntitySkins[item.targetId];
+    if (prev) {
+      discardedBatchUrls.push(prev.url);
+    }
+    nextEntitySkins[item.targetId] = { url: item.url, name: item.name };
+  }
+
+  const appliedSlotCount =
+    (nextStageSkin ? 1 : 0) + Object.keys(nextEntitySkins).length;
+
+  return {
+    nextStageSkin,
+    nextEntitySkins,
+    discardedBatchUrls,
+    appliedSlotCount,
+  };
+}

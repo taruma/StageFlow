@@ -6,6 +6,7 @@
 
 import React, { useRef, useEffect } from 'react';
 import {
+  Box,
   ChevronDown,
   FolderOpen,
   Download,
@@ -15,6 +16,7 @@ import {
   FolderKanban,
   Book,
   ExternalLink,
+  Trash2,
 } from 'lucide-react';
 import { UI_TOKENS } from '../tokens/ui';
 import type { FilterTab } from '../ScoreLibraryModal';
@@ -22,9 +24,11 @@ import type { FilterTab } from '../ScoreLibraryModal';
 export interface FileMenuDropdownProps {
   isOpen: boolean;
   customScoresCount: number;
+  activeSkinsCount?: number;
   onToggle: () => void;
   onClose: () => void;
   onUploadFiles: (files: FileList) => void;
+  onClearAllSkins?: () => void;
   onExportActiveScore: () => void;
   onOpenVideoExport?: () => void;
   onOpenStoryboard?: () => void;
@@ -35,9 +39,11 @@ export interface FileMenuDropdownProps {
 export const FileMenuDropdown: React.FC<FileMenuDropdownProps> = ({
   isOpen,
   customScoresCount,
+  activeSkinsCount = 0,
   onToggle,
   onClose,
   onUploadFiles,
+  onClearAllSkins,
   onExportActiveScore,
   onOpenVideoExport,
   onOpenStoryboard,
@@ -46,6 +52,7 @@ export const FileMenuDropdown: React.FC<FileMenuDropdownProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const skinInputRef = useRef<HTMLInputElement>(null);
 
   // Close when clicking outside
   useEffect(() => {
@@ -96,11 +103,27 @@ export const FileMenuDropdown: React.FC<FileMenuDropdownProps> = ({
         />
       </button>
 
-      {/* Hidden File Input for Open / Load */}
+      {/* Hidden File Input for Scores & Videos */}
       <input
         ref={fileInputRef}
         type="file"
-        accept=".yaml,.yml,.json,.mp4,.webm,.mov,.glb,.gltf,video/*"
+        accept=".yaml,.yml,.json,.mp4,.webm,.mov,video/*"
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          if (e.target.files && e.target.files.length > 0) {
+            onUploadFiles(e.target.files);
+            e.target.value = '';
+            onClose();
+          }
+        }}
+      />
+
+      {/* Hidden File Input for 3D .GLB / .GLTF Skins */}
+      <input
+        ref={skinInputRef}
+        type="file"
+        accept=".glb,.gltf,model/gltf-binary,model/gltf+json"
         multiple
         className="hidden"
         onChange={(e) => {
@@ -128,11 +151,45 @@ export const FileMenuDropdown: React.FC<FileMenuDropdownProps> = ({
                 fileInputRef.current?.click();
               }}
               className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-text-body hover:text-text-main hover:bg-surface-subtle transition-colors text-left cursor-pointer"
-              title="Load local .yaml score, .mp4/.webm video, or .glb/.gltf stage skin"
+              title="Load local .yaml choreography score or .mp4/.webm reference video"
             >
               <FolderOpen className="w-3.5 h-3.5 text-sky-500 shrink-0" />
-              <span>Open Video, Score or Skin...</span>
+              <span>Open Score or Video...</span>
             </button>
+
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                skinInputRef.current?.click();
+              }}
+              className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-text-body hover:text-text-main hover:bg-surface-subtle transition-colors text-left cursor-pointer"
+              title="Load one or multiple local .glb/.gltf 3D stage or entity skins"
+            >
+              <Box className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+              <span>Load 3D Skins (.glb/.gltf)...</span>
+            </button>
+
+            {onClearAllSkins && activeSkinsCount > 0 && (
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  onClearAllSkins();
+                  onClose();
+                }}
+                className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-rose-500 hover:bg-rose-500/10 transition-colors text-left cursor-pointer"
+                title="Remove all loaded 3D .glb/.gltf skins from the current session"
+              >
+                <div className="flex items-center gap-2">
+                  <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                  <span>Clear All 3D Skins</span>
+                </div>
+                <span className="text-[10px] bg-rose-500/15 text-rose-500 px-1.5 py-0.2 rounded-full font-bold">
+                  {activeSkinsCount}
+                </span>
+              </button>
+            )}
 
             <button
               type="button"
