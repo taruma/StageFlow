@@ -151,7 +151,7 @@ stageflow/
 │   │   ├── tokens/                  # SceneFlow-aligned design tokens
 │   │   │   └── ui.ts                # Centralized UI_TOKENS for layout, pills, buttons & modals
 │   │   ├── header/                  # Modular 3-wing studio header submodules
-│   │   │   ├── FileMenuDropdown.tsx # Tiered File ▾ popover menu (Open, Export, New, Manage, Guide)
+│   │   │   ├── FileMenuDropdown.tsx # Tiered File ▾ popover menu (Score & Project, 3D Skins, Export & Storyboard, Documentation)
 │   │   │   ├── LayoutSegmentedControl.tsx # Centered segmented split workspace layout switcher
 │   │   │   ├── ActiveScoreIndicator.tsx # Interactive active score context chip with 1-click library open
 │   │   │   └── ThemeSelectorDropdown.tsx # Accessible 4-mode theme switcher (Auto, Dark, Warm, Light)
@@ -199,7 +199,7 @@ stageflow/
 │   │   ├── CameraTelemetryCapsule.tsx  # Dual-camera telemetry pill with [OBS|CAM] switch & 1-click YAML copy
 │   │   ├── CameraTelemetryHoverCard.tsx # Precision degrees, meters, focus & aperture hover inspection card
 │   │   ├── telemetryYamlFormatter.ts   # Pure generator for scoped `camera:` and `observer_camera:` snippets
-│   │   ├── DirectorialTransportBar.tsx # Shot-marker scrubber, shot chips, speed (0.25x-2x) & POV toggle
+│   │   ├── DirectorialTransportBar.tsx # Shot-marker scrubber, shot chips, 1080p snapshot trigger & transport deck
 │   │   ├── YamlInspectorDrawer.tsx  # Slide-out live YAML editor with read-only protection & fork-on-edit
 │   │   ├── ToastContainer.tsx       # Floating animated toast notification banners
 │   │   ├── LabelDisplayModeToggle.tsx # Floating 3-mode 3D diorama label toggle (All / Cam / Off), Guides, Blur & Map toggle

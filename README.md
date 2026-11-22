@@ -13,7 +13,7 @@
 <p align="center">
   <a href="https://github.com/taruma/stageflow/releases"><img src="https://img.shields.io/badge/version-1.2.0-blue.svg?style=flat-square" alt="Version 1.2.0" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-yellow.svg?style=flat-square" alt="License MIT" /></a>
-  <a href="https://github.com/taruma/stageflow"><img src="https://img.shields.io/badge/tests-323%20passed-brightgreen.svg?style=flat-square" alt="Vitest 323 Passed" /></a>
+  <a href="https://github.com/taruma/stageflow"><img src="https://img.shields.io/badge/tests-354%20passed-brightgreen.svg?style=flat-square" alt="Vitest 354 Passed" /></a>
   <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.8-blue.svg?style=flat-square" alt="TypeScript 5.8" /></a>
   <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-19-61dafb.svg?style=flat-square" alt="React 19" /></a>
   <a href="https://threejs.org/"><img src="https://img.shields.io/badge/Three.js-r175-black.svg?style=flat-square" alt="Three.js r175" /></a>
@@ -58,9 +58,9 @@ Rather than focusing on heavy production pipelines or photorealistic rendering, 
 
 StageFlow's visual experience follows the natural rhythm of staging a scene:
 
-1. 🖥️ **3-Column Resizable Studio & Live YAML**: A tactile 30/40/30 workspace with reference video, 3D blueprint stage, and CodeMirror 6 YAML editor with 1-click `[ Jump ]` error diagnostics and 4 app themes.
-2. 🎬 **Synchronized Reference Video**: Watch real film footage (or procedural camera slates) playing alongside the 3D diorama. Playback stays locked to the exact millisecond with zero drift, single-frame stepping (`[` / `]`).
-3. 🚶 **Directional Mannequins & Ground Footprints**: See performers represented on the diorama floor with directional gaze arrows, proportional dimensions, and shape-matched ground footprints that shift smoothly as actors walk, stop, or sit.
+1. 🖥️ **3-Column Resizable Studio & Live YAML**: A tactile 30/40/30 workspace with pane-scoped drag-and-drop (`.mp4`/`.webm` over Video, `.yaml`/`.glb`/folders over Diorama), CodeMirror 6 YAML editor with 1-click `[ Jump ]` error diagnostics, downloadable `.md` manuals, and 4 app themes.
+2. 🎬 **Synchronized Reference Video**: Watch real film footage (or procedural camera slates) playing alongside the 3D diorama. Playback stays locked to the exact millisecond with zero drift and single-frame stepping (`[` / `]`).
+3. 🚶 **Directional Mannequins, Custom `.glb` Skins & Live 2D Minimap**: See performers with directional gaze arrows, proportional dimensions, shape-matched ground footprints, optional session `.glb`/`.gltf` stage & entity skins (single or batch-matched), and a live 60fps 2D SVG top-down stage minimap (`[ Map ]` / `M` or Scene Desk `Map` tab).
 4. 🎥 **Rectangular Frustums & Physical Camera Rigs**: See the camera's physical place in the space. The camera projects a true rectangular film gate cone (`16:9`, `2.39:1`) matching full-frame prime lenses (`24mm`–`85mm`), mounted on visible blueprint tripods, linear dolly rails, or curved tracks.
 5. 🔍 **Visual Focus Planes & Real-Time Bokeh Blur**: See the focal plane represented as a sliding frame in 3D space. Track dynamic rack focus between performers with an emerald focus tether, and toggle real-time single-pass WebGL2 viewfinder bokeh blur (`[ Blur ]` / hotkey `B`) to see the shot through the camera's optical eye.
 6. ⏱️ **Millisecond Scrubbing & Free 3D Inspection on Pause**: Scrub across the timeline with immediate visual feedback. Whenever playback is paused, the diorama automatically hands over to free 3D orbit controls—letting you freely rotate, pan, and inspect the frozen staging from any angle before cutting instantly to the camera's perspective.
@@ -117,6 +117,7 @@ shots:
 | `B` | **DoF Bokeh Blur** | Toggle single-pass WebGL2 Stage Cam viewfinder depth-of-field blur |
 | `G` | **Framing Guides** | Toggle rule-of-thirds and safe-action composition overlays |
 | `L` | **3D Label Mode** | Cycle mannequin label display (`all` $\to$ `key` $\to$ `off`) |
+| `M` | **Stage Minimap** | Toggle live 2D SVG top-down stage minimap HUD overlay |
 | `?` | **About & Shortcuts** | Open the About StageFlow info modal and documentation links |
 
 ---
@@ -150,7 +151,7 @@ Open `http://localhost:5173` in your browser.
 | Command | Task | Description |
 | :--- | :--- | :--- |
 | `npm run dev` | **Local Studio** | Starts Vite development server at `localhost:5173` |
-| `npm test` | **Unit Test Suite** | Runs 323 deterministic unit tests via Vitest |
+| `npm test` | **Unit & Integration Suite** | Runs 354 deterministic tests across 41 suites via Vitest |
 | `npm run build` | **Typecheck & Bundle** | Strict TypeScript check (`tsc -b`) and Vite production build |
 | `npm run lint` | **Code Linter** | Ultra-fast static analysis via `oxlint` |
 | `npm run record` | **Viewport Recorder** | Records 60fps video via headless Playwright + FFmpeg |
@@ -195,7 +196,7 @@ graph TD
 * **Media & Audio Engine**: HTML5 Video, YouTube IFrame API (60fps extrapolation), Web Audio API
 * **State & Persistence**: [IndexedDB (`idb`)](https://github.com/jakearchibald/idb), `localStorage`
 * **Headless Video Export**: [Playwright](https://playwright.dev/) (Chromium), [FFmpeg](https://ffmpeg.org/)
-* **Quality & Tooling**: [Vitest](https://vitest.dev/) (323 deterministic tests), [oxlint](https://oxc.rs/)
+* **Quality & Tooling**: [Vitest](https://vitest.dev/) (354 deterministic tests), [oxlint](https://oxc.rs/)
 
 ---
 

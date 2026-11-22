@@ -1437,7 +1437,7 @@ shots:
 
 ## 8. YAML DSL Release History
 
-Chronological summary of **YAML authoring features, syntax additions, and evaluator behaviors** from the earliest release (`v0.1.0`) through the upcoming `v1.2.0` release. All scores remain backward-compatible across versions. For non-YAML Studio UI, WebCodecs export, and rendering changes, see [`CHANGELOG.md`](../CHANGELOG.md).
+Chronological summary of **YAML authoring features, syntax additions, and evaluator behaviors** from the earliest release (`v0.1.0`) through `v1.2.0`. All scores remain 100% backward-compatible across upcoming releases. For non-YAML Studio UI, WebCodecs export, and rendering changes, see [`CHANGELOG.md`](../CHANGELOG.md).
 
 ### 8.1 `v0.1.0` (2026-11-03) — Core Score & Dual-Timeline Foundation
 

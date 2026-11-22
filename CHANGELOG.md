@@ -38,6 +38,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Pre-Release Living Documentation Sync (`AGENTS.md`, `README.md`, `src/ui/AppInfoModal.tsx`, `docs/ARCHITECTURE_FILE_MAP.md`, `docs/YAML_AUTHORING_GUIDE.md`, `docs/VIEWPORT_RECORDER_GUIDE.md`)**:
+  - Updated Vitest test suite counts to `354` tests across `41` suites in `AGENTS.md` and `README.md`, and refreshed `README.md` capabilities to cover `.glb`/`.gltf` skins, pane-scoped drag-and-drop, `.md` manual downloads, and the live 2D Stage Minimap.
+  - Added the `M` hotkey (Minimap toggle) to `QUICK_SHORTCUTS` in `src/ui/AppInfoModal.tsx` and `README.md`.
+  - Updated `docs/ARCHITECTURE_FILE_MAP.md` descriptions (`FileMenuDropdown.tsx`, `DirectorialTransportBar.tsx`), `docs/YAML_AUTHORING_GUIDE.md` §8 release intro, and `docs/VIEWPORT_RECORDER_GUIDE.md` CDP capture / `--software-gl` Chromium flags to match current `scripts/record/playwrightDriver.ts`.
 - **Pane-Aware Drag-and-Drop Drop Zones (`src/core/fileDropClassifier.ts`, `src/hooks/useFileDropLoader.ts`, `src/ui/InteractiveStudioApp.tsx`, `src/ui/UniversalVideoViewport.tsx`, `tests/unit/fileDropClassifier.test.ts`, `docs/ARCHITECTURE_FILE_MAP.md`, `docs/DIORAMA_3D_AND_UI_SPECIFICATIONS.md`)**:
   - Added pure Layer 1 `classifyDroppedAsset` and `hasFilesInDataTransfer` helpers (`src/core/fileDropClassifier.ts`) with unit tests (`tests/unit/fileDropClassifier.test.ts`).
   - Upgraded `useFileDropLoader.ts` with `acceptedKinds` filtering, `onRejectedFiles` mismatch notifications, `hasFilesInDataTransfer` checks (preventing internal CodeMirror text drags from triggering file overlays), `dragDepthRef` anti-flicker entry/leave tracking, and `window` `dragend` state reset.
