@@ -14,6 +14,10 @@ import type {
 } from '../core/types';
 import { BlueprintFloorGrid } from './BlueprintFloorGrid';
 import { DirectionalMannequin } from './DirectionalMannequin';
+import {
+  StageEnvironmentSkin,
+  StageSkinEnvironmentLighting,
+} from './StageEnvironmentSkin';
 
 export interface BlueprintStageSceneProps {
   score: StageScore;
@@ -23,6 +27,12 @@ export interface BlueprintStageSceneProps {
   isPlaying?: boolean;
   cameraMode?: CameraViewMode;
   themeCategory?: AppThemeCategory;
+  stageSkinUrl?: string | null;
+  stageSkinVisible?: boolean;
+  entitySkinUrls?: Record<string, string>;
+  onSkinLoad?: (url: string) => void;
+  onStageSkinError?: (error: Error) => void;
+  onEntitySkinError?: (entityId: string, error: Error) => void;
 }
 
 export const BlueprintStageScene: React.FC<BlueprintStageSceneProps> = ({
@@ -33,7 +43,22 @@ export const BlueprintStageScene: React.FC<BlueprintStageSceneProps> = ({
   isPlaying = false,
   cameraMode,
   themeCategory = 'light',
+  stageSkinUrl,
+  stageSkinVisible = true,
+  entitySkinUrls,
+  onSkinLoad,
+  onStageSkinError,
+  onEntitySkinError,
 }) => {
+  const hasVisibleEntitySkin =
+    stageSkinVisible &&
+    Boolean(
+      entitySkinUrls &&
+        uiFrame.entitiesList.some((ent) => Boolean(entitySkinUrls[ent.id]))
+    );
+  const hasAnyVisibleSkin =
+    Boolean(stageSkinUrl && stageSkinVisible) || hasVisibleEntitySkin;
+
   return (
     <group>
       {/* Studio Lighting */}
@@ -44,6 +69,19 @@ export const BlueprintStageScene: React.FC<BlueprintStageSceneProps> = ({
         intensity={0.45}
         color={themeCategory === 'dark' ? '#38bdf8' : '#ffffff'}
       />
+
+      {/* Shared Zero-Network Studio IBL when any .glb skin is visible */}
+      {hasAnyVisibleSkin && <StageSkinEnvironmentLighting />}
+
+      {/* Ephemeral Dropped .GLB / .GLTF Stage Environment Skin */}
+      {stageSkinUrl && (
+        <StageEnvironmentSkin
+          url={stageSkinUrl}
+          visible={stageSkinVisible}
+          onLoad={onSkinLoad}
+          onError={onStageSkinError}
+        />
+      )}
 
       {/* Metric Blueprint Stage Floor Grid */}
       <BlueprintFloorGrid
@@ -66,6 +104,10 @@ export const BlueprintStageScene: React.FC<BlueprintStageSceneProps> = ({
           labelMode={labelMode}
           isPlaying={isPlaying}
           cameraMode={cameraMode}
+          skinUrl={entitySkinUrls?.[entityState.id] ?? null}
+          skinVisible={stageSkinVisible}
+          onEntitySkinLoad={onSkinLoad}
+          onEntitySkinError={onEntitySkinError}
         />
       ))}
     </group>

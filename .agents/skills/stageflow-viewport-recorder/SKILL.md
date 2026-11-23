@@ -50,6 +50,12 @@ npm run record [scene] [options]
 | `--guides` | Flag | Show optical safe-action frame, rule-of-thirds grid, and reticle | Off |
 | `--hud` | Flag | Show 2D shot breakdown and degree/meter telemetry badges | Off |
 | `--audio` | `<path>` | Path to local reference video/audio to slap audio track onto output (visuals excluded) | None (silent) |
+| `--stage-skin` | `<path>` | Path to a local `.glb`/`.gltf` Stage Environment skin | None |
+| `--entity-skin` | `<id>=<path>` | Assign a local `.glb`/`.gltf` model to an entity ID (repeatable) | None |
+| `--skins-dir` | `<dir>` | Auto-match `.glb`/`.gltf` skins in a directory by entity ID / stage | None |
+| `--workers` | `<number>` | Parallel Playwright worker tabs for stateless frame sharding | Auto (`1`–`4`) |
+| `--capture` | `jpeg` \| `png` | Intermediate CDP screenshot format (`jpeg q=96` for video; `png` for `sequence`) | Auto |
+| `--software-gl` | Flag | Disable hardware ANGLE GPU preference (SwiftShader CI fallback) | Off |
 | `--shot` | `<shot_id>` | Auto-slice start and end timestamps for a single shot cue (e.g. `shot_01`) | Full scene |
 | `--start` / `--end` | `<seconds>` | Custom start and end timestamps | Full scene |
 | `--preset` | `isometric` (`iso`) \| `top-down` (`top`) \| `front` \| `side` | Fixed architectural diorama camera angles | None |

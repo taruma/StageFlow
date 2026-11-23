@@ -57,7 +57,7 @@ export const ResizableSplitWorkspace: React.FC<
   const showRightEditor = isEditMode && Boolean(rightEditorPane);
   const showSubpanel = !isSubpanelCollapsed && Boolean(leftSubpanelPane);
 
-  // Global mousemove/mouseup listener for all dividers
+  // Global pointermove/pointerup/pointercancel listener for all dividers (mouse + touch)
   useEffect(() => {
     const isDraggingAny =
       isDraggingLeft || isDraggingRight || isDraggingHorizontal;
@@ -75,11 +75,15 @@ export const ResizableSplitWorkspace: React.FC<
 
       if (isDraggingLeft) {
         const rawPct = ((e.clientX - rect.left) / rect.width) * 100;
-        const clamped = Math.max(18, Math.min(45, rawPct));
+        const reservedRightPct = showRightEditor ? rightSplitPct : 0;
+        const maxLeftPct = Math.max(18, Math.min(45, 100 - reservedRightPct - 22));
+        const clamped = Math.max(18, Math.min(maxLeftPct, rawPct));
         onLeftSplitChange(clamped);
       } else if (isDraggingRight) {
         const rawPct = ((rect.right - e.clientX) / rect.width) * 100;
-        const clamped = Math.max(18, Math.min(45, rawPct));
+        const reservedLeftPct = !isVideoHidden ? leftSplitPct : 0;
+        const maxRightPct = Math.max(18, Math.min(45, 100 - reservedLeftPct - 22));
+        const clamped = Math.max(18, Math.min(maxRightPct, rawPct));
         onRightSplitChange(clamped);
       } else if (isDraggingHorizontal) {
         const leftCol = leftColRef.current;
@@ -96,7 +100,7 @@ export const ResizableSplitWorkspace: React.FC<
       }
     };
 
-    const handlePointerUp = () => {
+    const handlePointerEnd = () => {
       setIsDraggingLeft(false);
       setIsDraggingRight(false);
       setIsDraggingHorizontal(false);
@@ -106,10 +110,14 @@ export const ResizableSplitWorkspace: React.FC<
     };
 
     window.addEventListener('pointermove', handlePointerMove);
-    window.addEventListener('pointerup', handlePointerUp);
+    window.addEventListener('pointerup', handlePointerEnd);
+    window.addEventListener('pointercancel', handlePointerEnd);
+    window.addEventListener('blur', handlePointerEnd);
     return () => {
       window.removeEventListener('pointermove', handlePointerMove);
-      window.removeEventListener('pointerup', handlePointerUp);
+      window.removeEventListener('pointerup', handlePointerEnd);
+      window.removeEventListener('pointercancel', handlePointerEnd);
+      window.removeEventListener('blur', handlePointerEnd);
       if (typeof document !== 'undefined') {
         document.body.classList.remove('is-resizing-split');
       }
@@ -118,24 +126,39 @@ export const ResizableSplitWorkspace: React.FC<
     isDraggingLeft,
     isDraggingRight,
     isDraggingHorizontal,
+    isVideoHidden,
+    showRightEditor,
+    leftSplitPct,
+    rightSplitPct,
     onLeftSplitChange,
     onRightSplitChange,
     onVideoHeightChange,
   ]);
 
-  const handlePointerDownLeft = useCallback((e: React.PointerEvent) => {
+  const startDividerDrag = (
+    e: React.PointerEvent,
+    setDragging: (active: boolean) => void
+  ) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
     e.preventDefault();
-    setIsDraggingLeft(true);
+    try {
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {
+      // Ignore synthetic events without active pointer capture support
+    }
+    setDragging(true);
+  };
+
+  const handlePointerDownLeft = useCallback((e: React.PointerEvent) => {
+    startDividerDrag(e, setIsDraggingLeft);
   }, []);
 
   const handlePointerDownRight = useCallback((e: React.PointerEvent) => {
-    e.preventDefault();
-    setIsDraggingRight(true);
+    startDividerDrag(e, setIsDraggingRight);
   }, []);
 
   const handlePointerDownHorizontal = useCallback((e: React.PointerEvent) => {
-    e.preventDefault();
-    setIsDraggingHorizontal(true);
+    startDividerDrag(e, setIsDraggingHorizontal);
   }, []);
 
   return (
@@ -183,8 +206,11 @@ export const ResizableSplitWorkspace: React.FC<
         {/* Horizontal Divider Bar (between Video and Subpanel) */}
         {showSubpanel && (
           <div
+            role="separator"
+            aria-orientation="horizontal"
+            aria-label="Resize video and Scene Desk"
             onPointerDown={handlePointerDownHorizontal}
-            className={`hidden md:flex h-2 shrink-0 items-center justify-center cursor-row-resize select-none transition-colors z-20 ${
+            className={`relative hidden md:flex h-2 shrink-0 items-center justify-center cursor-row-resize select-none touch-none transition-colors z-20 after:content-[''] after:absolute after:inset-x-0 after:inset-y-0 [@media(pointer:coarse)]:after:-inset-y-2 after:touch-none ${
               isDraggingHorizontal
                 ? 'bg-accent-primary'
                 : 'bg-surface-subtle hover:bg-surface-hover border-y border-border-main'
@@ -219,8 +245,11 @@ export const ResizableSplitWorkspace: React.FC<
       {/* LEFT VERTICAL DIVIDER BAR (between Left Column and Center Diorama) */}
       {!isVideoHidden && (
         <div
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize left panel and 3D diorama"
           onPointerDown={handlePointerDownLeft}
-          className={`hidden md:flex w-2 shrink-0 items-center justify-center cursor-col-resize select-none transition-colors z-10 ${
+          className={`relative hidden md:flex w-2 shrink-0 items-center justify-center cursor-col-resize select-none touch-none transition-colors z-10 after:content-[''] after:absolute after:inset-y-0 after:inset-x-0 [@media(pointer:coarse)]:after:-inset-x-2 after:touch-none ${
             isDraggingLeft
               ? 'bg-accent-primary'
               : 'bg-surface-subtle hover:bg-surface-hover border-x border-border-main'
@@ -239,8 +268,11 @@ export const ResizableSplitWorkspace: React.FC<
       {/* RIGHT VERTICAL DIVIDER BAR (between Center Diorama and Right YAML Studio) */}
       {showRightEditor && (
         <div
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize 3D diorama and YAML Studio"
           onPointerDown={handlePointerDownRight}
-          className={`hidden md:flex w-2 shrink-0 items-center justify-center cursor-col-resize select-none transition-colors z-10 ${
+          className={`relative hidden md:flex w-2 shrink-0 items-center justify-center cursor-col-resize select-none touch-none transition-colors z-10 after:content-[''] after:absolute after:inset-y-0 after:inset-x-0 [@media(pointer:coarse)]:after:-inset-x-2 after:touch-none ${
             isDraggingRight
               ? 'bg-amber-500'
               : 'bg-surface-subtle hover:bg-surface-hover border-x border-border-main'

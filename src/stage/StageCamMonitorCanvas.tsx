@@ -30,6 +30,9 @@ export interface StageCamMonitorCanvasProps {
   dofBlurEnabled?: boolean;
   onToggleDofBlur?: () => void;
   themeCategory?: AppThemeCategory;
+  stageSkinUrl?: string | null;
+  stageSkinVisible?: boolean;
+  entitySkinUrls?: Record<string, string>;
 }
 
 const MonitorDemandInvalidator: React.FC<{
@@ -39,6 +42,9 @@ const MonitorDemandInvalidator: React.FC<{
   isPlaying: boolean;
   dofBlurEnabled: boolean;
   themeCategory: AppThemeCategory;
+  stageSkinUrl?: string | null;
+  stageSkinVisible: boolean;
+  entitySkinUrls?: Record<string, string>;
 }> = ({
   score,
   uiFrame,
@@ -46,6 +52,9 @@ const MonitorDemandInvalidator: React.FC<{
   isPlaying,
   dofBlurEnabled,
   themeCategory,
+  stageSkinUrl,
+  stageSkinVisible,
+  entitySkinUrls,
 }) => {
   const invalidate = useThree((state) => state.invalidate);
   const size = useThree((state) => state.size);
@@ -59,6 +68,9 @@ const MonitorDemandInvalidator: React.FC<{
     isPlaying,
     dofBlurEnabled,
     themeCategory,
+    stageSkinUrl,
+    stageSkinVisible,
+    entitySkinUrls,
     size.width,
     size.height,
     invalidate,
@@ -77,6 +89,9 @@ export const StageCamMonitorCanvas: React.FC<StageCamMonitorCanvasProps> = ({
   dofBlurEnabled = false,
   onToggleDofBlur,
   themeCategory = 'light',
+  stageSkinUrl,
+  stageSkinVisible = true,
+  entitySkinUrls,
 }) => {
   const pose = uiFrame.stageCamera.transform.pose;
   const dof = uiFrame.stageCamera.dof;
@@ -107,6 +122,9 @@ export const StageCamMonitorCanvas: React.FC<StageCamMonitorCanvasProps> = ({
           isPlaying={isPlaying}
           dofBlurEnabled={dofBlurEnabled}
           themeCategory={themeCategory}
+          stageSkinUrl={stageSkinUrl}
+          stageSkinVisible={stageSkinVisible}
+          entitySkinUrls={entitySkinUrls}
         />
         <color attach="background" args={[themeColors.bg]} />
         <fog attach="fog" args={[themeColors.fog, 45, 160]} />
@@ -120,6 +138,9 @@ export const StageCamMonitorCanvas: React.FC<StageCamMonitorCanvasProps> = ({
           isPlaying={isPlaying}
           cameraMode="stage-pov"
           themeCategory={themeCategory}
+          stageSkinUrl={stageSkinUrl}
+          stageSkinVisible={stageSkinVisible}
+          entitySkinUrls={entitySkinUrls}
         />
 
         {/* 60fps Stage Camera View Controller (Gated to cut atomically with UI state) */}

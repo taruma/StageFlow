@@ -9,9 +9,11 @@ import type { SphericalPose, StageFrame, StageScore, Vec3 } from '../core/types'
 import { degToRad, sphericalToCartesian } from '../core/sphericalMath';
 import { parseStageScore } from '../core/scoreParser';
 import { computeStageFrame } from '../core/frameEngine';
+import { hasStageFrameBoundaryChanged } from '../core/frameBoundaryDiff';
 import { INITIAL_CATALOG_ITEMS } from '../core/scoreCatalog';
 import { DioramaCanvas } from '../stage/DioramaCanvas';
 import { getDioramaThemeColors } from '../stage/dioramaTheme';
+import { preloadStageEnvironmentSkin } from '../stage/StageEnvironmentSkin';
 import { StageCamViewfinderOverlay } from '../ui/StageCamViewfinderOverlay';
 import { ShotBreakdownHud } from '../ui/ShotBreakdownHud';
 import { CameraTelemetryCapsule } from '../ui/CameraTelemetryCapsule';
@@ -101,8 +103,45 @@ export const HeadlessRecorderView: React.FC = () => {
 
   const [uiFrame, setUiFrame] = useState<StageFrame>(initialFrame);
   const frameRef = useRef<StageFrame>(initialFrame);
+  const lastCommittedUiFrameRef = useRef<StageFrame>(initialFrame);
   const lastManualSeekIdRef = useRef<number>(0);
   const r3fTickCountRef = useRef<number>(0);
+  const advanceRef = useRef<((timestamp: number) => void) | null>(null);
+  const rendererInfoRef = useRef<string | undefined>(undefined);
+  const settledSkinUrlsRef = useRef<Set<string>>(new Set());
+  const skinErrorRef = useRef<string | null>(null);
+
+  const handleAdvanceReady = useCallback(
+    (advance: (timestamp: number) => void, glRenderer?: string) => {
+      advanceRef.current = advance;
+      if (glRenderer) {
+        rendererInfoRef.current = glRenderer;
+      }
+    },
+    []
+  );
+
+  const handleSkinLoad = useCallback((url: string) => {
+    settledSkinUrlsRef.current.add(url);
+  }, []);
+
+  const handleStageSkinError = useCallback(
+    (error: Error) => {
+      const url = configRef.current.stageSkinUrl;
+      if (url) settledSkinUrlsRef.current.add(url);
+      skinErrorRef.current = `Stage skin failed to load: ${error.message}`;
+    },
+    []
+  );
+
+  const handleEntitySkinError = useCallback(
+    (entityId: string, error: Error) => {
+      const url = configRef.current.entitySkinUrls?.[entityId];
+      if (url) settledSkinUrlsRef.current.add(url);
+      skinErrorRef.current = `Entity skin "${entityId}" failed to load: ${error.message}`;
+    },
+    []
+  );
 
   const configRef = useRef<RecorderConfig>(config);
   configRef.current = config;
@@ -146,23 +185,33 @@ export const HeadlessRecorderView: React.FC = () => {
       const rawFrame = computeStageFrame(currentTimestampSec, currentScore);
       const nextFrame = applyCustomPoseToFrame(rawFrame, cfg.customPose);
       frameRef.current = nextFrame;
-      setUiFrame(nextFrame);
       lastManualSeekIdRef.current += 1;
 
-      // Two animation frames ensure React state flush + R3F WebGL draw + Drei HTML positioning
-      requestAnimationFrame(() => {
+      const boundaryChanged = hasStageFrameBoundaryChanged(
+        lastCommittedUiFrameRef.current,
+        nextFrame
+      );
+      if (boundaryChanged) {
+        lastCommittedUiFrameRef.current = nextFrame;
+        setUiFrame(nextFrame);
+      }
+
+      const finishStep = () => {
+        advanceRef.current?.(performance.now());
+        const shotId = nextFrame.activeShot?.id ?? null;
+        const total = Math.max(
+          1,
+          Math.ceil(
+            ((cfg.endSec > cfg.startSec
+              ? cfg.endSec
+              : currentScore.durationSec) -
+              cfg.startSec) *
+              cfg.fps
+          )
+        );
+
+        // Single rAF ensures WebGL canvas & Drei <Html> transforms flush to compositor
         requestAnimationFrame(() => {
-          const shotId = nextFrame.activeShot?.id ?? null;
-          const total = Math.max(
-            1,
-            Math.ceil(
-              ((cfg.endSec > cfg.startSec
-                ? cfg.endSec
-                : currentScore.durationSec) -
-                cfg.startSec) *
-                cfg.fps
-            )
-          );
           resolve({
             frameIndex,
             timestampSec: currentTimestampSec,
@@ -170,7 +219,14 @@ export const HeadlessRecorderView: React.FC = () => {
             totalFrames: total,
           });
         });
-      });
+      };
+
+      if (boundaryChanged) {
+        // Wait 1 rAF so React commits boundary JSX (trails, HUD, labels) before advance()
+        requestAnimationFrame(finishStep);
+      } else {
+        finishStep();
+      }
     });
   }, []);
 
@@ -180,6 +236,18 @@ export const HeadlessRecorderView: React.FC = () => {
       ready: true,
       init: async (newConfig: RecorderConfig) => {
         configRef.current = newConfig;
+        settledSkinUrlsRef.current.clear();
+        skinErrorRef.current = null;
+
+        const expectedSkinUrls = [
+          newConfig.stageSkinUrl,
+          ...Object.values(newConfig.entitySkinUrls ?? {}),
+        ].filter((u): u is string => Boolean(u));
+
+        for (const skinUrl of expectedSkinUrls) {
+          preloadStageEnvironmentSkin(skinUrl);
+        }
+
         setConfig(newConfig);
         const res = parseStageScore(newConfig.scoreYaml);
         const parsed = res.score ?? INITIAL_CATALOG_ITEMS[0].score;
@@ -198,16 +266,40 @@ export const HeadlessRecorderView: React.FC = () => {
           newConfig.customPose
         );
         frameRef.current = firstFrame;
+        lastCommittedUiFrameRef.current = firstFrame;
         setUiFrame(firstFrame);
 
-        // Wait until R3F's useFrame loop has actually executed multiple render cycles
-        // after config/size commit, plus 2 rAFs for compositor + Drei <Html> flush.
-        const targetTick = r3fTickCountRef.current + 4;
-        const deadlineMs = performance.now() + 5000;
-        await new Promise<void>((resolve) => {
+        // Wait until R3F advance bridge + all configured .glb/.gltf skins settle,
+        // execute post-load synchronous advance() ticks, and flush compositor before Frame 0.
+        const initialTickFloor = r3fTickCountRef.current + 4;
+        let postSkinTargetTick: number | null =
+          expectedSkinUrls.length === 0 ? initialTickFloor : null;
+        const deadlineMs =
+          performance.now() + (expectedSkinUrls.length > 0 ? 15000 : 5000);
+
+        await new Promise<void>((resolve, reject) => {
           const checkReady = () => {
+            if (skinErrorRef.current) {
+              reject(new Error(skinErrorRef.current));
+              return;
+            }
+
+            if (advanceRef.current) {
+              advanceRef.current(performance.now());
+            }
+
+            const allSkinsSettled = expectedSkinUrls.every((u) =>
+              settledSkinUrlsRef.current.has(u)
+            );
+            if (allSkinsSettled && postSkinTargetTick === null && advanceRef.current) {
+              postSkinTargetTick = r3fTickCountRef.current + 2;
+            }
+
             if (
-              r3fTickCountRef.current >= targetTick ||
+              (allSkinsSettled &&
+                advanceRef.current &&
+                postSkinTargetTick !== null &&
+                r3fTickCountRef.current >= postSkinTargetTick) ||
               performance.now() >= deadlineMs
             ) {
               requestAnimationFrame(() => {
@@ -224,6 +316,7 @@ export const HeadlessRecorderView: React.FC = () => {
           totalFrames: total,
           durationSec: effectiveEnd - newConfig.startSec,
           fps: newConfig.fps,
+          rendererInfo: rendererInfoRef.current,
         };
       },
       stepFrame,
@@ -250,7 +343,9 @@ export const HeadlessRecorderView: React.FC = () => {
       <DioramaCanvas
         score={score}
         cameraMode={config.cameraMode}
-        isPlaying={true}
+        isPlaying={false}
+        frameloopMode="never"
+        onAdvanceReady={handleAdvanceReady}
         frameRef={frameRef}
         uiFrame={uiFrame}
         lastManualSeekIdRef={lastManualSeekIdRef}
@@ -259,6 +354,12 @@ export const HeadlessRecorderView: React.FC = () => {
         labelMode={config.labelMode}
         dofBlurEnabled={effectiveDofBlur}
         themeCategory={effectiveTheme}
+        stageSkinUrl={config.stageSkinUrl ?? null}
+        stageSkinVisible={true}
+        entitySkinUrls={config.entitySkinUrls}
+        onSkinLoad={handleSkinLoad}
+        onStageSkinError={handleStageSkinError}
+        onEntitySkinError={handleEntitySkinError}
       />
 
       {/* Stage Camera POV Director's Optical Viewfinder Overlay */}

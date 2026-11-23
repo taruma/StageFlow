@@ -33,11 +33,11 @@ The StageFlow Viewport Video Recorder is an automated, headless recording CLI bu
 │   Evaluates: Frame_t = computeStageFrame(t_i, score)                   │
 │   Renders Three.js diorama / Stage Cam viewfinder frame                │
 └───────────────────────────────────┬────────────────────────────────────┘
-                                    │ Raw PNG Buffer Stream (stdin)
+                                    │ CDP Screenshot Buffer (JPEG q=96 / PNG)
                                     ▼
 ┌────────────────────────────────────────────────────────────────────────┐
 │   FFmpeg Pipeline (scripts/record/ffmpegPipeline.ts)                   │
-│   image2pipe ingestion: libx264 MP4, VP9 WebM, GIF, or PNG Sequence   │
+│   image2pipe ingestion & optional worker shard concat (libx264/VP9/GIF)│
 │   Optional reference audio slapping / multiplexing (-ss, -shortest)   │
 └───────────────────────────────────┬────────────────────────────────────┘
                                     │
@@ -51,7 +51,7 @@ Standard screen recording tools (OBS, QuickTime, browser screen capture) are fun
 StageFlow's recorder enforces **pure mathematical determinism**:
 - Time does **not** advance in wall-clock time; it advances in discrete ticks:
   $$t_i = t_{\text{start}} + \frac{i}{\text{fps}}, \quad i \in \{0, 1, \dots, N-1\}$$
-- At every step $i$, Playwright dispatches `window.__STAGEFLOW_RECORDER__.stepFrame(i)` to the in-browser React app, waits for Three.js to render the exact 3D frame, takes a raw screenshot buffer, and pipes it directly into FFmpeg's `image2pipe` stdin.
+- At every step $i$, Playwright dispatches `window.__STAGEFLOW_RECORDER__.stepFrame(i)` to the in-browser React app, awaits synchronous `advance()` + single-rAF framing, captures a CDP screenshot buffer (`jpeg q=96` default for video, `png` for `--format sequence`), and pipes (or concatenates across parallel `--workers` shards) into FFmpeg.
 - The resulting video has **zero dropped frames, zero frame pacing stutter, and perfect A/V sync**, whether rendered on a high-end workstation or a headless CI server.
 
 ---
@@ -149,6 +149,12 @@ All options must be preceded by `--` when invoking via `npm run record`:
 | **`--start`** | `<seconds>` | `0.0` | Custom starting timestamp in seconds. |
 | **`--end`** | `<seconds>` | Scene duration | Custom ending timestamp in seconds. |
 | **`--audio`** | `<file_path>` | None | Muxes audio track from reference media file onto output with exact sync. |
+| **`--stage-skin`** | `<file_path>` | None | Mounts a local `.glb`/`.gltf` Stage Environment skin into the headless render via Playwright route interception. |
+| **`--entity-skin`** | `<id>=<file_path>` | None | Replaces an actor/prop/marker entity with a `.glb`/`.gltf` model (repeatable, e.g. `--entity-skin hero=hero.glb`). |
+| **`--skins-dir`** | `<dir_path>` | None | Scans a directory for `.glb`/`.gltf` files and auto-matches them to `stage` or entity IDs via `suggestSkinTargetId`. |
+| **`--workers`** | `<number>` | Auto (`1`–`4`) | Parallel Playwright worker tabs for stateless frame sharding (`mp4`/`webm`/`sequence`), stitched via FFmpeg `-c:v copy`. |
+| **`--capture`** | `jpeg` \| `png` | `jpeg` (`png` for `sequence`) | Intermediate CDP screenshot format (`jpeg q=96` skips slow PNG compression for video; `png` stays lossless). |
+| **`--software-gl`** | — | `false` | Disables hardware ANGLE GPU flags (`--use-angle=d3d11` on Windows) for CPU SwiftShader environments. |
 | **`-o`**, **`--output`**| `<file_path>` | `recordings/...`| Destination file or directory path. |
 | **`--preview`** | — | `false` | Launches Chromium in headed mode so you can watch the frame stepping live. |
 | **`--port`** | `<number>` | `5173` | Local Vite dev server port. |
@@ -353,7 +359,7 @@ Generated asset naming convention:
 ### Issue: WebGL Canvas Renders Blank / Black Screen in Headless Linux
 - **Cause**: Linux server or CI environment lacks hardware OpenGL drivers.
 - **Solution**:
-  `scripts/record/playwrightDriver.ts` automatically passes `--use-gl=angle`, `--use-angle=swiftshader`, and `--enable-webgl` to Chromium, providing software WebGL acceleration on headless machines. Ensure `xvfb` or standard mesa software packages (`libgl1-mesa-glx`) are installed on Linux CI runners.
+  `scripts/record/playwrightDriver.ts` launches Chromium with `--enable-webgl`, `--use-gl=angle`, `--ignore-gpu-blocklist`, `--disable-gpu-vsync`, and `--no-sandbox` (plus `--use-angle=d3d11` on Windows by default). For headless Linux CI runners without hardware OpenGL/GPU drivers, pass `--software-gl` and ensure `xvfb` or standard mesa software packages (`libgl1-mesa-glx`) are installed.
 
 ### Issue: Live Inspection during Recording
 - If you want to visually watch the camera moves and actor blocking in real time as frames are being stepped, pass `--preview`:

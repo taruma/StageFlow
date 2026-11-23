@@ -16,7 +16,7 @@ import { Line } from '@react-three/drei';
 import * as THREE from 'three';
 import type { StageFrame } from '../core/types';
 import { areTrailPointsEqual } from './DirectionalMannequin';
-import { resolveGatedState } from './stageSyncGate';
+import { resolveGatedState, STAGE_FRAME_PRIORITY } from './stageSyncGate';
 
 const TRIPOD_LEG_ANGLES = [0, (Math.PI * 2) / 3, (Math.PI * 4) / 3] as const;
 const CART_WHEEL_OFFSETS: readonly [number, number][] = [
@@ -176,7 +176,7 @@ const StageCameraRigMountComponent: React.FC<StageCameraRigMountProps> = ({
         cartColumnRef.current.position.set(0, columnHeight * 0.5 + 0.04, 0);
       }
     }
-  });
+  }, STAGE_FRAME_PRIORITY.RIG_TRANSFORMS);
 
   const eyeY = Math.max(0.4, stageCam.transform.position.y);
   const apexY = Math.max(0.15, eyeY - 0.35);

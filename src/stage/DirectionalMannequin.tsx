@@ -15,19 +15,10 @@ import { Line, Edges } from '@react-three/drei';
 import * as THREE from 'three';
 import { ENTITY_DEFAULTS } from '../core/constants';
 import { computeTiltedEntityLabelOffset } from '../core/cameraTargetResolver';
-import type { Vec3 } from '../core/types';
-import { resolveGatedState } from './stageSyncGate';
+import { areTrailPointsEqual } from '../core/frameBoundaryDiff';
+import { resolveGatedState, STAGE_FRAME_PRIORITY } from './stageSyncGate';
 
-export function areTrailPointsEqual(a: Vec3[], b: Vec3[]): boolean {
-  if (a === b) return true;
-  if (a.length !== b.length) return false;
-  for (let i = 0; i < a.length; i++) {
-    if (a[i].x !== b[i].x || a[i].y !== b[i].y || a[i].z !== b[i].z) {
-      return false;
-    }
-  }
-  return true;
-}
+export { areTrailPointsEqual };
 import type {
   CameraViewMode,
   CharacterStyle,
@@ -38,6 +29,7 @@ import type {
   StageFrame,
 } from '../core/types';
 import { StageBillboardLabel } from './StageBillboardLabel';
+import { StageEntitySkin } from './StageEnvironmentSkin';
 
 export interface DirectionalMannequinProps {
   entityId: string;
@@ -47,6 +39,10 @@ export interface DirectionalMannequinProps {
   labelMode?: LabelDisplayMode;
   isPlaying?: boolean;
   cameraMode?: CameraViewMode;
+  skinUrl?: string | null;
+  skinVisible?: boolean;
+  onEntitySkinLoad?: (url: string) => void;
+  onEntitySkinError?: (entityId: string, error: Error) => void;
 }
 
 export function areDirectionalMannequinPropsEqual(
@@ -59,6 +55,8 @@ export function areDirectionalMannequinPropsEqual(
     prev.labelMode === next.labelMode &&
     prev.isPlaying === next.isPlaying &&
     prev.cameraMode === next.cameraMode &&
+    prev.skinUrl === next.skinUrl &&
+    prev.skinVisible === next.skinVisible &&
     prev.initialState.def === next.initialState.def &&
     prev.initialState.cueId === next.initialState.cueId &&
     prev.initialState.highlighted === next.initialState.highlighted &&
@@ -78,6 +76,10 @@ const DirectionalMannequinComponent: React.FC<DirectionalMannequinProps> = ({
   labelMode = 'all',
   isPlaying = false,
   cameraMode,
+  skinUrl,
+  skinVisible = true,
+  onEntitySkinLoad,
+  onEntitySkinError,
 }) => {
   const groupRef = useRef<THREE.Group | null>(null);
   const lastSyncedEntityRef = useRef<EvaluatedEntityState | null>(null);
@@ -100,6 +102,7 @@ const DirectionalMannequinComponent: React.FC<DirectionalMannequinProps> = ({
   const charScaleX = radius > 1e-5 ? rx / radius : 1;
   const charScaleZ = radius > 1e-5 ? rz / radius : 1;
   const isBoxProp = def.kind === 'prop' && (def.shape ?? 'box') === 'box';
+  const hasActiveSkin = Boolean(skinUrl && skinVisible);
 
   // Helper to get synchronized live entity state without backward teleports on memoized initialState
   const getSynchronizedEntity = (liveFrame: StageFrame | null) => {
@@ -149,7 +152,7 @@ const DirectionalMannequinComponent: React.FC<DirectionalMannequinProps> = ({
       pivotOffsetRef.current.position.set(0, -pivotOffsetY, 0);
     }
 
-    if (def.kind === 'character') {
+    if (def.kind === 'character' && !hasActiveSkin) {
       if (meshContainerRef.current) {
         meshContainerRef.current.scale.set(1, 1, 1);
       }
@@ -198,10 +201,10 @@ const DirectionalMannequinComponent: React.FC<DirectionalMannequinProps> = ({
     syncEntityTransform(getSynchronizedEntity(frameRef.current));
   });
 
-  // Imperatively sync 3D position, facing rotation, and scale at 60fps
+  // Imperatively sync 3D position, facing rotation, and scale before DOM label overlays project
   useFrame(() => {
     syncEntityTransform(getSynchronizedEntity(frameRef.current));
-  });
+  }, STAGE_FRAME_PRIORITY.RIG_TRANSFORMS);
 
   // Floor trail points in world space
   const trailLinePoints = useMemo<Array<[number, number, number]>>(() => {
@@ -638,7 +641,20 @@ const DirectionalMannequinComponent: React.FC<DirectionalMannequinProps> = ({
           <group ref={pivotOffsetRef}>
             {/* Scaled 3D Mesh Container (Base at Y=0) */}
             <group ref={meshContainerRef}>
-              {def.kind === 'character' ? (
+              {hasActiveSkin && skinUrl ? (
+                <StageEntitySkin
+                  url={skinUrl}
+                  kind={def.kind ?? 'character'}
+                  baseWidth={baseWidth}
+                  height={height}
+                  baseDepth={baseDepth}
+                  hasExplicitWidthDepth={
+                    def.width !== undefined && def.depth !== undefined
+                  }
+                  onLoad={onEntitySkinLoad}
+                  onError={(err) => onEntitySkinError?.(entityId, err)}
+                />
+              ) : def.kind === 'character' ? (
                 renderCharacter()
               ) : def.kind === 'prop' ? (
                 renderPropShape()

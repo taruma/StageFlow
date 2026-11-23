@@ -8,6 +8,8 @@ import type {
   LabelDisplayMode,
 } from '../../src/core/types';
 
+export type CaptureFormat = 'jpeg' | 'png';
+
 export interface CliOptions {
   sceneInput: string;
   cameraMode: CameraViewMode;
@@ -30,6 +32,12 @@ export interface CliOptions {
   endSec?: number;
   shotId?: string;
   audioPath?: string;
+  stageSkinPath?: string;
+  entitySkinPaths?: Record<string, string>;
+  skinsDir?: string;
+  workers?: number;
+  captureFormat?: CaptureFormat;
+  softwareGl?: boolean;
   format: 'mp4' | 'webm' | 'gif' | 'sequence';
   outputPath: string;
   preview: boolean;

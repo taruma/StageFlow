@@ -20,6 +20,7 @@ import { ObserverCameraRig } from './ObserverCameraRig';
 import { StageCameraRig } from './StageCameraRig';
 import { StageCamDofEffect } from './StageCamDofEffect';
 import { getDioramaThemeColors } from './dioramaTheme';
+import { STAGE_FRAME_PRIORITY } from './stageSyncGate';
 import type { CameraPresetType } from './cameraPresets';
 
 export interface DioramaCanvasProps {
@@ -40,13 +41,50 @@ export interface DioramaCanvasProps {
   } | null>;
   cameraPresetSeq?: number;
   sceneResetSeq?: number;
+  stageSkinUrl?: string | null;
+  stageSkinVisible?: boolean;
+  entitySkinUrls?: Record<string, string>;
+  frameloopMode?: 'always' | 'demand' | 'never';
+  onAdvanceReady?: (
+    advance: (timestamp: number) => void,
+    glRenderer?: string
+  ) => void;
+  onSkinLoad?: (url: string) => void;
+  onStageSkinError?: (error: Error) => void;
+  onEntitySkinError?: (entityId: string, error: Error) => void;
 }
 
+const HeadlessAdvanceBridge: React.FC<{
+  onAdvanceReady: (
+    advance: (timestamp: number) => void,
+    glRenderer?: string
+  ) => void;
+}> = ({ onAdvanceReady }) => {
+  const advance = useThree((state) => state.advance);
+  const gl = useThree((state) => state.gl);
+
+  React.useEffect(() => {
+    let glRenderer: string | undefined;
+    try {
+      const ctx = gl.getContext();
+      const debugExt = ctx.getExtension('WEBGL_debug_renderer_info');
+      glRenderer = debugExt
+        ? String(ctx.getParameter(debugExt.UNMASKED_RENDERER_WEBGL))
+        : String(ctx.getParameter(ctx.RENDERER));
+    } catch {
+      glRenderer = undefined;
+    }
+    onAdvanceReady(advance, glRenderer);
+  }, [advance, gl, onAdvanceReady]);
+
+  return null;
+};
+
 const FrameLoopTicker: React.FC<{ onTick: () => void }> = ({ onTick }) => {
-  // Run priority -1 so `frameRef.current` is freshly computed before Camera and Mannequin rigs read it
+  // Run before OrbitControls (-1) and rig transforms (-0.5) so `frameRef.current` is freshly computed
   useFrame(() => {
     onTick();
-  }, -1);
+  }, STAGE_FRAME_PRIORITY.EVALUATE_FRAME);
   return null;
 };
 
@@ -60,6 +98,9 @@ const CanvasDemandInvalidator: React.FC<{
   themeCategory: AppThemeCategory;
   cameraPresetSeq: number;
   sceneResetSeq: number;
+  stageSkinUrl?: string | null;
+  stageSkinVisible?: boolean;
+  entitySkinUrls?: Record<string, string>;
   evaluateTick60fps: () => void;
 }> = ({
   score,
@@ -71,6 +112,9 @@ const CanvasDemandInvalidator: React.FC<{
   themeCategory,
   cameraPresetSeq,
   sceneResetSeq,
+  stageSkinUrl,
+  stageSkinVisible,
+  entitySkinUrls,
   evaluateTick60fps,
 }) => {
   const invalidate = useThree((state) => state.invalidate);
@@ -90,6 +134,9 @@ const CanvasDemandInvalidator: React.FC<{
     themeCategory,
     cameraPresetSeq,
     sceneResetSeq,
+    stageSkinUrl,
+    stageSkinVisible,
+    entitySkinUrls,
     size.width,
     size.height,
     evaluateTick60fps,
@@ -114,16 +161,25 @@ export const DioramaCanvas: React.FC<DioramaCanvasProps> = ({
   cameraPresetActionRef,
   cameraPresetSeq = 0,
   sceneResetSeq = 0,
+  stageSkinUrl,
+  stageSkinVisible = true,
+  entitySkinUrls,
+  frameloopMode,
+  onAdvanceReady,
+  onSkinLoad,
+  onStageSkinError,
+  onEntitySkinError,
 }) => {
   const themeColors = useMemo(
     () => getDioramaThemeColors(themeCategory),
     [themeCategory]
   );
+  const resolvedFrameloop = frameloopMode ?? (isPlaying ? 'always' : 'demand');
 
   return (
     <div className="relative w-full h-full bg-app select-none overflow-hidden">
       <Canvas
-        frameloop={isPlaying ? 'always' : 'demand'}
+        frameloop={resolvedFrameloop}
         gl={{
           antialias: true,
           powerPreference: 'high-performance',
@@ -142,18 +198,26 @@ export const DioramaCanvas: React.FC<DioramaCanvasProps> = ({
 
         {/* 60fps Stateless Frame Evaluator Tick */}
         <FrameLoopTicker onTick={evaluateTick60fps} />
-        <CanvasDemandInvalidator
-          score={score}
-          cameraMode={cameraMode}
-          isPlaying={isPlaying}
-          uiFrame={uiFrame}
-          labelMode={labelMode}
-          dofBlurEnabled={dofBlurEnabled}
-          themeCategory={themeCategory}
-          cameraPresetSeq={cameraPresetSeq}
-          sceneResetSeq={sceneResetSeq}
-          evaluateTick60fps={evaluateTick60fps}
-        />
+        {resolvedFrameloop !== 'never' && (
+          <CanvasDemandInvalidator
+            score={score}
+            cameraMode={cameraMode}
+            isPlaying={isPlaying}
+            uiFrame={uiFrame}
+            labelMode={labelMode}
+            dofBlurEnabled={dofBlurEnabled}
+            themeCategory={themeCategory}
+            cameraPresetSeq={cameraPresetSeq}
+            sceneResetSeq={sceneResetSeq}
+            stageSkinUrl={stageSkinUrl}
+            stageSkinVisible={stageSkinVisible}
+            entitySkinUrls={entitySkinUrls}
+            evaluateTick60fps={evaluateTick60fps}
+          />
+        )}
+        {onAdvanceReady && (
+          <HeadlessAdvanceBridge onAdvanceReady={onAdvanceReady} />
+        )}
 
         {/* 1. Shared Diorama Scene (Lighting, Metric Floor Grid, Directional Mannequins) */}
         <BlueprintStageScene
@@ -164,6 +228,12 @@ export const DioramaCanvas: React.FC<DioramaCanvasProps> = ({
           isPlaying={isPlaying}
           cameraMode={cameraMode}
           themeCategory={themeCategory}
+          stageSkinUrl={stageSkinUrl}
+          stageSkinVisible={stageSkinVisible}
+          entitySkinUrls={entitySkinUrls}
+          onSkinLoad={onSkinLoad}
+          onStageSkinError={onStageSkinError}
+          onEntitySkinError={onEntitySkinError}
         />
 
         {/* 2. Viewport Observer Camera & Free-Orbit Handover Rig */}

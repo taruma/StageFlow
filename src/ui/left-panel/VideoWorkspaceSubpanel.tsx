@@ -14,11 +14,12 @@ import {
   SlidersHorizontal,
   Camera,
   FileText,
+  Map as MapIcon,
 } from 'lucide-react';
 import type { ShotCue, StageScore } from '../../core/types';
 import { SceneProductionBrief } from './SceneProductionBrief';
 
-export type SubpanelViewMode = 'brief' | 'notes' | 'stage-cam';
+export type SubpanelViewMode = 'brief' | 'notes' | 'stage-cam' | 'map';
 
 export interface VideoWorkspaceSubpanelProps {
   isCollapsed: boolean;
@@ -30,6 +31,7 @@ export interface VideoWorkspaceSubpanelProps {
   viewMode?: SubpanelViewMode;
   onSelectViewMode?: (mode: SubpanelViewMode) => void;
   stageCamSlot?: React.ReactNode;
+  mapSlot?: React.ReactNode;
 }
 
 export const VideoWorkspaceSubpanel: React.FC<VideoWorkspaceSubpanelProps> = ({
@@ -40,8 +42,11 @@ export const VideoWorkspaceSubpanel: React.FC<VideoWorkspaceSubpanelProps> = ({
   viewMode = 'brief',
   onSelectViewMode,
   stageCamSlot,
+  mapSlot,
 }) => {
-  const isStageCam = viewMode === 'stage-cam';
+  const isStageCam = viewMode === 'stage-cam' && hasVideoAttached && Boolean(stageCamSlot);
+  const isMap = viewMode === 'map' && Boolean(mapSlot);
+  const isBrief = !isStageCam && !isMap;
 
   return (
     <div className="w-full h-full flex flex-col bg-surface border-t border-border-main overflow-hidden text-text-main select-none">
@@ -70,8 +75,8 @@ export const VideoWorkspaceSubpanel: React.FC<VideoWorkspaceSubpanelProps> = ({
             Scene Desk
           </span>
 
-          {/* Source/View Toggle Pill — Only visible when a video is attached */}
-          {hasVideoAttached && onSelectViewMode && (
+          {/* Source/View Toggle Pill */}
+          {onSelectViewMode && (hasVideoAttached || mapSlot) && (
             <div
               role="group"
               aria-label="Directorial View Mode"
@@ -81,10 +86,10 @@ export const VideoWorkspaceSubpanel: React.FC<VideoWorkspaceSubpanelProps> = ({
               <button
                 type="button"
                 role="button"
-                aria-pressed={!isStageCam}
+                aria-pressed={isBrief}
                 onClick={() => onSelectViewMode('brief')}
-                className={`flex items-center gap-1 px-2 py-0.5 rounded transition-colors cursor-pointer ${
-                  !isStageCam
+                className={`flex items-center gap-1 px-1.5 py-0.5 rounded transition-colors cursor-pointer ${
+                  isBrief
                     ? 'bg-surface-muted text-text-main shadow-2xs font-semibold'
                     : 'text-text-muted hover:text-text-main'
                 }`}
@@ -94,21 +99,41 @@ export const VideoWorkspaceSubpanel: React.FC<VideoWorkspaceSubpanelProps> = ({
                 <span>Brief</span>
               </button>
 
-              <button
-                type="button"
-                role="button"
-                aria-pressed={isStageCam}
-                onClick={() => onSelectViewMode('stage-cam')}
-                className={`flex items-center gap-1 px-2 py-0.5 rounded transition-colors cursor-pointer ${
-                  isStageCam
-                    ? 'bg-amber-500/15 text-amber-500 dark:text-amber-400 border border-amber-500/30 shadow-2xs font-semibold'
-                    : 'text-text-muted hover:text-text-main'
-                }`}
-                title="Show 3D Stage Camera POV Simulator"
-              >
-                <Camera className="w-2.5 h-2.5" />
-                <span>Stage Cam</span>
-              </button>
+              {hasVideoAttached && (
+                <button
+                  type="button"
+                  role="button"
+                  aria-pressed={isStageCam}
+                  onClick={() => onSelectViewMode('stage-cam')}
+                  className={`flex items-center gap-1 px-1.5 py-0.5 rounded transition-colors cursor-pointer ${
+                    isStageCam
+                      ? 'bg-amber-500/15 text-amber-500 dark:text-amber-400 border border-amber-500/30 shadow-2xs font-semibold'
+                      : 'text-text-muted hover:text-text-main'
+                  }`}
+                  title="Show 3D Stage Camera POV Simulator"
+                >
+                  <Camera className="w-2.5 h-2.5" />
+                  <span>Stage Cam</span>
+                </button>
+              )}
+
+              {mapSlot && (
+                <button
+                  type="button"
+                  role="button"
+                  aria-pressed={isMap}
+                  onClick={() => onSelectViewMode('map')}
+                  className={`flex items-center gap-1 px-1.5 py-0.5 rounded transition-colors cursor-pointer ${
+                    isMap
+                      ? 'bg-sky-500/15 text-sky-500 dark:text-sky-400 border border-sky-500/30 shadow-2xs font-semibold'
+                      : 'text-text-muted hover:text-text-main'
+                  }`}
+                  title="Show Live 2D Top-Down Stage Minimap"
+                >
+                  <MapIcon className="w-2.5 h-2.5" />
+                  <span>Map</span>
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -155,8 +180,11 @@ export const VideoWorkspaceSubpanel: React.FC<VideoWorkspaceSubpanelProps> = ({
                 {stageCamSlot}
               </div>
             </div>
+          ) : isMap && mapSlot ? (
+            /* Mode B: Live 2D Top-Down SVG Stage Minimap */
+            mapSlot
           ) : (
-            /* Mode B: Executive Scene Production Brief & Call Sheet */
+            /* Mode C: Executive Scene Production Brief & Call Sheet */
             <SceneProductionBrief score={score} />
           )}
         </div>

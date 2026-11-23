@@ -38,7 +38,7 @@ const GithubIcon: React.FC<{ className?: string }> = ({ className }) => (
   </svg>
 );
 
-const APP_VERSION = '1.2.0';
+const APP_VERSION = '1.3.0';
 const GITHUB_URL = 'https://github.com/taruma/stageflow';
 const AUTHOR_URL = 'https://github.com/taruma';
 const SCENEFLOW_URL = 'https://github.com/taruma/screenplay-sync';
@@ -59,6 +59,7 @@ const QUICK_SHORTCUTS = [
   { key: 'B', desc: 'Toggle Stage Cam DoF bokeh blur' },
   { key: 'G', desc: 'Toggle framing & safe-action guides' },
   { key: 'L', desc: 'Cycle 3D mannequin label mode' },
+  { key: 'M', desc: 'Toggle live 2D stage minimap' },
 ];
 
 export const AppInfoModal: React.FC<AppInfoModalProps> = ({ isOpen, onClose }) => {

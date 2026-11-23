@@ -72,18 +72,18 @@ sequenceDiagram
     participant Three as Three.js Rigs (StageCam / Mannequins / ObserverCam)
     participant UI as React 2D UI (~10Hz Throttled)
 
-    R3F->>Loop: evaluateTick60fps() (Priority -1)
+    R3F->>Loop: evaluateTick60fps() (Priority -2)
     Loop->>Core: computeStageFrame(driver.getCurrentTime(), score)
     Core-->>Loop: nextFrame (StageFrame)
     Loop->>Loop: Mutate frameRef.current = nextFrame
-    R3F->>Three: Read frameRef.current & mutate Object3D transforms directly
+    R3F->>Three: Read frameRef.current & mutate Object3D transforms directly (Priority -0.5)
     alt Every >= 95ms OR Shot Changed OR Entity Cue Changed OR Paused/Seeked
         Loop->>UI: setUiSnapshot({ timestampSec, frame, liveViewportPose })
     end
 ```
 
 1. **Tier 1 — Imperative 60fps Ref Path (`frameRef`, `liveViewportPoseRef`)**:
-   - Inside [`DioramaCanvas.tsx`](../src/stage/DioramaCanvas.tsx), `FrameLoopTicker` runs at `useFrame` priority `-1`, calling `evaluateTick60fps()` once per rendered frame.
+   - Inside [`DioramaCanvas.tsx`](../src/stage/DioramaCanvas.tsx), `FrameLoopTicker` runs at `useFrame` priority `-2` (`STAGE_FRAME_PRIORITY.EVALUATE_FRAME`), calling `evaluateTick60fps()` once per rendered frame before Drei `OrbitControls` (`-1`), stage/camera rig transforms (`-0.5`), and Drei `<Html>` DOM overlays (`0`).
    - **On-Demand Idle Zero-Churn (`frameloop="demand"`)**: Both [`DioramaCanvas.tsx`](../src/stage/DioramaCanvas.tsx) and [`StageCamMonitorCanvas.tsx`](../src/stage/StageCamMonitorCanvas.tsx) switch between `frameloop="always"` during playback and `frameloop="demand"` when paused, waking strictly on explicit user orbit/zoom interactions, resize events, prop/score edits (`CanvasDemandInvalidator` / `MonitorDemandInvalidator`), async 3D text syncs (`<Text onSync={invalidate}>`), or camera presets (`cameraPresetSeq`).
    - **Pure Idle Evaluation Guard (`canReuseIdleStageFrame`) & Lazy Init**: [`useStageFrameLoop.ts`](../src/hooks/useStageFrameLoop.ts) lazily initializes frame `0` once per hook instance (`initFrameRef`) and short-circuits `evaluateTick60fps()` when paused at an unchanged timestamp, unchanged `score` reference, and zero pending manual seeks or score resets.
    - **Synchronous & Settled Seek Invalidation (`onTimeJump`, `onSeekSettled`)**: [`useMediaClock.ts`](../src/hooks/useMediaClock.ts) fires its optional `onTimeJump` callback on manual seeks, frame steps (`[ / ]`), end-of-timeline rewinds, driver recreations, `sceneResetSeq` resets, and async driver `onSeekSettled` events (`Html5MediaDriver` `seeked`, `YouTubeMediaDriver` paused state settle), driving immediate `evaluateTick60fps()` + `forceSyncUi()` synchronization while paused.
@@ -109,6 +109,7 @@ Transport playback, frame-stepping, and diorama display modes are managed via [`
 | **Cycle 3D Labels** | Label Mode Toggle | `L` | Cycles diorama labels through `'all' -> 'camera-only' -> 'off' -> 'all'` (`useStudioDisplaySettings`). |
 | **Toggle Safe Guides**| `[ Guides ]` Button | `G` | Toggles optical safe-action box, 3x3 grid, and center reticle in Stage Cam POV / Monitor (`useStudioDisplaySettings`). |
 | **Toggle Optical DoF Blur** | `[ Blur ]` Button | `B` | Toggles real-time thin-lens depth of field bokeh blur in Stage Cam POV / Monitor (`useStudioDisplaySettings`). |
+| **Toggle Top-Down Minimap** | `[ Map ]` Button | `M` | Toggles the live 2D SVG top-down stage minimap in the Top-Right diorama corner (`useStudioDisplaySettings`). |
 | **Loop Active Shot** | `[ 🔁 ]` Button | — | Dynamically bounds and loops playback within whichever shot is currently active (`activeShot.startSec` to `activeShot.endSec`), updating smoothly when jumping across shots without trapping manual seeks (`useStageFrameLoop`). |
 | **Mute / Unmute Audio** | `[ 🔊 ]` Button | — | Toggles audio mute across HTML5 and YouTube drivers (`useMediaClock`). |
 | **Playback Speed** | — *(Driver API)* | — | Adjusts `playbackRate` (`0.25x`–`2x`) across HTML5, YouTube, and Procedural drivers (`useMediaClock`). |

@@ -2,13 +2,30 @@
  * Unit tests for Headless Viewport Recorder CLI configuration and resolvers.
  */
 
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { CAMERA_PRESETS } from '../../scripts/record/cameraPresets';
+import {
+  extractSceneSlug,
+  parseArgs,
+  resolveDefaultOutputPath,
+} from '../../scripts/record/cliArgs';
 import {
   RESOLUTION_PRESETS,
   type ResolutionPresetKey,
 } from '../../scripts/record/recorderTypes';
 import { resolveFfmpegPath } from '../../scripts/record/ffmpegPipeline';
+import {
+  parseEntitySkinAssignment,
+  resolveRecorderSkins,
+} from '../../scripts/record/skinResolver';
+import {
+  partitionFrameRange,
+  resolveCaptureFormat,
+  resolveOptimalWorkers,
+} from '../../scripts/record/workerScheduler';
 import { computeStageFrame } from '../../src/core/frameEngine';
 import { INITIAL_CATALOG_ITEMS, findCatalogItem } from '../../src/core/scoreCatalog';
 
@@ -150,5 +167,161 @@ describe('Optics Bokeh Blur Invariant in Headless Recorder', () => {
     // Explicit override via CLI flag
     expect(resolveBlur(false, bp06?.score.optics?.dofBlur)).toBe(false);
     expect(resolveBlur(true, bp01?.score.optics?.dofBlur)).toBe(true);
+  });
+});
+
+describe('Headless Recorder .GLB / .GLTF Skin Resolver', () => {
+  it('parses <entity_id>=<path> assignments and rejects malformed specs', () => {
+    expect(parseEntitySkinAssignment('hero=assets/hero.glb')).toEqual({
+      entityId: 'hero',
+      filePath: 'assets/hero.glb',
+    });
+    expect(parseEntitySkinAssignment('table = C:/sets/a=b.glb')).toEqual({
+      entityId: 'table',
+      filePath: 'C:/sets/a=b.glb',
+    });
+    expect(() => parseEntitySkinAssignment('hero.glb')).toThrow();
+    expect(() => parseEntitySkinAssignment('=hero.glb')).toThrow();
+    expect(() => parseEntitySkinAssignment('hero=')).toThrow();
+  });
+
+  it('auto-matches --skins-dir files, honors explicit overrides, and builds virtual route map', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'stageflow-skins-'));
+    try {
+      const stageGlb = path.join(tmpDir, 'stage-environment.glb');
+      const heroGlb = path.join(tmpDir, 'subject_a.glb');
+      const overrideGlb = path.join(tmpDir, 'custom_hero.gltf');
+      fs.writeFileSync(stageGlb, 'glb-stage');
+      fs.writeFileSync(heroGlb, 'glb-hero');
+      fs.writeFileSync(overrideGlb, '{}');
+
+      const score = INITIAL_CATALOG_ITEMS[0].score;
+      const resolved = resolveRecorderSkins(
+        {
+          skinsDir: tmpDir,
+          entitySkinPaths: { subject_a: overrideGlb },
+        },
+        score.entities
+      );
+
+      expect(resolved.stageSkinFilePath).toBe(stageGlb);
+      expect(resolved.entitySkinFilePaths.subject_a).toBe(overrideGlb);
+      expect(resolved.stageSkinUrl).toBe('/__stageflow_skin__/stage.glb');
+      expect(resolved.entitySkinUrls.subject_a).toMatch(
+        /^\/__stageflow_skin__\/entity_0_subject_a\.gltf$/
+      );
+      expect(resolved.routeMap.get('/__stageflow_skin__/stage.glb')?.contentType).toBe(
+        'model/gltf-binary'
+      );
+      expect(
+        resolved.routeMap.get(resolved.entitySkinUrls.subject_a)?.contentType
+      ).toBe('model/gltf+json');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it('throws a clear error when a configured skin file does not exist', () => {
+    expect(() =>
+      resolveRecorderSkins({ stageSkinPath: 'nonexistent_stage.glb' }, [])
+    ).toThrow(/Stage skin file not found/i);
+  });
+});
+
+describe('Stateless Worker Sharding & Capture Format Scheduler', () => {
+  it('defaults capture format to jpeg for video formats and png for image sequences', () => {
+    expect(resolveCaptureFormat(undefined, 'mp4')).toBe('jpeg');
+    expect(resolveCaptureFormat(undefined, 'webm')).toBe('jpeg');
+    expect(resolveCaptureFormat(undefined, 'gif')).toBe('jpeg');
+    expect(resolveCaptureFormat(undefined, 'sequence')).toBe('png');
+    expect(resolveCaptureFormat('png', 'mp4')).toBe('png');
+    expect(resolveCaptureFormat('jpeg', 'sequence')).toBe('jpeg');
+  });
+
+  it('auto-selects optimal workers based on frame count, format, and CPU cores', () => {
+    expect(resolveOptimalWorkers(60, 'mp4', 16)).toBe(1);
+    expect(resolveOptimalWorkers(2160, 'mp4', 16)).toBe(4);
+    expect(resolveOptimalWorkers(2160, 'mp4', 2)).toBe(2);
+    expect(resolveOptimalWorkers(2160, 'gif', 16)).toBe(1);
+    expect(resolveOptimalWorkers(2160, 'mp4', 16, 6)).toBe(6);
+    expect(resolveOptimalWorkers(2160, 'mp4', 16, 1)).toBe(1);
+    expect(() => resolveOptimalWorkers(200, 'mp4', 8, 0)).toThrow();
+  });
+
+  it('partitions frame ranges contiguously without gaps or overlaps', () => {
+    const shards = partitionFrameRange(10, 4);
+    expect(shards).toEqual([
+      { workerIndex: 0, startFrame: 0, endFrame: 3 },
+      { workerIndex: 1, startFrame: 3, endFrame: 6 },
+      { workerIndex: 2, startFrame: 6, endFrame: 8 },
+      { workerIndex: 3, startFrame: 8, endFrame: 10 },
+    ]);
+    const totalCovered = shards.reduce(
+      (sum, s) => sum + (s.endFrame - s.startFrame),
+      0
+    );
+    expect(totalCovered).toBe(10);
+  });
+});
+
+describe('CLI Default Output Path Resolution', () => {
+  it('extracts a clean scene slug from Windows paths, relative paths, and bundled shortcuts', () => {
+    expect(
+      extractSceneSlug('d:\\Download\\Edge\\custom-custom-project-mwkx2snh-mwkyxzpe.yaml')
+    ).toBe('custom-custom-project-mwkx2snh-mwkyxzpe');
+    expect(extractSceneSlug('src/scores/studies/afraid.yaml')).toBe('afraid');
+    expect(extractSceneSlug('01')).toBe('01');
+    expect(extractSceneSlug('vf')).toBe('vf');
+    expect(extractSceneSlug('blueprint_01_two_shot_arc')).toBe(
+      'blueprint_01_two_shot_arc'
+    );
+  });
+
+  it('defaults output path into recordings/ using the extracted basename', () => {
+    expect(
+      resolveDefaultOutputPath(
+        'd:\\Download\\Edge\\custom-custom-project-mwkx2snh-mwkyxzpe.yaml',
+        'scripted',
+        'mp4'
+      )
+    ).toBe(
+      path.join('recordings', 'custom-custom-project-mwkx2snh-mwkyxzpe_scripted.mp4')
+    );
+
+    expect(
+      resolveDefaultOutputPath(
+        'd:\\Download\\Edge\\custom-custom-project-mwkx2snh-mwkyxzpe.yaml',
+        'stage-pov',
+        'mp4'
+      )
+    ).toBe(
+      path.join('recordings', 'custom-custom-project-mwkx2snh-mwkyxzpe_stage-pov.mp4')
+    );
+
+    expect(resolveDefaultOutputPath('01', 'scripted', 'sequence')).toBe(
+      path.join('recordings', '01_scripted')
+    );
+  });
+
+  it('parses CLI arguments and resolves directory -o outputs cleanly', () => {
+    const parsedDefault = parseArgs([
+      'd:\\Download\\Edge\\custom-custom-project-mwkx2snh-mwkyxzpe.yaml',
+      '--camera',
+      'stage-pov',
+      '--theme',
+      'light',
+      '--fps',
+      '30',
+    ]);
+    expect(parsedDefault.outputPath).toBe(
+      path.join('recordings', 'custom-custom-project-mwkx2snh-mwkyxzpe_stage-pov.mp4')
+    );
+
+    const parsedDir = parseArgs([
+      'd:\\Download\\Edge\\custom.yaml',
+      '-o',
+      'recordings/',
+    ]);
+    expect(parsedDir.outputPath).toBe(path.join('recordings', 'custom_scripted.mp4'));
   });
 });

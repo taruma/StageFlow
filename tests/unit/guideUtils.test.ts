@@ -5,6 +5,7 @@ import {
   SECTION_SHORTCUTS,
   cleanMarkdownHeading,
   extractGuideToc,
+  getGuideDownloadFilename,
   getNodeText,
   slugify,
 } from '../../src/ui/guide/guideUtils';
@@ -112,5 +113,10 @@ describe('guideUtils', () => {
       expect(sec.id).toBe(`section-${idx + 1}`);
       expect(line.startsWith(`## ${idx + 1}.`)).toBe(true);
     });
+  });
+
+  it('resolves exact markdown download filenames for guide and spec docs', () => {
+    expect(getGuideDownloadFilename('guide')).toBe('YAML_AUTHORING_GUIDE.md');
+    expect(getGuideDownloadFilename('spec')).toBe('STAGEFLOW_SCRIPT_SPECIFICATION.md');
   });
 });

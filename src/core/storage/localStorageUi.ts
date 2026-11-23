@@ -18,6 +18,7 @@ const STORAGE_KEYS = {
   DEFAULT_SCENE_VERSION: 'stageflow:ui:default-scene-version',
   LABEL_MODE: 'stageflow:ui:label-mode',
   VIEWFINDER_GUIDES: 'stageflow:ui:viewfinder-guides',
+  DIORAMA_MINIMAP: 'stageflow:ui:diorama-minimap',
   THEME_MODE: 'stageflow:ui:theme-mode',
   DIORAMA_THEME_MODE: 'stageflow:ui:diorama-theme-mode',
   EDIT_MODE: 'stageflow:ui:edit-mode',
@@ -140,6 +141,25 @@ export function loadStoredViewfinderGuides(): boolean | null {
 export function saveStoredViewfinderGuides(showGuides: boolean): void {
   try {
     localStorage.setItem(STORAGE_KEYS.VIEWFINDER_GUIDES, String(showGuides));
+  } catch {
+    // Ignore storage quota or access errors
+  }
+}
+
+export function loadStoredDioramaMinimap(): boolean | null {
+  try {
+    const val = localStorage.getItem(STORAGE_KEYS.DIORAMA_MINIMAP);
+    if (val === 'true') return true;
+    if (val === 'false') return false;
+  } catch {
+    // Ignore localStorage access restrictions
+  }
+  return null;
+}
+
+export function saveStoredDioramaMinimap(showMinimap: boolean): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.DIORAMA_MINIMAP, String(showMinimap));
   } catch {
     // Ignore storage quota or access errors
   }

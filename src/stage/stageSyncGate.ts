@@ -13,6 +13,24 @@ export interface GatedStateResult<T> {
 }
 
 /**
+ * Explicit React Three Fiber `useFrame` execution priority tiers (all <= 0 preserve
+ * R3F's automatic `gl.render` pass; positive priorities take over rendering).
+ *
+ * Execution order per frame:
+ *   1. `EVALUATE_FRAME` (-2): Compute `StageFrame` into `frameRef.current`.
+ *   2. Drei `OrbitControls` (-1): Apply interactive orbit/pan/zoom input.
+ *   3. `RIG_TRANSFORMS` (-0.5): Apply camera, mannequin, and rig transforms before DOM overlays.
+ *   4. `DOM_OVERLAYS` (0): Drei `<Html>` & `StageBillboardLabel` project finalized matrices.
+ *   5. `POST_EFFECT` (1): `StageCamDofEffect` single-pass FBO + bokeh composite render.
+ */
+export const STAGE_FRAME_PRIORITY = {
+  EVALUATE_FRAME: -2,
+  RIG_TRANSFORMS: -0.5,
+  DOM_OVERLAYS: 0,
+  POST_EFFECT: 1,
+} as const;
+
+/**
  * Resolve the synchronized 3D state for the active frame without backward teleports.
  *
  * - Returns `{ state: live, isDesynced: false }` whenever `live` matches `committed`

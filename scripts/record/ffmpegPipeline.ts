@@ -12,6 +12,8 @@ export interface FfmpegEncoderOptions {
   width: number;
   height: number;
   format: 'mp4' | 'webm' | 'gif' | 'sequence';
+  inputCodec?: 'png' | 'mjpeg';
+  startFrameIndex?: number;
   audioPath?: string;
   startSec?: number;
   durationSec?: number;
@@ -93,11 +95,15 @@ export function createFfmpegPipeline(
 
   // Sequence format: direct file writer without ffmpeg
   if (format === 'sequence') {
-    let frameNum = 0;
+    if (!fs.existsSync(outputPath)) {
+      fs.mkdirSync(outputPath, { recursive: true });
+    }
+    let frameNum = options.startFrameIndex ?? 0;
+    const ext = options.inputCodec === 'mjpeg' ? 'jpg' : 'png';
     return {
       writeFrame: async (buffer: Buffer) => {
         const padded = String(frameNum++).padStart(5, '0');
-        const frameFile = path.join(outputPath, `frame_${padded}.png`);
+        const frameFile = path.join(outputPath, `frame_${padded}.${ext}`);
         await fs.promises.writeFile(frameFile, buffer);
       },
       close: async () => {},
@@ -106,7 +112,8 @@ export function createFfmpegPipeline(
 
   const hasAudio = Boolean(options.audioPath && fs.existsSync(options.audioPath));
   const ffmpegExe = resolveFfmpegPath();
-  const args = ['-y', '-f', 'image2pipe', '-vcodec', 'png', '-r', String(fps), '-i', '-'];
+  const inputVcodec = options.inputCodec ?? 'png';
+  const args = ['-y', '-f', 'image2pipe', '-vcodec', inputVcodec, '-r', String(fps), '-i', '-'];
 
   if (hasAudio && options.audioPath) {
     if (typeof options.startSec === 'number' && options.startSec > 0) {
@@ -199,4 +206,79 @@ export function createFfmpegPipeline(
       });
     },
   };
+}
+
+export function concatMediaSegments(options: {
+  segmentPaths: string[];
+  outputPath: string;
+  format: 'mp4' | 'webm';
+  audioPath?: string;
+  startSec?: number;
+}): Promise<void> {
+  const { segmentPaths, outputPath, format, audioPath, startSec } = options;
+  const dir = path.dirname(path.resolve(outputPath));
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+
+  const concatListPath = path.join(
+    path.dirname(path.resolve(segmentPaths[0])),
+    'concat_segments.txt'
+  );
+  const listContent = segmentPaths
+    .map(
+      (p) =>
+        `file '${path.resolve(p).replace(/\\/g, '/').replace(/'/g, "'\\''")}'`
+    )
+    .join('\n');
+  fs.writeFileSync(concatListPath, listContent, 'utf-8');
+
+  const hasAudio = Boolean(audioPath && fs.existsSync(audioPath));
+  const ffmpegExe = resolveFfmpegPath();
+  const args = ['-y', '-f', 'concat', '-safe', '0', '-i', concatListPath];
+
+  if (hasAudio && audioPath) {
+    if (typeof startSec === 'number' && startSec > 0) {
+      args.push('-ss', startSec.toFixed(3));
+    }
+    args.push('-i', audioPath, '-map', '0:v:0', '-map', '1:a:0?');
+  }
+
+  args.push('-c:v', 'copy');
+
+  if (hasAudio) {
+    if (format === 'mp4') {
+      args.push('-c:a', 'aac', '-b:a', '192k', '-shortest');
+    } else {
+      args.push('-c:a', 'libopus', '-b:a', '128k', '-shortest');
+    }
+  }
+
+  if (format === 'mp4') {
+    args.push('-movflags', '+faststart');
+  }
+
+  args.push(outputPath);
+
+  return new Promise((resolve, reject) => {
+    const child = spawn(ffmpegExe, args, {
+      stdio: ['ignore', 'ignore', 'pipe'],
+    });
+    let stderrLogs = '';
+    child.stderr?.on('data', (chunk) => {
+      stderrLogs += chunk.toString();
+    });
+    child.on('exit', (code) => {
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(
+          new Error(
+            `FFmpeg segment concat exited with code ${code}\nLogs:\n${stderrLogs.slice(-1000)}`
+          )
+        );
+      }
+    });
+    child.on('error', reject);
+  });
 }

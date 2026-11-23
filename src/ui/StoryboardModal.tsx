@@ -61,6 +61,8 @@ export interface StoryboardModalProps {
   isOpen: boolean;
   score: StageScore;
   dofBlurEnabled: boolean;
+  stageSkinUrl?: string | null;
+  entitySkinUrls?: Record<string, string>;
   onNotify?: (message: string, type?: ToastNotification['type']) => void;
   onClose: () => void;
 }
@@ -77,6 +79,8 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
   isOpen,
   score,
   dofBlurEnabled,
+  stageSkinUrl,
+  entitySkinUrls,
   onNotify,
   onClose,
 }) => {
@@ -139,6 +143,8 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
     sampleMode,
     themeCategory,
     dofBlurEnabled: localDofBlur,
+    stageSkinUrl,
+    entitySkinUrls,
   });
 
   const {
@@ -747,6 +753,8 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
             dofBlurEnabled={localDofBlur}
             themeCategory={themeCategory}
             targetCamera={targetCamera}
+            stageSkinUrl={stageSkinUrl}
+            entitySkinUrls={entitySkinUrls}
           />
         )}
 
@@ -762,6 +770,8 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
             dofBlurEnabled={panelExportPendingRequest.dofBlurEnabled}
             themeCategory={panelExportPendingRequest.themeCategory}
             targetCamera={panelExportPendingRequest.targetCamera}
+            stageSkinUrl={stageSkinUrl}
+            entitySkinUrls={entitySkinUrls}
           />
         )}
 
@@ -777,6 +787,8 @@ export const StoryboardModal: React.FC<StoryboardModalProps> = ({
             dofBlurEnabled={pendingZipRequest.dofBlurEnabled}
             themeCategory={pendingZipRequest.themeCategory}
             targetCamera={pendingZipRequest.targetCamera}
+            stageSkinUrl={stageSkinUrl}
+            entitySkinUrls={entitySkinUrls}
           />
         )}
       </div>

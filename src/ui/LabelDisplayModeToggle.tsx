@@ -7,7 +7,7 @@
  */
 
 import React from 'react';
-import { Aperture, EyeOff, Grid3X3, Tag, Video } from 'lucide-react';
+import { Aperture, EyeOff, Grid3X3, Map as MapIcon, Tag, Video } from 'lucide-react';
 import type { CameraViewMode, LabelDisplayMode } from '../core/types';
 
 export interface LabelDisplayModeToggleProps {
@@ -17,6 +17,8 @@ export interface LabelDisplayModeToggleProps {
   onToggleGuides?: () => void;
   dofBlurEnabled?: boolean;
   onToggleDofBlur?: () => void;
+  showMinimap?: boolean;
+  onToggleMinimap?: () => void;
   cameraMode?: CameraViewMode;
   className?: string;
 }
@@ -54,6 +56,8 @@ export const LabelDisplayModeToggle: React.FC<LabelDisplayModeToggleProps> = ({
   onToggleGuides,
   dofBlurEnabled = false,
   onToggleDofBlur,
+  showMinimap = true,
+  onToggleMinimap,
   cameraMode,
   className = '',
 }) => {
@@ -125,6 +129,28 @@ export const LabelDisplayModeToggle: React.FC<LabelDisplayModeToggleProps> = ({
           >
             <Aperture className="w-3 h-3" />
             <span className="hidden sm:inline">Blur</span>
+          </button>
+        </div>
+      )}
+
+      {/* 4. Top-Down Stage Minimap Toggle */}
+      {onToggleMinimap && (
+        <div className="flex items-center p-0.5 rounded-xl bg-surface border border-border-main shadow-xs">
+          <button
+            type="button"
+            onClick={onToggleMinimap}
+            aria-pressed={showMinimap}
+            title={`Toggle Top-Down Stage Minimap [Hotkey: M] — Currently ${
+              showMinimap ? 'ON' : 'OFF'
+            }`}
+            className={`px-2 py-0.5 rounded-lg text-[10px] font-mono flex items-center gap-1 transition-colors duration-100 cursor-pointer focus:outline-none ${
+              showMinimap
+                ? 'bg-btn-primary-bg text-btn-primary-text font-semibold shadow-2xs'
+                : 'text-text-muted hover:text-text-main'
+            }`}
+          >
+            <MapIcon className="w-3 h-3" />
+            <span className="hidden sm:inline">Map</span>
           </button>
         </div>
       )}
