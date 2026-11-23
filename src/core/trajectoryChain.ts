@@ -374,11 +374,15 @@ export function evaluateCameraTrack(
     };
   }
 
-  // 1. Check if a cue is currently active at elapsedSec
-  const activeCue = cues
-    .slice()
-    .reverse()
-    .find((c) => elapsedSec >= c.startSec && elapsedSec < c.endSec);
+  // 1. Check if a cue is currently active at elapsedSec (latest matching cue takes priority)
+  let activeCue: NormalizedCameraCue | undefined;
+  for (let i = cues.length - 1; i >= 0; i--) {
+    const c = cues[i];
+    if (elapsedSec >= c.startSec && elapsedSec < c.endSec) {
+      activeCue = c;
+      break;
+    }
+  }
 
   if (activeCue) {
     const spec = activeCue.spec;
@@ -505,10 +509,13 @@ export function evaluateCameraTrack(
   }
 
   // 3. In a gap between cues or at/after the end of the timeline
-  const lastFinished = cues
-    .slice()
-    .reverse()
-    .find((c) => elapsedSec >= c.endSec);
+  let lastFinished: NormalizedCameraCue | undefined;
+  for (let i = cues.length - 1; i >= 0; i--) {
+    if (elapsedSec >= cues[i].endSec) {
+      lastFinished = cues[i];
+      break;
+    }
+  }
 
   const heldPose =
     (lastFinished

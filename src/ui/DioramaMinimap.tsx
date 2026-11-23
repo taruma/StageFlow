@@ -32,7 +32,47 @@ export interface DioramaMinimapProps {
   onClose?: () => void;
 }
 
-export const DioramaMinimap: React.FC<DioramaMinimapProps> = ({
+export const MINIMAP_PLAYBACK_INTERVAL_MS = 40; // ~25 Hz SVG updates during playback
+
+export function shouldDrawMinimapTick(
+  nowMs: number,
+  lastDrawMs: number,
+  intervalMs = MINIMAP_PLAYBACK_INTERVAL_MS
+): boolean {
+  return !Number.isFinite(lastDrawMs) || nowMs - lastDrawMs >= intervalMs;
+}
+
+export function areDioramaMinimapPropsEqual(
+  prev: DioramaMinimapProps,
+  next: DioramaMinimapProps
+): boolean {
+  if (
+    prev.score !== next.score ||
+    prev.frameRef !== next.frameRef ||
+    prev.liveViewportPoseRef !== next.liveViewportPoseRef ||
+    prev.cameraMode !== next.cameraMode ||
+    prev.isPlaying !== next.isPlaying ||
+    prev.variant !== next.variant ||
+    prev.onClose !== next.onClose
+  ) {
+    return false;
+  }
+
+  // During active playback, the rAF loop reads frameRef/liveViewportPoseRef directly;
+  // skip 10Hz React uiFrame/liveViewportPose churn unless liveViewportPoseRef is absent.
+  if (next.isPlaying) {
+    return next.liveViewportPoseRef
+      ? true
+      : prev.liveViewportPose === next.liveViewportPose;
+  }
+
+  return (
+    prev.uiFrame === next.uiFrame &&
+    prev.liveViewportPose === next.liveViewportPose
+  );
+}
+
+const DioramaMinimapComponent: React.FC<DioramaMinimapProps> = ({
   score,
   frameRef,
   liveViewportPoseRef,
@@ -74,28 +114,39 @@ export const DioramaMinimap: React.FC<DioramaMinimapProps> = ({
     return svgRefs.current.entities[id];
   };
 
+  const fallbackUiFrameRef = useRef(uiFrame);
+  fallbackUiFrameRef.current = uiFrame;
+  const fallbackPoseRef = useRef(liveViewportPose);
+  fallbackPoseRef.current = liveViewportPose;
+
   const syncDom = useCallback(() => {
     applyStageFrameToMinimapRefs(
       svgRefs.current,
-      frameRef.current ?? uiFrame,
-      liveViewportPoseRef?.current ?? liveViewportPose,
+      frameRef.current ?? fallbackUiFrameRef.current,
+      liveViewportPoseRef?.current ?? fallbackPoseRef.current,
       score,
       bounds,
       cameraMode
     );
-  }, [frameRef, liveViewportPoseRef, uiFrame, liveViewportPose, score, bounds, cameraMode]);
+  }, [frameRef, liveViewportPoseRef, score, bounds, cameraMode]);
 
   useLayoutEffect(() => {
+    if (isPlaying) return;
     syncDom();
-  }, [syncDom]);
+  }, [isPlaying, uiFrame, liveViewportPose, syncDom]);
 
   useEffect(() => {
     if (!isPlaying) return;
     let rafId = 0;
-    const tick = () => {
-      syncDom();
+    let lastDrawMs = -Infinity;
+    const tick = (nowMs: number) => {
+      if (shouldDrawMinimapTick(nowMs, lastDrawMs)) {
+        lastDrawMs = nowMs;
+        syncDom();
+      }
       rafId = requestAnimationFrame(tick);
     };
+    syncDom();
     rafId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafId);
   }, [isPlaying, syncDom]);
@@ -114,7 +165,7 @@ export const DioramaMinimap: React.FC<DioramaMinimapProps> = ({
       className={
         isPanel
           ? 'relative w-full h-full max-w-full max-h-full aspect-square rounded-xl bg-surface border border-border-main shadow-xs overflow-hidden select-none'
-          : 'relative w-[160px] h-[160px] lg:w-[180px] lg:h-[180px] rounded-2xl bg-surface/55 hover:bg-surface/85 backdrop-blur-[2px] opacity-75 hover:opacity-100 border border-border-main/80 shadow-lg overflow-hidden pointer-events-auto select-none transition-all duration-150'
+          : 'relative w-[160px] h-[160px] lg:w-[180px] lg:h-[180px] rounded-2xl bg-surface/85 hover:bg-surface/95 opacity-80 hover:opacity-100 border border-border-main/80 shadow-lg overflow-hidden pointer-events-auto select-none transition-all duration-150'
       }
     >
       {/* Top micro header overlay */}
@@ -237,3 +288,8 @@ export const DioramaMinimap: React.FC<DioramaMinimapProps> = ({
 
   return card;
 };
+
+export const DioramaMinimap = React.memo(
+  DioramaMinimapComponent,
+  areDioramaMinimapPropsEqual
+);

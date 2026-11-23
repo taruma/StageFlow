@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Html5MediaDriver } from '../../src/media/html5MediaDriver';
-import { YouTubeMediaDriver } from '../../src/media/youtubeMediaDriver';
+import {
+  YouTubeMediaDriver,
+  reconcileYouTubeClockSample,
+  YOUTUBE_MAX_SILENT_EXTRAPOLATION_SEC,
+} from '../../src/media/youtubeMediaDriver';
 import { ProceduralMediaDriver } from '../../src/media/proceduralMediaDriver';
 import { classifyMediaSource, extractYouTubeId } from '../../src/media/mediaTypes';
 
@@ -144,6 +148,118 @@ describe('MediaClockDrivers - Optimistic In-Flight Seek Synchronization', () => 
       expect(driver.getDuration()).toBe(90.0);
       expect(driver.getCurrentTime()).toBe(45.1);
 
+      driver.destroy();
+    });
+
+    it('reconciles YouTube clock samples with deadband, monotonic soft rate-trim, and hard snap', () => {
+      // 1. Within <= 25ms deadband (and rate 1.0): keeps existing anchor untouched
+      const deadband = reconcileYouTubeClockSample({
+        rawYtTime: 10.015,
+        extrapolatedTime: 10.0,
+        nowMs: 5000,
+        currentAnchorVideoTimeSec: 9.8,
+        currentAnchorPerfTimeMs: 4800,
+        currentDriftRateScale: 1.0,
+      });
+      expect(deadband.reanchored).toBe(false);
+      expect(deadband.driftRateScale).toBe(1.0);
+      expect(deadband.anchorVideoTimeSec).toBe(9.8);
+
+      // Returning into deadband from trimmed rate re-anchors at extrapolatedTime to prevent backward jump
+      const settled = reconcileYouTubeClockSample({
+        rawYtTime: 10.275,
+        extrapolatedTime: 10.28,
+        nowMs: 5250,
+        currentAnchorVideoTimeSec: 10.0,
+        currentAnchorPerfTimeMs: 5000,
+        currentDriftRateScale: 1.12,
+      });
+      expect(settled.reanchored).toBe(true);
+      expect(settled.snapped).toBe(false);
+      expect(settled.driftRateScale).toBe(1.0);
+      expect(settled.anchorVideoTimeSec).toBe(10.28);
+
+      // 2. Soft window (25ms..250ms): re-anchors seamlessly at extrapolatedTime and trims rate
+      const softAhead = reconcileYouTubeClockSample({
+        rawYtTime: 10.12,
+        extrapolatedTime: 10.0,
+        nowMs: 5000,
+        currentAnchorVideoTimeSec: 9.75,
+        currentAnchorPerfTimeMs: 4750,
+        currentDriftRateScale: 1.0,
+      });
+      expect(softAhead.reanchored).toBe(true);
+      expect(softAhead.snapped).toBe(false);
+      expect(softAhead.anchorVideoTimeSec).toBe(10.0);
+      expect(softAhead.driftRateScale).toBeGreaterThan(1.0);
+      expect(softAhead.driftRateScale).toBeLessThanOrEqual(1.15);
+
+      // 3. Large divergence (> 250ms): hard snaps to authoritative YouTube time
+      const hardSnap = reconcileYouTubeClockSample({
+        rawYtTime: 12.5,
+        extrapolatedTime: 10.0,
+        nowMs: 5000,
+        currentAnchorVideoTimeSec: 9.75,
+        currentAnchorPerfTimeMs: 4750,
+        currentDriftRateScale: 1.0,
+      });
+      expect(hardSnap.snapped).toBe(true);
+      expect(hardSnap.anchorVideoTimeSec).toBe(12.5);
+      expect(hardSnap.driftRateScale).toBe(1.0);
+    });
+
+    it('freezes extrapolation during BUFFERING (state 3) without emitting pause and caps silent stalls', () => {
+      let nowMs = 1000;
+      const nowSpy = vi.spyOn(performance, 'now').mockImplementation(() => nowMs);
+      const onPlayStateChange = vi.fn();
+
+      const container = {
+        innerHTML: '',
+        appendChild: vi.fn(),
+      } as unknown as HTMLElement;
+      const driver = new YouTubeMediaDriver(container, 'dQw4w9WgXcQ', 60.0, {
+        onPlayStateChange,
+      });
+
+      let mockYtTime = 10.0;
+      (driver as unknown as { player: unknown; ready: boolean }).player = {
+        getCurrentTime: () => mockYtTime,
+        getDuration: () => 60.0,
+        seekTo: vi.fn(),
+        playVideo: vi.fn(),
+        pauseVideo: vi.fn(),
+        destroy: vi.fn(),
+      };
+      (driver as unknown as { ready: boolean }).ready = true;
+      (driver as unknown as { playing: boolean; lastPolledYtTime: number; anchorVideoTimeSec: number; anchorPerfTimeMs: number }).playing = true;
+      (driver as unknown as { lastPolledYtTime: number }).lastPolledYtTime = 10.0;
+      (driver as unknown as { anchorVideoTimeSec: number }).anchorVideoTimeSec = 10.0;
+      (driver as unknown as { anchorPerfTimeMs: number }).anchorPerfTimeMs = 1000;
+
+      // Advance 200ms normally
+      nowMs = 1200;
+      expect(driver.getCurrentTime()).toBeCloseTo(10.2, 4);
+
+      // Simulate YouTube BUFFERING state (state = 3)
+      (driver as unknown as { buffering: boolean; anchorVideoTimeSec: number; anchorPerfTimeMs: number }).anchorVideoTimeSec = 10.2;
+      (driver as unknown as { anchorPerfTimeMs: number }).anchorPerfTimeMs = 1200;
+      (driver as unknown as { buffering: boolean }).buffering = true;
+
+      // Time advances 2 seconds while buffering -> diorama clock stays frozen at 10.2s without calling onPlayStateChange(false)
+      nowMs = 3200;
+      expect(driver.getCurrentTime()).toBeCloseTo(10.2, 4);
+      expect(onPlayStateChange).not.toHaveBeenCalled();
+
+      // Resume playing -> cap prevents runaway silent stall past 0.75s
+      (driver as unknown as { buffering: boolean; anchorPerfTimeMs: number }).buffering = false;
+      (driver as unknown as { anchorPerfTimeMs: number }).anchorPerfTimeMs = 3200;
+      nowMs = 5200; // +2.0s without rawYtTime advancing
+      expect(driver.getCurrentTime()).toBeCloseTo(
+        10.0 + YOUTUBE_MAX_SILENT_EXTRAPOLATION_SEC,
+        4
+      );
+
+      nowSpy.mockRestore();
       driver.destroy();
     });
   });

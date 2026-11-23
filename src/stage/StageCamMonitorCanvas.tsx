@@ -33,6 +33,7 @@ export interface StageCamMonitorCanvasProps {
   stageSkinUrl?: string | null;
   stageSkinVisible?: boolean;
   entitySkinUrls?: Record<string, string>;
+  dpr?: number | [number, number];
 }
 
 const MonitorDemandInvalidator: React.FC<{
@@ -60,6 +61,7 @@ const MonitorDemandInvalidator: React.FC<{
   const size = useThree((state) => state.size);
 
   useLayoutEffect(() => {
+    if (isPlaying) return;
     invalidate();
   }, [
     score,
@@ -92,6 +94,7 @@ export const StageCamMonitorCanvas: React.FC<StageCamMonitorCanvasProps> = ({
   stageSkinUrl,
   stageSkinVisible = true,
   entitySkinUrls,
+  dpr,
 }) => {
   const pose = uiFrame.stageCamera.transform.pose;
   const dof = uiFrame.stageCamera.dof;
@@ -101,14 +104,19 @@ export const StageCamMonitorCanvas: React.FC<StageCamMonitorCanvasProps> = ({
     () => getDioramaThemeColors(themeCategory),
     [themeCategory]
   );
+  const glConfig = useMemo(
+    () => ({ antialias: true, powerPreference: 'high-performance' as const }),
+    []
+  );
+  const resolvedDpr = dpr ?? ([1, 1.25] as [number, number]);
 
   return (
     <div className="relative w-full h-full bg-app select-none overflow-hidden">
       {/* 1. True 3D WebGL Viewport locked to Stage Camera */}
       <Canvas
         frameloop={isPlaying ? 'always' : 'demand'}
-        gl={{ antialias: true, powerPreference: 'high-performance' }}
-        dpr={[1, 2]}
+        gl={glConfig}
+        dpr={resolvedDpr}
         camera={{
           fov: uiFrame.stageCamera.transform.fovDeg,
           near: 0.1,

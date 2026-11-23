@@ -177,13 +177,14 @@ export const ObserverCameraRig: React.FC<ObserverCameraRigProps> = ({
   // Helper to apply a CameraTransform3D directly to Three.js PerspectiveCamera + OrbitControls
   const applyTransformImperatively = (
     transform: CameraTransform3D,
-    mode: CameraViewMode
+    mode: CameraViewMode,
+    flushDamping = false
   ) => {
     lastAppliedFocalLengthMmRef.current = transform.pose.focalLengthMm;
     const persp = camera as THREE.PerspectiveCamera;
 
-    // Clear any residual OrbitControls damping delta before snapping to a new pose
-    if (controlsRef.current && controlsRef.current.enableDamping) {
+    // Clear residual OrbitControls damping delta only on discrete transitions (not every continuous frame)
+    if (flushDamping && controlsRef.current && controlsRef.current.enableDamping) {
       isFlushingDampingRef.current = true;
       controlsRef.current.enableDamping = false;
       controlsRef.current.update();
@@ -225,14 +226,22 @@ export const ObserverCameraRig: React.FC<ObserverCameraRigProps> = ({
         transform.target.y,
         transform.target.z
       );
-      const dist = persp.position.distanceTo(controlsRef.current.target);
-      controlsRef.current.maxPolarAngle = computeFloorClampedMaxPolarAngle(
-        transform.target.y,
-        dist,
-        MIN_FLOOR_CLEARANCE_M,
-        MAX_SAFE_POLAR_ANGLE_RAD
-      );
-      controlsRef.current.update();
+      if (flushDamping) {
+        const dist = persp.position.distanceTo(controlsRef.current.target);
+        controlsRef.current.maxPolarAngle = computeFloorClampedMaxPolarAngle(
+          transform.target.y,
+          dist,
+          MIN_FLOOR_CLEARANCE_M,
+          MAX_SAFE_POLAR_ANGLE_RAD
+        );
+        controlsRef.current.update();
+      } else {
+        persp.lookAt(
+          transform.target.x,
+          transform.target.y,
+          transform.target.z
+        );
+      }
     } else {
       persp.lookAt(
         transform.target.x,
@@ -254,7 +263,7 @@ export const ObserverCameraRig: React.FC<ObserverCameraRigProps> = ({
       cameraMode === 'stage-pov'
         ? initialFrame.stageCamera.transform
         : initialFrame.observerCamera.transform;
-    applyTransformImperatively(targetTransform, cameraMode);
+    applyTransformImperatively(targetTransform, cameraMode, true);
   }, []);
 
   useFrame(() => {
@@ -290,7 +299,7 @@ export const ObserverCameraRig: React.FC<ObserverCameraRigProps> = ({
       lastHandledPresetIdRef.current = presetAction.id;
       if (presetAction.type === 'reset') {
         const targetTransform = frame.observerCamera.transform;
-        applyTransformImperatively(targetTransform, cameraMode);
+        applyTransformImperatively(targetTransform, cameraMode, true);
       } else {
         const aspect = frame.observerCamera.transform.aspectRatio ?? 16 / 9;
         const activeTarget = controlsRef.current
@@ -301,7 +310,7 @@ export const ObserverCameraRig: React.FC<ObserverCameraRigProps> = ({
             }
           : frame.observerCamera.transform.target;
         const targetTransform = getPresetTransform(presetAction.type, activeTarget, 35, aspect);
-        applyTransformImperatively(targetTransform, 'free');
+        applyTransformImperatively(targetTransform, 'free', true);
       }
       handleControlsChange(true);
       invalidate();
@@ -326,9 +335,16 @@ export const ObserverCameraRig: React.FC<ObserverCameraRigProps> = ({
     if (cameraAction.kind === 'apply') {
       lastSyncedStageCamRef.current = cameraAction.nextLastSyncedStageCam;
       lastSyncedObserverCamRef.current = cameraAction.nextLastSyncedObserverCam;
+      const shouldFlushDamping =
+        resetOccurred ||
+        modeChanged ||
+        seekOccurred ||
+        justStartedPlaying ||
+        sizeChanged;
       applyTransformImperatively(
         cameraAction.transform,
-        cameraAction.applyMode
+        cameraAction.applyMode,
+        shouldFlushDamping
       );
       return;
     }

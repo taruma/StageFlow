@@ -1043,6 +1043,7 @@ export const InteractiveStudioApp: React.FC = () => {
                   stageSkinUrl={stageSkins.stageSkin?.url ?? null}
                   stageSkinVisible={stageSkins.isSkinsVisible}
                   entitySkinUrls={stageSkins.entitySkinUrls}
+                  dpr={1}
                 />
               ) : undefined
             }

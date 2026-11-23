@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Playback GPU Compositor Relief & Video-Sync Hardening (Pass 1) (`src/stage/DioramaCanvas.tsx`, `src/stage/StageCamMonitorCanvas.tsx`, `src/stage/StageBillboardLabel.tsx`, `src/stage/ObserverCameraRig.tsx`, `src/recorder/HeadlessRecorderView.tsx`, `src/ui/InteractiveStudioApp.tsx`, `src/ui/DioramaMinimap.tsx`, `src/media/youtubeMediaDriver.ts`, `src/core/trajectoryChain.ts`, `tests/unit/mediaDrivers.test.ts`, `tests/unit/stagePerfHelpers.test.ts`, `docs/MEDIA_CLOCK_AND_SYNC_SPECIFICATIONS.md`, `docs/DIORAMA_3D_AND_UI_SPECIFICATIONS.md`)**:
+  - Disabled `preserveDrawingBuffer` during live interactive playback in `DioramaCanvas.tsx` (`resolveDioramaGlOptions`, defaulting to `frameloopMode === 'never'`, explicitly passed in `HeadlessRecorderView.tsx`), memoized WebGL `gl` configs, and capped interactive canvas DPR (`[1, 1.5]` on `DioramaCanvas`, `[1, 1.25]` on `StageCamMonitorCanvas`, `1` on the Scene Desk `Stage Cam` inset) while skipping `MonitorDemandInvalidator` `invalidate()` ticks during active playback.
+  - Removed `backdrop-blur-md` / `backdrop-blur-[2px]` from moving 3D `StageBillboardLabel.tsx` pills and the floating `DioramaMinimap.tsx` HUD card (`bg-slate-950/95` / `bg-surface/85`) to eliminate per-frame WebGL framebuffer readback blurs during video-attached playback.
+  - Wrapped `DioramaMinimap.tsx` in `React.memo` (`areDioramaMinimapPropsEqual`) to bypass 10 Hz `uiFrame` churn during playback, stabilized `syncDom` refs so the `requestAnimationFrame` loop does not tear down 10×/second, and throttled playback SVG updates to ~25 Hz (`MINIMAP_PLAYBACK_INTERVAL_MS = 40`).
+  - Added `BUFFERING` (`state === 3`) clock freeze (without flipping UI play state), `25ms` deadband + `25ms–250ms` proportional rate-trimming (`reconcileYouTubeClockSample`), and a `0.75 * playbackRate` silent-stall extrapolation cap in `YouTubeMediaDriver` (`youtubeMediaDriver.ts`).
+  - Restricted `OrbitControls` damping-delta flushing in `ObserverCameraRig.tsx` to discrete transitions (mount, presets, mode cuts, seeks, resets) and replaced per-frame `.slice().reverse().find(...)` allocations in `trajectoryChain.ts` with backward `for` loops.
+  - Added unit tests for `reconcileYouTubeClockSample`, YouTube `BUFFERING`/silent-stall caps, `resolveDioramaGlOptions`, `shouldDrawMinimapTick`, and `areDioramaMinimapPropsEqual`.
+
 ## [1.3.0] - 2026-11-23
 
 ### Added

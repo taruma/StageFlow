@@ -32,6 +32,13 @@ import {
   resolveGatedState,
   STAGE_FRAME_PRIORITY,
 } from '../../src/stage/stageSyncGate';
+import { resolveDioramaGlOptions } from '../../src/stage/DioramaCanvas';
+import {
+  areDioramaMinimapPropsEqual,
+  MINIMAP_PLAYBACK_INTERVAL_MS,
+  shouldDrawMinimapTick,
+  type DioramaMinimapProps,
+} from '../../src/ui/DioramaMinimap';
 
 function clonePose(pose: SphericalPose): SphericalPose {
   return { ...pose, target: { ...pose.target } };
@@ -748,6 +755,83 @@ describe('stagePerfHelpers — Issue #9 deterministic performance guards', () =>
       );
       expect(STAGE_FRAME_PRIORITY.DOM_OVERLAYS).toBeLessThanOrEqual(0);
       expect(STAGE_FRAME_PRIORITY.POST_EFFECT).toBeGreaterThan(0);
+    });
+  });
+
+  describe('resolveDioramaGlOptions', () => {
+    it('disables preserveDrawingBuffer during live playback and enables it for headless frameloop="never"', () => {
+      expect(resolveDioramaGlOptions('always')).toEqual({
+        antialias: true,
+        powerPreference: 'high-performance',
+        preserveDrawingBuffer: false,
+      });
+      expect(resolveDioramaGlOptions('demand')).toEqual({
+        antialias: true,
+        powerPreference: 'high-performance',
+        preserveDrawingBuffer: false,
+      });
+      expect(resolveDioramaGlOptions('never')).toEqual({
+        antialias: true,
+        powerPreference: 'high-performance',
+        preserveDrawingBuffer: true,
+      });
+      expect(resolveDioramaGlOptions('demand', true).preserveDrawingBuffer).toBe(true);
+      expect(resolveDioramaGlOptions('never', false).preserveDrawingBuffer).toBe(false);
+    });
+  });
+
+  describe('DioramaMinimap playback throttling & memoization', () => {
+    it('throttles playback SVG redraw ticks to the 25Hz interval while drawing initial tick immediately', () => {
+      expect(shouldDrawMinimapTick(100, -Infinity)).toBe(true);
+      expect(shouldDrawMinimapTick(116, 100)).toBe(false);
+      expect(shouldDrawMinimapTick(139, 100)).toBe(false);
+      expect(shouldDrawMinimapTick(100 + MINIMAP_PLAYBACK_INTERVAL_MS, 100)).toBe(true);
+    });
+
+    it('skips 10Hz React re-renders while playing when refs are present, and re-renders on paused scrubs/orbits', () => {
+      const score = makeDummyScore('minimap-memo');
+      const frameA = makeFrame(makeStageCameraState({ shotId: 'shot-1' }));
+      const frameB = makeFrame(makeStageCameraState({ shotId: 'shot-1', frustumDepth: 5 }));
+      const poseA = clonePose(DEFAULT_OBSERVER_POSE);
+      const poseB = { ...clonePose(DEFAULT_OBSERVER_POSE), distance: 12 };
+      const frameRef = { current: frameA };
+      const liveViewportPoseRef = { current: poseA };
+
+      const playingPrev: DioramaMinimapProps = {
+        score,
+        frameRef,
+        liveViewportPoseRef,
+        uiFrame: frameA,
+        liveViewportPose: poseA,
+        cameraMode: 'scripted',
+        isPlaying: true,
+      };
+      const playingNextTick: DioramaMinimapProps = {
+        ...playingPrev,
+        uiFrame: frameB,
+        liveViewportPose: poseB,
+      };
+      expect(areDioramaMinimapPropsEqual(playingPrev, playingNextTick)).toBe(true);
+
+      // Paused scrubs and orbit drags must still trigger re-render
+      const pausedPrev: DioramaMinimapProps = {
+        ...playingPrev,
+        isPlaying: false,
+      };
+      expect(
+        areDioramaMinimapPropsEqual(pausedPrev, { ...pausedPrev, uiFrame: frameB })
+      ).toBe(false);
+      expect(
+        areDioramaMinimapPropsEqual(pausedPrev, { ...pausedPrev, liveViewportPose: poseB })
+      ).toBe(false);
+
+      // Play/pause toggle or camera mode change triggers re-render
+      expect(
+        areDioramaMinimapPropsEqual(playingPrev, pausedPrev)
+      ).toBe(false);
+      expect(
+        areDioramaMinimapPropsEqual(playingPrev, { ...playingPrev, cameraMode: 'stage-pov' })
+      ).toBe(false);
     });
   });
 });

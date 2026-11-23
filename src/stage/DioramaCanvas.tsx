@@ -45,6 +45,8 @@ export interface DioramaCanvasProps {
   stageSkinVisible?: boolean;
   entitySkinUrls?: Record<string, string>;
   frameloopMode?: 'always' | 'demand' | 'never';
+  preserveDrawingBuffer?: boolean;
+  dpr?: number | [number, number];
   onAdvanceReady?: (
     advance: (timestamp: number) => void,
     glRenderer?: string
@@ -146,6 +148,21 @@ const CanvasDemandInvalidator: React.FC<{
   return null;
 };
 
+export function resolveDioramaGlOptions(
+  frameloopMode?: 'always' | 'demand' | 'never',
+  preserveDrawingBuffer?: boolean
+): {
+  antialias: true;
+  powerPreference: 'high-performance';
+  preserveDrawingBuffer: boolean;
+} {
+  return {
+    antialias: true,
+    powerPreference: 'high-performance',
+    preserveDrawingBuffer: preserveDrawingBuffer ?? frameloopMode === 'never',
+  };
+}
+
 export const DioramaCanvas: React.FC<DioramaCanvasProps> = ({
   score,
   cameraMode,
@@ -165,6 +182,8 @@ export const DioramaCanvas: React.FC<DioramaCanvasProps> = ({
   stageSkinVisible = true,
   entitySkinUrls,
   frameloopMode,
+  preserveDrawingBuffer,
+  dpr,
   onAdvanceReady,
   onSkinLoad,
   onStageSkinError,
@@ -175,17 +194,20 @@ export const DioramaCanvas: React.FC<DioramaCanvasProps> = ({
     [themeCategory]
   );
   const resolvedFrameloop = frameloopMode ?? (isPlaying ? 'always' : 'demand');
+  const shouldPreserveDrawingBuffer =
+    preserveDrawingBuffer ?? frameloopMode === 'never';
+  const glConfig = useMemo(
+    () => resolveDioramaGlOptions(frameloopMode, shouldPreserveDrawingBuffer),
+    [frameloopMode, shouldPreserveDrawingBuffer]
+  );
+  const resolvedDpr = dpr ?? ([1, 1.5] as [number, number]);
 
   return (
     <div className="relative w-full h-full bg-app select-none overflow-hidden">
       <Canvas
         frameloop={resolvedFrameloop}
-        gl={{
-          antialias: true,
-          powerPreference: 'high-performance',
-          preserveDrawingBuffer: true,
-        }}
-        dpr={[1, 2]}
+        gl={glConfig}
+        dpr={resolvedDpr}
         camera={{
           fov: 40,
           near: 0.1,

@@ -44,13 +44,15 @@ export interface MediaClockDriver {
 
 ### 2.2 `YouTubeMediaDriver` & 60fps Drift-Corrected Extrapolation (`youtubeMediaDriver.ts`)
 - Dynamically loads `https://www.youtube.com/iframe_api` via a singleton promise and mounts an chromeless player (`controls: 0`, `disablekb: 1`, `modestbranding: 1`, `rel: 0`, `playsinline: 1`).
-- **Solving IFrame `postMessage` Polling Latency**:
+- **Solving IFrame `postMessage` Polling Latency, Buffering & Jitter**:
   - Because YouTube's `player.getCurrentTime()` updates over an asynchronous `postMessage` bridge at ~10–15Hz, reading it raw at 60fps would cause visible camera stepping.
-  - `YouTubeMediaDriver` solves this via **high-resolution clock extrapolation**:
-    1. Whenever `player.getCurrentTime()` reports a new timestamp (`Math.abs(rawYtTime - lastPolledYtTime) > 0.001`), it re-anchors `anchorVideoTimeSec = rawYtTime` and `anchorPerfTimeMs = performance.now()`.
-    2. On intermediate 60fps animation frames while playing, `getCurrentTime()` returns:
-       $$t_{\text{extrapolated}} = \text{anchorVideoTimeSec} + \frac{\text{performance.now()} - \text{anchorPerfTimeMs}}{1000} \times \text{playbackRate}$$
-    3. When `seek(targetSec)` is invoked (e.g. scrubbing while paused or frame-stepping), `anchorVideoTimeSec` updates **synchronously on the same call stack** before `player.seekTo(targetSec, true)` is dispatched, giving the 3D diorama **0ms scrub latency**.
+  - `YouTubeMediaDriver` solves this via **high-resolution clock extrapolation with soft drift reconciliation (`reconcileYouTubeClockSample`)**:
+    1. On incoming `player.getCurrentTime()` changes (`Math.abs(rawYtTime - lastPolledYtTime) > 0.001`), small `postMessage` jitter within a `25ms` deadband leaves the active extrapolation untouched; moderate drift (`25ms–250ms`) re-anchors seamlessly at the current extrapolated timestamp with proportional playback-rate trimming (`0.85x–1.15x`) to eliminate periodic micro-stutters; large divergences (`> 250ms`) snap directly to YouTube's authoritative timestamp.
+    2. On intermediate 60fps animation frames while playing (and not buffering), `getCurrentTime()` returns:
+       $$t_{\text{extrapolated}} = \text{anchorVideoTimeSec} + \frac{\text{performance.now()} - \text{anchorPerfTimeMs}}{1000} \times \text{playbackRate} \times \text{driftRateScale}$$
+       capped at `lastPolledYtTime + 0.75 * playbackRate` so silent iframe stalls never drift unboundedly ahead of frozen video frames.
+    3. When YouTube enters `BUFFERING` (`state === 3`), `YouTubeMediaDriver` freezes extrapolation at the current clock position without emitting `onPlayStateChange(false)`, preventing Play button flicker or mid-playback `OrbitControls` handover until `PLAYING` (`state === 1`) resumes.
+    4. When `seek(targetSec)` is invoked (e.g. scrubbing while paused or frame-stepping), `anchorVideoTimeSec` updates **synchronously on the same call stack** before `player.seekTo(targetSec, true)` is dispatched, giving the 3D diorama **0ms scrub latency**.
 - **In-Flight Seek Protection (Anti-Reversion Guard)**:
   - While YouTube processes `seekTo(targetSec)` asynchronously, incoming `player.getCurrentTime()` queries reporting stale pre-seek timestamps are filtered out until YouTube's clock catches up to within $1.5\text{s}$ of the target (or a 600ms safety timeout guard fires). This prevents the scrubber and 3D diorama from rubberbanding back to the pre-seek time.
 

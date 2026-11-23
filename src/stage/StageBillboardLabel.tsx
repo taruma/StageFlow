@@ -190,7 +190,7 @@ export const StageBillboardLabel: React.FC<StageBillboardLabelProps> = React.mem
               }}
               className={`${
                 isCompact ? 'px-2 py-0.5 gap-1.5' : 'px-3 py-1 gap-1.5'
-              } rounded-full bg-slate-950/90 backdrop-blur-md flex items-center whitespace-nowrap shadow-2xl border transition-colors duration-200 ${
+              } rounded-full bg-slate-950/95 flex items-center whitespace-nowrap shadow-md border transition-colors duration-200 ${
                 highlighted ? '' : 'border-slate-700/80'
               }`}
             >

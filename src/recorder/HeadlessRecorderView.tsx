@@ -345,6 +345,7 @@ export const HeadlessRecorderView: React.FC = () => {
         cameraMode={config.cameraMode}
         isPlaying={false}
         frameloopMode="never"
+        preserveDrawingBuffer={true}
         onAdvanceReady={handleAdvanceReady}
         frameRef={frameRef}
         uiFrame={uiFrame}
