@@ -1112,6 +1112,7 @@ export const InteractiveStudioApp: React.FC = () => {
               isPlaying={mediaClock.isPlaying}
               labelMode={display.labelMode}
               stageDisplay={display.stageDisplay}
+              showHud={display.showDioramaHud}
               showGuides={display.showGuides}
               dofBlurEnabled={display.dofBlurEnabled}
               showMinimap={display.showMinimap}
@@ -1177,6 +1178,7 @@ export const InteractiveStudioApp: React.FC = () => {
         isMuted={mediaClock.isMuted}
         loopActiveShot={mediaClock.loopActiveShot}
         isCapturingSnapshot={stageCamSnapshot.isCapturing}
+        showDioramaHud={display.showDioramaHud}
         onTogglePlay={mediaClock.togglePlay}
         onPause={mediaClock.pause}
         onSeek={handleSeekAndSync}
@@ -1185,6 +1187,7 @@ export const InteractiveStudioApp: React.FC = () => {
         onToggleMute={mediaClock.toggleMute}
         onToggleLoopActiveShot={mediaClock.toggleLoopActiveShot}
         onCaptureStageCamSnapshot={handleCaptureStageCamSnapshot}
+        onToggleDioramaHud={display.handleToggleDioramaHud}
       />
 
       {/* Reset Confirmation Dialog Modal */}

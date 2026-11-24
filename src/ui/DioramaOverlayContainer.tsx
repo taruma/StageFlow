@@ -40,6 +40,7 @@ export interface DioramaOverlayContainerProps {
   isPlaying: boolean;
   labelMode: LabelDisplayMode;
   stageDisplay?: StageDisplayOptions;
+  showHud?: boolean;
   showGuides: boolean;
   dofBlurEnabled?: boolean;
   showMinimap?: boolean;
@@ -74,6 +75,7 @@ export const DioramaOverlayContainer: React.FC<DioramaOverlayContainerProps> = (
   isPlaying,
   labelMode,
   stageDisplay,
+  showHud = true,
   showGuides,
   dofBlurEnabled = false,
   showMinimap = true,
@@ -207,7 +209,7 @@ export const DioramaOverlayContainer: React.FC<DioramaOverlayContainerProps> = (
 
   return (
     <>
-      {/* Stage Camera POV Director's Optical Viewfinder Overlay */}
+      {/* Stage Camera POV Director's Optical Viewfinder Overlay (film gate mask stays visible even when HUD is hidden) */}
       {cameraMode === 'stage-pov' && (
         <StageCamViewfinderOverlay
           score={score}
@@ -216,108 +218,112 @@ export const DioramaOverlayContainer: React.FC<DioramaOverlayContainerProps> = (
         />
       )}
 
-      {/* Narrow Viewport: Dedicated Unified Compact Header (<768px) */}
-      {isNarrow ? (
+      {showHud && (
         <>
-          <CompactDioramaHeader
-            score={score}
-            frame={frame}
-            cameraMode={cameraMode}
-            onSetCameraMode={onSetCameraMode}
-            onSelectPreset={onSelectPreset}
-            labelMode={labelMode}
-            onSelectLabelMode={onSelectLabelMode}
-            stageDisplay={stageDisplay}
-            onSelectFloorMode={onSelectFloorMode}
-            onToggleStageDisplayFlag={onToggleStageDisplayFlag}
-            onToggleCharacterVisible={onToggleCharacterVisible}
-            onResetStageDisplay={onResetStageDisplay}
-            showGuides={showGuides}
-            onToggleGuides={onToggleGuides}
-            dofBlurEnabled={dofBlurEnabled}
-            onToggleDofBlur={onToggleDofBlur}
-          />
-          {skinPill && (
-            <div className="absolute bottom-3 right-3 z-20">{skinPill}</div>
-          )}
-        </>
-      ) : (
-        <>
-          {/* 1. TOP-LEFT: Shot & Lens Breakdown HUD (Defaults to 2-line Collapsed Pill) */}
-          <ShotBreakdownHud
-            score={score}
-            frame={frame}
-            cameraMode={cameraMode}
-            isPlaying={isPlaying}
-          />
-
-          {/* 2. TOP-RIGHT: 3D Stage Labels, Guides, DoF Blur, Map Toggle, Active .GLB Skin & Minimap */}
-          <div className="absolute top-3 right-3 z-10 flex flex-col items-end gap-1.5 pointer-events-none select-none">
-            <div className="flex items-center gap-1.5 pointer-events-auto">
-              <LabelDisplayModeToggle
+          {/* Narrow Viewport: Dedicated Unified Compact Header (<768px) */}
+          {isNarrow ? (
+            <>
+              <CompactDioramaHeader
+                score={score}
+                frame={frame}
+                cameraMode={cameraMode}
+                onSetCameraMode={onSetCameraMode}
+                onSelectPreset={onSelectPreset}
                 labelMode={labelMode}
                 onSelectLabelMode={onSelectLabelMode}
+                stageDisplay={stageDisplay}
+                onSelectFloorMode={onSelectFloorMode}
+                onToggleStageDisplayFlag={onToggleStageDisplayFlag}
+                onToggleCharacterVisible={onToggleCharacterVisible}
+                onResetStageDisplay={onResetStageDisplay}
                 showGuides={showGuides}
                 onToggleGuides={onToggleGuides}
                 dofBlurEnabled={dofBlurEnabled}
                 onToggleDofBlur={onToggleDofBlur}
-                showMinimap={showMinimap}
-                onToggleMinimap={onToggleMinimap}
-                cameraMode={cameraMode}
               />
-              {stageDisplay &&
-                onSelectFloorMode &&
-                onToggleStageDisplayFlag &&
-                onToggleCharacterVisible &&
-                onResetStageDisplay && (
-                  <StageDisplayPopover
-                    score={score}
-                    stageDisplay={stageDisplay}
-                    onSelectFloorMode={onSelectFloorMode}
-                    onToggleStageDisplayFlag={onToggleStageDisplayFlag}
-                    onToggleCharacterVisible={onToggleCharacterVisible}
-                    onResetStageDisplay={onResetStageDisplay}
-                  />
-                )}
-            </div>
-            {skinPill}
-            {showMinimap && (
-              <DioramaMinimap
+              {skinPill && (
+                <div className="absolute bottom-3 right-3 z-20">{skinPill}</div>
+              )}
+            </>
+          ) : (
+            <>
+              {/* 1. TOP-LEFT: Shot & Lens Breakdown HUD (Defaults to 2-line Collapsed Pill) */}
+              <ShotBreakdownHud
                 score={score}
-                frameRef={resolvedFrameRef}
-                liveViewportPoseRef={liveViewportPoseRef}
-                uiFrame={frame}
-                liveViewportPose={liveViewportPose}
+                frame={frame}
                 cameraMode={cameraMode}
                 isPlaying={isPlaying}
-                onClose={onToggleMinimap}
               />
-            )}
-          </div>
 
-          {/* 3. BOTTOM-LEFT: Directorial Camera Workstation Dock (ViewCube Presets + Camera POV Modes) */}
-          <div className="absolute bottom-3 left-3 z-20 flex flex-col items-start gap-1.5 pointer-events-none select-none">
-            {/* Tier 1: View Angle Presets (3D ViewCube Icons) */}
-            <CameraPresetControls onSelectPreset={onSelectPreset} />
+              {/* 2. TOP-RIGHT: 3D Stage Labels, Guides, DoF Blur, Map Toggle, Active .GLB Skin & Minimap */}
+              <div className="absolute top-3 right-3 z-10 flex flex-col items-end gap-1.5 pointer-events-none select-none">
+                <div className="flex items-center gap-1.5 pointer-events-auto">
+                  <LabelDisplayModeToggle
+                    labelMode={labelMode}
+                    onSelectLabelMode={onSelectLabelMode}
+                    showGuides={showGuides}
+                    onToggleGuides={onToggleGuides}
+                    dofBlurEnabled={dofBlurEnabled}
+                    onToggleDofBlur={onToggleDofBlur}
+                    showMinimap={showMinimap}
+                    onToggleMinimap={onToggleMinimap}
+                    cameraMode={cameraMode}
+                  />
+                  {stageDisplay &&
+                    onSelectFloorMode &&
+                    onToggleStageDisplayFlag &&
+                    onToggleCharacterVisible &&
+                    onResetStageDisplay && (
+                      <StageDisplayPopover
+                        score={score}
+                        stageDisplay={stageDisplay}
+                        onSelectFloorMode={onSelectFloorMode}
+                        onToggleStageDisplayFlag={onToggleStageDisplayFlag}
+                        onToggleCharacterVisible={onToggleCharacterVisible}
+                        onResetStageDisplay={onResetStageDisplay}
+                      />
+                    )}
+                </div>
+                {skinPill}
+                {showMinimap && (
+                  <DioramaMinimap
+                    score={score}
+                    frameRef={resolvedFrameRef}
+                    liveViewportPoseRef={liveViewportPoseRef}
+                    uiFrame={frame}
+                    liveViewportPose={liveViewportPose}
+                    cameraMode={cameraMode}
+                    isPlaying={isPlaying}
+                    onClose={onToggleMinimap}
+                  />
+                )}
+              </div>
 
-            {/* Tier 2: Camera POV Mode Switcher (Scripted, Free Orbit, Stage Cam) */}
-            <CameraModeSwitcher
+              {/* 3. BOTTOM-LEFT: Directorial Camera Workstation Dock (ViewCube Presets + Camera POV Modes) */}
+              <div className="absolute bottom-3 left-3 z-20 flex flex-col items-start gap-1.5 pointer-events-none select-none">
+                {/* Tier 1: View Angle Presets (3D ViewCube Icons) */}
+                <CameraPresetControls onSelectPreset={onSelectPreset} />
+
+                {/* Tier 2: Camera POV Mode Switcher (Scripted, Free Orbit, Stage Cam) */}
+                <CameraModeSwitcher
+                  cameraMode={cameraMode}
+                  onSetCameraMode={onSetCameraMode}
+                />
+              </div>
+            </>
+          )}
+
+          {/* 4. BOTTOM-RIGHT: Authoring Telemetry Capsule + 1-Click YAML Copy (Hidden when narrow) */}
+          {!isNarrow && (
+            <CameraTelemetryCapsule
+              observerPose={liveViewportPose}
+              stageCamera={frame.stageCamera}
+              observerRig={frame.observerCamera.rig}
               cameraMode={cameraMode}
-              onSetCameraMode={onSetCameraMode}
+              dioramaWidth={dioramaWidth}
             />
-          </div>
+          )}
         </>
-      )}
-
-      {/* 4. BOTTOM-RIGHT: Authoring Telemetry Capsule + 1-Click YAML Copy (Hidden when narrow) */}
-      {!isNarrow && (
-        <CameraTelemetryCapsule
-          observerPose={liveViewportPose}
-          stageCamera={frame.stageCamera}
-          observerRig={frame.observerCamera.rig}
-          cameraMode={cameraMode}
-          dioramaWidth={dioramaWidth}
-        />
       )}
     </>
   );

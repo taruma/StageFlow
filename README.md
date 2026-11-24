@@ -118,6 +118,7 @@ shots:
 | `G` | **Framing Guides** | Toggle rule-of-thirds and safe-action composition overlays |
 | `L` | **3D Label Mode** | Cycle 3D label display (`all` $\to$ `cast` $\to$ `camera-only` $\to$ `off`) |
 | `M` | **Stage Minimap** | Toggle live 2D SVG top-down stage minimap HUD overlay |
+| `H` | **Toggle Diorama HUD** | Session-only toggle to hide/show main 3D diorama HUD overlays |
 | `?` | **About & Shortcuts** | Open the About StageFlow info modal and documentation links |
 
 ---

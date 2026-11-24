@@ -1,6 +1,7 @@
 /**
  * Custom hook managing 3D diorama display preferences (label display modes,
- * viewfinder composition guides, optical DoF blur) and global studio keyboard shortcuts ('L' / 'G' / 'B').
+ * viewfinder composition guides, optical DoF blur, session-only diorama HUD visibility)
+ * and global studio keyboard shortcuts ('L' / 'G' / 'B' / 'M' / 'H').
  * Layer 3 hook.
  */
 
@@ -43,6 +44,13 @@ export function useStudioDisplaySettings() {
   const [showMinimap, setShowMinimapState] = useState<boolean>(
     () => loadStoredDioramaMinimap() ?? true
   );
+
+  // Session-only main 3D diorama HUD visibility (intentionally resets on page reload)
+  const [showDioramaHud, setShowDioramaHud] = useState<boolean>(true);
+
+  const handleToggleDioramaHud = useCallback(() => {
+    setShowDioramaHud((prev) => !prev);
+  }, []);
 
   // Session-only visual diorama display filters (intentionally reset on page reload)
   const [stageDisplay, setStageDisplay] = useState<StageDisplayOptions>(
@@ -123,7 +131,7 @@ export function useStudioDisplaySettings() {
     });
   }, []);
 
-  // Global hotkeys: 'L' labels, 'G' guides, 'B' DoF blur, 'M' top-down minimap
+  // Global hotkeys: 'L' labels, 'G' guides, 'B' DoF blur, 'M' top-down minimap, 'H' diorama HUD
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
@@ -149,6 +157,9 @@ export function useStudioDisplaySettings() {
       } else if (e.key === 'm' || e.key === 'M') {
         e.preventDefault();
         handleToggleMinimap();
+      } else if (e.key === 'h' || e.key === 'H') {
+        e.preventDefault();
+        handleToggleDioramaHud();
       }
     };
 
@@ -159,6 +170,7 @@ export function useStudioDisplaySettings() {
     handleToggleGuides,
     handleToggleDofBlur,
     handleToggleMinimap,
+    handleToggleDioramaHud,
   ]);
 
   return {
@@ -167,6 +179,7 @@ export function useStudioDisplaySettings() {
     dofBlurEnabled,
     showMinimap,
     stageDisplay,
+    showDioramaHud,
     handleSelectLabelMode,
     handleCycleLabelMode,
     handleToggleGuides,
@@ -178,5 +191,6 @@ export function useStudioDisplaySettings() {
     handleToggleCharacterVisible,
     handleClearHiddenCharacters,
     handleResetStageDisplay,
+    handleToggleDioramaHud,
   };
 }

@@ -118,7 +118,7 @@ stageflow/
 │   │   ├── useStageSkins.ts         # Ephemeral session .glb/.gltf stage & entity skin queue, visibility & blob cleanup
 │   │   ├── useScorePersistence.ts   # Startup hydration, draft auto-saving & confirmed reset
 │   │   ├── useWorkspaceLayout.ts    # Split workspace presets, column percentages & storage sync
-│   │   ├── useStudioDisplaySettings.ts # 3D diorama label modes, guides, DoF blur, top-down minimap & 'L'/'G'/'B'/'M' hotkeys
+│   │   ├── useStudioDisplaySettings.ts # 3D diorama label modes, guides, DoF blur, top-down minimap, session HUD visibility & 'L'/'G'/'B'/'M'/'H' hotkeys
 │   │   ├── useToastNotifications.ts # Floating toast notification queue & auto-dismiss timers
 │   │   ├── useIsMobile.ts           # Zero-polling responsive mobile breakpoint tracker (<768px)
 │   │   ├── useAppShellTheme.ts      # SceneFlow theme hook (Auto/Dark/Warm/Light) & transition suppression
@@ -201,7 +201,7 @@ stageflow/
 │   │   ├── CameraTelemetryCapsule.tsx  # Dual-camera telemetry pill with [OBS|CAM] switch & 1-click YAML copy
 │   │   ├── CameraTelemetryHoverCard.tsx # Precision degrees, meters, focus & aperture hover inspection card
 │   │   ├── telemetryYamlFormatter.ts   # Pure generator for scoped `camera:` and `observer_camera:` snippets
-│   │   ├── DirectorialTransportBar.tsx # Shot-marker scrubber, shot chips, 1080p snapshot trigger & transport deck
+│   │   ├── DirectorialTransportBar.tsx # Shot-marker scrubber, shot chips, 1080p snapshot trigger, HUD toggle & transport deck
 │   │   ├── YamlInspectorDrawer.tsx  # Slide-out live YAML editor with read-only protection & fork-on-edit
 │   │   ├── ToastContainer.tsx       # Floating animated toast notification banners
 │   │   ├── LabelDisplayModeToggle.tsx # Floating 4-mode 3D diorama label toggle (All / Cast / Cam / Off), Guides, Blur & Map toggle

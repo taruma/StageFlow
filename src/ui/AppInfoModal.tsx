@@ -60,6 +60,7 @@ const QUICK_SHORTCUTS = [
   { key: 'G', desc: 'Toggle framing & safe-action guides' },
   { key: 'L', desc: 'Cycle 3D mannequin label mode' },
   { key: 'M', desc: 'Toggle live 2D stage minimap' },
+  { key: 'H', desc: 'Toggle 3D diorama HUD overlays' },
 ];
 
 export const AppInfoModal: React.FC<AppInfoModalProps> = ({ isOpen, onClose }) => {
