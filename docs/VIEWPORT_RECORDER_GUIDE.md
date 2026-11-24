@@ -137,7 +137,7 @@ All options must be preceded by `--` when invoking via `npm run record`:
 | **`--no-blur`** | — | Score default | Forces thin-lens Depth-of-Field bokeh blur **OFF** in Stage Cam POV mode. |
 | **`--preset`** | `iso` \| `top` \| `front` \| `side` | Autored | Snaps Observer Camera to an architectural angle preset (`isometric`, `top-down`, `front`, `side`). |
 | **`--theme`** | `dark` \| `warm` \| `light` | `dark` | 3D diorama floor & background palette (`dark` obsidian, `warm` drafting paper, `light` stone). |
-| **`--labels`** | `all` \| `camera-only` \| `off`| `all` | Controls 3D billboard identity badges and floor compass markers. |
+| **`--labels`** | `all` \| `cast` \| `camera-only` \| `off`| `all` | Controls 3D billboard identity badges and floor compass markers. |
 | **`--guides`** | — | `false` | Displays SMPTE 90% safe action frame, rule-of-thirds grid, and center optical crosshairs. |
 | **`--hud`** | — | `false` | Renders 2D top-left shot breakdown HUD and bottom-right camera telemetry capsule. |
 | **`--res`** | `1080p` \| `4k` \| `720p` \| `square` \| `vertical` | `1080p` | Preset canvas dimensions (see §4.1). |
@@ -241,8 +241,9 @@ npm run record 04 -- --theme warm --preset iso -o warm_isometric.mp4
 ```
 
 ### 6.2 Label Modes (`--labels`)
-- **`--labels all`** *(default)*: Renders stylized 3D floating identity badges on character mannequins, props, and camera.
-- **`--labels camera-only`**: Hides actor and prop labels, keeping only the Stage Camera badge.
+- **`--labels all`** *(default)*: Renders stylized 3D floating identity badges on character mannequins, props, markers, and camera.
+- **`--labels cast`**: Hides prop and marker labels, keeping character badges, the Stage Camera badge, and floor cardinal orientation tags visible.
+- **`--labels camera-only`**: Hides all actor, prop, and marker labels, keeping only the Stage Camera badge and floor cardinal orientation tags.
 - **`--labels off`**: Hides all 3D HTML labels and floor cardinal orientation tags for 100% clean, pristine diorama geometry.
 
 ```bash

@@ -5,6 +5,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { isLabelDisplayMode } from '../../src/core/constants';
 import type {
   AppThemeCategory,
   CameraViewMode,
@@ -37,7 +38,7 @@ Options:
   --blur, --dof-blur      Force thin-lens DoF bokeh blur ON (Stage Cam POV)
   --no-blur               Force thin-lens DoF bokeh blur OFF
   --theme <category>      Diorama theme: "dark" (default), "warm", or "light"
-  --labels <mode>         "all" (default), "camera-only", or "off"
+  --labels <mode>         "all" (default), "cast", "camera-only", or "off"
   --guides                Show optical viewfinder composition guides
   --hud                   Include 2D shot breakdown and telemetry badges
   --preset <name>         Camera angle preset: isometric (iso), top-down (top), front, side
@@ -150,7 +151,13 @@ export function parseArgs(
     } else if (arg === '--theme' && args[i + 1]) {
       theme = args[++i] as AppThemeCategory;
     } else if (arg === '--labels' && args[i + 1]) {
-      labels = args[++i] as LabelDisplayMode;
+      const mode = args[++i].toLowerCase();
+      if (!isLabelDisplayMode(mode)) {
+        throw new Error(
+          `Invalid --labels "${mode}". Expected "all", "cast", "camera-only", or "off".`
+        );
+      }
+      labels = mode;
     } else if (arg === '--guides') {
       guides = true;
     } else if (arg === '--hud') {

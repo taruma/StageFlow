@@ -3,6 +3,7 @@
  * Safely handles environments where localStorage is disabled or restricted.
  */
 
+import { isLabelDisplayMode } from '../constants';
 import type {
   AppThemeMode,
   DioramaThemeMode,
@@ -110,7 +111,7 @@ export function saveStoredActiveSceneId(sceneId: string): void {
 export function loadStoredLabelMode(): LabelDisplayMode | null {
   try {
     const val = localStorage.getItem(STORAGE_KEYS.LABEL_MODE);
-    if (val === 'all' || val === 'camera-only' || val === 'off') {
+    if (val !== null && isLabelDisplayMode(val)) {
       return val;
     }
   } catch {

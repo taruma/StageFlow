@@ -8,7 +8,7 @@
  * and Visual Design System §6.3 (Stacking Context Isolation: 3D <Html> z-index < 10).
  */
 
-import type { EntityKind } from '../core/types';
+import type { CameraViewMode, EntityKind, LabelDisplayMode } from '../core/types';
 
 export type BillboardLabelKind = EntityKind | 'camera';
 export type BillboardSizeTier = 'compact' | 'standard';
@@ -233,5 +233,17 @@ export function computeBillboardLodMetrics(
     showPill: true,
     showDot: true,
   };
+}
+
+/** Evaluates 3D entity billboard visibility for the active label & camera mode. */
+export function shouldShowEntityBillboardLabel(
+  labelMode: LabelDisplayMode,
+  kind: EntityKind,
+  cameraMode?: CameraViewMode
+): boolean {
+  if (cameraMode === 'stage-pov') return false;
+  if (labelMode === 'all') return true;
+  if (labelMode === 'cast') return kind === 'character';
+  return false;
 }
 

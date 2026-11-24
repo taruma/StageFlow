@@ -3,7 +3,25 @@
  * standard cinema lens focal lengths, and blueprint color tokens.
  */
 
-import type { SphericalPose } from './types';
+import type { LabelDisplayMode, SphericalPose } from './types';
+
+export const LABEL_DISPLAY_MODES: readonly LabelDisplayMode[] = [
+  'all',
+  'cast',
+  'camera-only',
+  'off',
+] as const;
+
+export function isLabelDisplayMode(value: string): value is LabelDisplayMode {
+  return (LABEL_DISPLAY_MODES as readonly string[]).includes(value);
+}
+
+export function getNextLabelDisplayMode(
+  current: LabelDisplayMode
+): LabelDisplayMode {
+  const idx = LABEL_DISPLAY_MODES.indexOf(current);
+  return LABEL_DISPLAY_MODES[(idx + 1) % LABEL_DISPLAY_MODES.length];
+}
 
 export const DEG_TO_RAD = Math.PI / 180;
 export const RAD_TO_DEG = 180 / Math.PI;

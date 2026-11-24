@@ -203,7 +203,7 @@ stageflow/
 │   │   ├── DirectorialTransportBar.tsx # Shot-marker scrubber, shot chips, 1080p snapshot trigger & transport deck
 │   │   ├── YamlInspectorDrawer.tsx  # Slide-out live YAML editor with read-only protection & fork-on-edit
 │   │   ├── ToastContainer.tsx       # Floating animated toast notification banners
-│   │   ├── LabelDisplayModeToggle.tsx # Floating 3-mode 3D diorama label toggle (All / Cam / Off), Guides, Blur & Map toggle
+│   │   ├── LabelDisplayModeToggle.tsx # Floating 4-mode 3D diorama label toggle (All / Cast / Cam / Off), Guides, Blur & Map toggle
 │   │   ├── DioramaMinimap.tsx       # Live 60fps imperative SVG top-down stage minimap overlay (entities, Stage Cam frustum/focus, Observer)
 │   │   ├── dioramaMinimapRenderer.ts # Imperative SVG attribute updater for DioramaMinimap (zero React re-renders during playback)
 │   │   ├── StageCamViewfinderOverlay.tsx # Optical film gate, look-around mask & composition guides

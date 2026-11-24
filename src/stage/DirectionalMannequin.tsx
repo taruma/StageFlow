@@ -29,6 +29,7 @@ import type {
   StageFrame,
 } from '../core/types';
 import { StageBillboardLabel } from './StageBillboardLabel';
+import { shouldShowEntityBillboardLabel } from './labelLodMath';
 import { StageEntitySkin } from './StageEnvironmentSkin';
 
 export interface DirectionalMannequinProps {
@@ -674,7 +675,7 @@ const DirectionalMannequinComponent: React.FC<DirectionalMannequinProps> = ({
             kind={def.kind}
             highlighted={highlighted}
             ghosted={isPlaying}
-            visible={labelMode === 'all' && cameraMode !== 'stage-pov'}
+            visible={shouldShowEntityBillboardLabel(labelMode, def.kind, cameraMode)}
           />
         </group>
       </group>

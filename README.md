@@ -116,7 +116,7 @@ shots:
 | `←` / `→` | **Scrub Timeline** | Jump 1s backward / forward (Hold `Shift` for 5s jumps) |
 | `B` | **DoF Bokeh Blur** | Toggle single-pass WebGL2 Stage Cam viewfinder depth-of-field blur |
 | `G` | **Framing Guides** | Toggle rule-of-thirds and safe-action composition overlays |
-| `L` | **3D Label Mode** | Cycle mannequin label display (`all` $\to$ `key` $\to$ `off`) |
+| `L` | **3D Label Mode** | Cycle 3D label display (`all` $\to$ `cast` $\to$ `camera-only` $\to$ `off`) |
 | `M` | **Stage Minimap** | Toggle live 2D SVG top-down stage minimap HUD overlay |
 | `?` | **About & Shortcuts** | Open the About StageFlow info modal and documentation links |
 

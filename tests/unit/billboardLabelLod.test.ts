@@ -5,6 +5,7 @@ import {
   getBillboardBaseOpacity,
   getBillboardSizeTier,
   getBillboardZIndexRange,
+  shouldShowEntityBillboardLabel,
   PROXIMITY_CULL_M,
   MIN_PERSPECTIVE_SCALE,
   MAX_PERSPECTIVE_SCALE,
@@ -14,6 +15,10 @@ import {
   CAMERA_COLLAPSE_START_M,
   CAMERA_COLLAPSE_END_M,
 } from '../../src/stage/labelLodMath';
+import {
+  getNextLabelDisplayMode,
+  isLabelDisplayMode,
+} from '../../src/core/constants';
 import {
   computeAdaptiveDioramaFovDeg,
   focalLengthToVerticalFovDeg,
@@ -291,6 +296,40 @@ describe('labelLodMath — 3D Billboard Label LOD & Hierarchy Engine', () => {
         phoneAspect
       );
       expect(effectivePhone).toBeCloseTo(15.0, 2);
+    });
+  });
+
+  describe('shouldShowEntityBillboardLabel — 4-Mode Entity Label Visibility', () => {
+    it('shows all entity kinds in "all" mode outside stage-pov', () => {
+      expect(shouldShowEntityBillboardLabel('all', 'character', 'scripted')).toBe(true);
+      expect(shouldShowEntityBillboardLabel('all', 'prop', 'scripted')).toBe(true);
+      expect(shouldShowEntityBillboardLabel('all', 'marker', 'free')).toBe(true);
+    });
+
+    it('shows only character labels in "cast" mode (hides props and markers)', () => {
+      expect(shouldShowEntityBillboardLabel('cast', 'character', 'scripted')).toBe(true);
+      expect(shouldShowEntityBillboardLabel('cast', 'character', 'free')).toBe(true);
+      expect(shouldShowEntityBillboardLabel('cast', 'prop', 'scripted')).toBe(false);
+      expect(shouldShowEntityBillboardLabel('cast', 'marker', 'free')).toBe(false);
+    });
+
+    it('hides all entity labels in "camera-only", "off", and "stage-pov"', () => {
+      for (const kind of ['character', 'prop', 'marker'] as const) {
+        expect(shouldShowEntityBillboardLabel('camera-only', kind, 'scripted')).toBe(false);
+        expect(shouldShowEntityBillboardLabel('off', kind, 'scripted')).toBe(false);
+        expect(shouldShowEntityBillboardLabel('all', kind, 'stage-pov')).toBe(false);
+        expect(shouldShowEntityBillboardLabel('cast', kind, 'stage-pov')).toBe(false);
+      }
+    });
+
+    it('cycles label modes strictly in All -> Cast -> Cam -> Off -> All order', () => {
+      expect(getNextLabelDisplayMode('all')).toBe('cast');
+      expect(getNextLabelDisplayMode('cast')).toBe('camera-only');
+      expect(getNextLabelDisplayMode('camera-only')).toBe('off');
+      expect(getNextLabelDisplayMode('off')).toBe('all');
+
+      expect(isLabelDisplayMode('cast')).toBe(true);
+      expect(isLabelDisplayMode('actors')).toBe(false);
     });
   });
 });

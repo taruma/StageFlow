@@ -59,7 +59,7 @@ export type CameraEasing =
 
 export type CameraViewMode = 'scripted' | 'free' | 'stage-pov';
 
-export type LabelDisplayMode = 'all' | 'camera-only' | 'off';
+export type LabelDisplayMode = 'all' | 'cast' | 'camera-only' | 'off';
 
 export type SplitPreset = 'split' | 'full';
 

@@ -116,6 +116,9 @@ describe('localStorageUi — Synchronous UI Preferences Persistence', () => {
   it('saves and loads label display mode with fallback', () => {
     expect(loadStoredLabelMode()).toBeNull();
 
+    saveStoredLabelMode('cast');
+    expect(loadStoredLabelMode()).toBe('cast');
+
     saveStoredLabelMode('camera-only');
     expect(loadStoredLabelMode()).toBe('camera-only');
 

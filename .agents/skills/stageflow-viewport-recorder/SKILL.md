@@ -46,7 +46,7 @@ npm run record [scene] [options]
 | `--blur`, `--dof-blur` | Flag | Force single-pass WebGL2 thin-lens depth of field bokeh blur ON (Stage Cam POV) | Auto (inherits from `score.optics.dofBlur`) |
 | `--no-blur` | Flag | Force thin-lens depth of field bokeh blur OFF | Auto |
 | `--theme` | `dark` \| `warm` \| `light` | Diorama theme palette (background, metric grid, floor stone) | `dark` |
-| `--labels` | `all` \| `camera-only` \| `off` | Floating 3D Drei HTML character & camera badges | `all` |
+| `--labels` | `all` \| `cast` \| `camera-only` \| `off` | Floating 3D Drei HTML entity & camera badges | `all` |
 | `--guides` | Flag | Show optical safe-action frame, rule-of-thirds grid, and reticle | Off |
 | `--hud` | Flag | Show 2D shot breakdown and degree/meter telemetry badges | Off |
 | `--audio` | `<path>` | Path to local reference video/audio to slap audio track onto output (visuals excluded) | None (silent) |

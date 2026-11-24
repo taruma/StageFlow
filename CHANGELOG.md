@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **4-Mode 3D Label Visibility Toggle (`Cast` / `'cast'`) (`src/core/types.ts`, `src/core/constants.ts`, `src/core/storage/localStorageUi.ts`, `src/hooks/useStudioDisplaySettings.ts`, `src/stage/labelLodMath.ts`, `src/stage/DirectionalMannequin.tsx`, `src/ui/LabelDisplayModeToggle.tsx`, `src/ui/CompactDioramaHeader.tsx`, `scripts/record/cliArgs.ts`, `tests/unit/billboardLabelLod.test.ts`, `tests/unit/storage.test.ts`, `tests/unit/recorder.test.ts`, `docs/DIORAMA_3D_AND_UI_SPECIFICATIONS.md`, `docs/MEDIA_CLOCK_AND_SYNC_SPECIFICATIONS.md`, `docs/VIEWPORT_RECORDER_GUIDE.md`, `docs/ARCHITECTURE_FILE_MAP.md`, `README.md`, `.agents/skills/stageflow-viewport-recorder/SKILL.md`)**:
+  - Extended `LabelDisplayMode` with `'cast'` alongside shared `LABEL_DISPLAY_MODES`, `isLabelDisplayMode`, and `getNextLabelDisplayMode` helpers in `src/core/constants.ts` and `localStorage` validation in `localStorageUi.ts`.
+  - Added pure `shouldShowEntityBillboardLabel` in `src/stage/labelLodMath.ts` and wired `DirectionalMannequin.tsx` so `'cast'` displays floating character labels, the Stage Camera badge, and floor cardinal markers while hiding prop and gaffer marker labels (preserving 3D `highlighted` geometry across all label modes).
+  - Updated `LabelDisplayModeToggle.tsx` (`All | Cast | Cam | Off` with Lucide `Users` icon), `CompactDioramaHeader.tsx` (`[ View ▾ ]` popover), and `useStudioDisplaySettings.ts` hotkey `L` cycling (`all -> cast -> camera-only -> off -> all`).
+  - Added `--labels cast` support and strict `isLabelDisplayMode` CLI validation to `scripts/record/cliArgs.ts`, plus unit tests in `billboardLabelLod.test.ts`, `storage.test.ts`, and `recorder.test.ts`.
+
 ### Changed
 
 - **Playback GPU Compositor Relief & Video-Sync Hardening (Pass 1) (`src/stage/DioramaCanvas.tsx`, `src/stage/StageCamMonitorCanvas.tsx`, `src/stage/StageBillboardLabel.tsx`, `src/stage/ObserverCameraRig.tsx`, `src/recorder/HeadlessRecorderView.tsx`, `src/ui/InteractiveStudioApp.tsx`, `src/ui/DioramaMinimap.tsx`, `src/media/youtubeMediaDriver.ts`, `src/core/trajectoryChain.ts`, `tests/unit/mediaDrivers.test.ts`, `tests/unit/stagePerfHelpers.test.ts`, `docs/MEDIA_CLOCK_AND_SYNC_SPECIFICATIONS.md`, `docs/DIORAMA_3D_AND_UI_SPECIFICATIONS.md`)**:

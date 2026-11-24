@@ -20,6 +20,7 @@ import {
   RotateCcw,
   X,
 } from 'lucide-react';
+import { LABEL_DISPLAY_MODES } from '../core/constants';
 import type {
   CameraViewMode,
   LabelDisplayMode,
@@ -268,8 +269,8 @@ export const CompactDioramaHeader: React.FC<CompactDioramaHeaderProps> = ({
               <span className="text-[9px] font-bold text-text-faint font-mono uppercase tracking-wider block px-1.5 pb-1">
                 3D Stage Labels
               </span>
-              <div className="flex items-center gap-1 font-mono bg-surface-subtle p-0.5 rounded-lg border border-border-subtle">
-                {(['all', 'camera-only', 'off'] as LabelDisplayMode[]).map((mode) => (
+              <div className="flex items-center gap-0.5 font-mono bg-surface-subtle p-0.5 rounded-lg border border-border-subtle">
+                {LABEL_DISPLAY_MODES.map((mode) => (
                   <button
                     key={mode}
                     type="button"
@@ -280,7 +281,13 @@ export const CompactDioramaHeader: React.FC<CompactDioramaHeaderProps> = ({
                         : 'text-text-muted hover:text-text-main'
                     }`}
                   >
-                    {mode === 'camera-only' ? 'Cam' : mode === 'all' ? 'All' : 'Off'}
+                    {mode === 'all'
+                      ? 'All'
+                      : mode === 'cast'
+                        ? 'Cast'
+                        : mode === 'camera-only'
+                          ? 'Cam'
+                          : 'Off'}
                   </button>
                 ))}
               </div>

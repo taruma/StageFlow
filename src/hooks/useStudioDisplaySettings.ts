@@ -5,6 +5,7 @@
  */
 
 import { useState, useCallback, useEffect } from 'react';
+import { getNextLabelDisplayMode } from '../core/constants';
 import type { LabelDisplayMode } from '../core/types';
 import {
   loadStoredDioramaMinimap,
@@ -41,8 +42,7 @@ export function useStudioDisplaySettings() {
 
   const handleCycleLabelMode = useCallback(() => {
     setLabelModeState((prev) => {
-      const next: LabelDisplayMode =
-        prev === 'all' ? 'camera-only' : prev === 'camera-only' ? 'off' : 'all';
+      const next = getNextLabelDisplayMode(prev);
       saveStoredLabelMode(next);
       return next;
     });

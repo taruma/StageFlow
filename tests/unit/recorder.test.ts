@@ -324,4 +324,13 @@ describe('CLI Default Output Path Resolution', () => {
     ]);
     expect(parsedDir.outputPath).toBe(path.join('recordings', 'custom_scripted.mp4'));
   });
+
+  it('parses and validates --labels including "cast" mode', () => {
+    expect(parseArgs(['01', '--labels', 'all']).labels).toBe('all');
+    expect(parseArgs(['01', '--labels', 'cast']).labels).toBe('cast');
+    expect(parseArgs(['01', '--labels', 'CAST']).labels).toBe('cast');
+    expect(parseArgs(['01', '--labels', 'camera-only']).labels).toBe('camera-only');
+    expect(parseArgs(['01', '--labels', 'off']).labels).toBe('off');
+    expect(() => parseArgs(['01', '--labels', 'invalid'])).toThrow(/Invalid --labels/);
+  });
 });

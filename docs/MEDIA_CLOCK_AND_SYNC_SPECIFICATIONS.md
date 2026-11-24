@@ -108,7 +108,7 @@ Transport playback, frame-stepping, and diorama display modes are managed via [`
 | **Frame Step Back** | — *(Keyboard only)* | `[` | Pauses playback and seeks backward by $-\frac{1}{30}\text{s}$ (`-33.3ms`) (`useMediaClock`). |
 | **Frame Step Forward** | — *(Keyboard only)* | `]` | Pauses playback and seeks forward by $+\frac{1}{30}\text{s}$ (`+33.3ms`) (`useMediaClock`). |
 | **Skip $\pm 1\text{s}$ / $\pm 5\text{s}$** | Scrubber Bar | `ArrowLeft` / `ArrowRight` (`+Shift` for $5\text{s}$) | Seeks $\pm 1\text{s}$ (or $\pm 5\text{s}$ with `Shift`) and increments `lastManualSeekIdRef` (`useMediaClock`). |
-| **Cycle 3D Labels** | Label Mode Toggle | `L` | Cycles diorama labels through `'all' -> 'camera-only' -> 'off' -> 'all'` (`useStudioDisplaySettings`). |
+| **Cycle 3D Labels** | Label Mode Toggle | `L` | Cycles diorama labels through `'all' -> 'cast' -> 'camera-only' -> 'off' -> 'all'` (`useStudioDisplaySettings`). |
 | **Toggle Safe Guides**| `[ Guides ]` Button | `G` | Toggles optical safe-action box, 3x3 grid, and center reticle in Stage Cam POV / Monitor (`useStudioDisplaySettings`). |
 | **Toggle Optical DoF Blur** | `[ Blur ]` Button | `B` | Toggles real-time thin-lens depth of field bokeh blur in Stage Cam POV / Monitor (`useStudioDisplaySettings`). |
 | **Toggle Top-Down Minimap** | `[ Map ]` Button | `M` | Toggles the live 2D SVG top-down stage minimap in the Top-Right diorama corner (`useStudioDisplaySettings`). |

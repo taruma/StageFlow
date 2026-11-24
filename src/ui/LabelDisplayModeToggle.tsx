@@ -1,13 +1,21 @@
 /**
  * Floating Viewport Overlay Controls for the 3D Diorama.
  * Houses:
- *   1. 3-Mode Label Visibility Toggle ('all' | 'camera-only' | 'off') [Hotkey: L]
+ *   1. 4-Mode Label Visibility Toggle ('all' | 'cast' | 'camera-only' | 'off') [Hotkey: L]
  *   2. Viewfinder Composition Guides Toggle (90% safe-action, rule-of-thirds, reticle) [Hotkey: G]
  * Styled with SceneFlow tactile pill design tokens.
  */
 
 import React from 'react';
-import { Aperture, EyeOff, Grid3X3, Map as MapIcon, Tag, Video } from 'lucide-react';
+import {
+  Aperture,
+  EyeOff,
+  Grid3X3,
+  Map as MapIcon,
+  Tag,
+  Users,
+  Video,
+} from 'lucide-react';
 import type { CameraViewMode, LabelDisplayMode } from '../core/types';
 
 export interface LabelDisplayModeToggleProps {
@@ -32,8 +40,16 @@ const MODES: Array<{
   {
     mode: 'all',
     label: 'All',
-    title: 'Show Actor & Camera Labels (Actors auto-dim during playback) [Hotkey: L]',
+    title:
+      'Show All Entity & Camera Labels (Characters, Props, Markers & Cam) [Hotkey: L]',
     Icon: Tag,
+  },
+  {
+    mode: 'cast',
+    label: 'Cast',
+    title:
+      'Show Character & Stage Camera Labels Only (Hides Props & Markers) [Hotkey: L]',
+    Icon: Users,
   },
   {
     mode: 'camera-only',
