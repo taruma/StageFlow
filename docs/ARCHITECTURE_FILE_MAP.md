@@ -67,6 +67,7 @@ stageflow/
 ├── src/
 │   ├── recorder/                    # Headless Recording Bridge & Render Environment
 │   │   ├── HeadlessRecorderView.tsx # Canvas mounted on ?mode=headless-render
+│   │   ├── recorderSync.ts          # Pure shard-start timestamp & inner-R3F revision commit barrier helpers
 │   │   └── recorderTypes.ts         # Bridge schemas & window.__STAGEFLOW_RECORDER__ interface
 │   ├── scores/                      # Choreography Scores (*.yaml)
 │   │   ├── catalog.yaml             # Declarative YAML manifest for built-in choreography scores, categories & URL aliases

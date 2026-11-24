@@ -90,9 +90,14 @@ export async function runWorkerShard({
       { timeout: 15000 }
     );
 
+    const workerRecorderConfig: RecorderConfig = {
+      ...recorderConfig,
+      initialFrameIndex: startFrame,
+    };
+
     const sessionInfo = await page.evaluate(
       (cfg) => window.__STAGEFLOW_RECORDER__!.init(cfg),
-      recorderConfig
+      workerRecorderConfig
     );
     onInitInfo?.(sessionInfo);
 

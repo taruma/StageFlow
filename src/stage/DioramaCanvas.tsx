@@ -53,6 +53,8 @@ export interface DioramaCanvasProps {
     advance: (timestamp: number) => void,
     glRenderer?: string
   ) => void;
+  uiFrameRevision?: number;
+  onUiFrameCommit?: (revision: number) => void;
   onSkinLoad?: (url: string) => void;
   onStageSkinError?: (error: Error) => void;
   onEntitySkinError?: (entityId: string, error: Error) => void;
@@ -63,7 +65,9 @@ const HeadlessAdvanceBridge: React.FC<{
     advance: (timestamp: number) => void,
     glRenderer?: string
   ) => void;
-}> = ({ onAdvanceReady }) => {
+  uiFrameRevision?: number;
+  onUiFrameCommit?: (revision: number) => void;
+}> = ({ onAdvanceReady, uiFrameRevision = 0, onUiFrameCommit }) => {
   const advance = useThree((state) => state.advance);
   const gl = useThree((state) => state.gl);
 
@@ -80,6 +84,12 @@ const HeadlessAdvanceBridge: React.FC<{
     }
     onAdvanceReady(advance, glRenderer);
   }, [advance, gl, onAdvanceReady]);
+
+  // Runs inside the R3F inner Fiber root after BlueprintStageScene,
+  // ObserverCameraRig, StageCameraRig, and StageCamDofEffect commit uiFrame.
+  React.useEffect(() => {
+    onUiFrameCommit?.(uiFrameRevision);
+  }, [uiFrameRevision, onUiFrameCommit]);
 
   return null;
 };
@@ -191,6 +201,8 @@ export const DioramaCanvas: React.FC<DioramaCanvasProps> = ({
   preserveDrawingBuffer,
   dpr,
   onAdvanceReady,
+  uiFrameRevision = 0,
+  onUiFrameCommit,
   onSkinLoad,
   onStageSkinError,
   onEntitySkinError,
@@ -244,9 +256,6 @@ export const DioramaCanvas: React.FC<DioramaCanvasProps> = ({
             evaluateTick60fps={evaluateTick60fps}
           />
         )}
-        {onAdvanceReady && (
-          <HeadlessAdvanceBridge onAdvanceReady={onAdvanceReady} />
-        )}
 
         {/* 1. Shared Diorama Scene (Lighting, Metric Floor Grid, Directional Mannequins) */}
         <BlueprintStageScene
@@ -289,6 +298,14 @@ export const DioramaCanvas: React.FC<DioramaCanvasProps> = ({
         {/* 4. Opt-In Single-Pass Thin-Lens DoF Blur Effect (Stage Cam POV Only) */}
         {dofBlurEnabled && cameraMode === 'stage-pov' && (
           <StageCamDofEffect frameRef={frameRef} uiFrame={uiFrame} />
+        )}
+
+        {onAdvanceReady && (
+          <HeadlessAdvanceBridge
+            onAdvanceReady={onAdvanceReady}
+            uiFrameRevision={uiFrameRevision}
+            onUiFrameCommit={onUiFrameCommit}
+          />
         )}
       </Canvas>
     </div>

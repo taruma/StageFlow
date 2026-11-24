@@ -51,7 +51,7 @@ Standard screen recording tools (OBS, QuickTime, browser screen capture) are fun
 StageFlow's recorder enforces **pure mathematical determinism**:
 - Time does **not** advance in wall-clock time; it advances in discrete ticks:
   $$t_i = t_{\text{start}} + \frac{i}{\text{fps}}, \quad i \in \{0, 1, \dots, N-1\}$$
-- At every step $i$, Playwright dispatches `window.__STAGEFLOW_RECORDER__.stepFrame(i)` to the in-browser React app, awaits synchronous `advance()` + single-rAF framing, captures a CDP screenshot buffer (`jpeg q=96` default for video, `png` for `--format sequence`), and pipes (or concatenates across parallel `--workers` shards) into FFmpeg.
+- At every step $i$, Playwright dispatches `window.__STAGEFLOW_RECORDER__.stepFrame(i)` to the in-browser React app. Each worker initializes at its shard's `initialFrameIndex` (`startFrame`) and, on shot/cue boundary transitions, awaits an inner React Three Fiber commit barrier (`uiFrameRevision` via `HeadlessAdvanceBridge`) before calling synchronous `advance()`, capturing a CDP screenshot buffer (`jpeg q=96` default for video, `png` for `--format sequence`), and piping (or concatenating across parallel `--workers` shards) into FFmpeg.
 - The resulting video has **zero dropped frames, zero frame pacing stutter, and perfect A/V sync**, whether rendered on a high-end workstation or a headless CI server.
 
 ---

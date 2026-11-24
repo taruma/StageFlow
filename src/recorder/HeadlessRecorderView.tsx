@@ -18,6 +18,11 @@ import { preloadStageEnvironmentSkin } from '../stage/StageEnvironmentSkin';
 import { StageCamViewfinderOverlay } from '../ui/StageCamViewfinderOverlay';
 import { ShotBreakdownHud } from '../ui/ShotBreakdownHud';
 import { CameraTelemetryCapsule } from '../ui/CameraTelemetryCapsule';
+import {
+  isRecorderR3fReadyForStep,
+  resolveRecorderFrameTimestampSec,
+  shouldAdvanceDuringRecorderInit,
+} from './recorderSync';
 import type {
   RecorderConfig,
   RecorderFrameResult,
@@ -96,18 +101,36 @@ export const HeadlessRecorderView: React.FC = () => {
   }, [config.scoreYaml]);
 
   const score: StageScore = parsedScoreResult;
-  const initialFrame = useMemo(
-    () =>
-      applyCustomPoseToFrame(
-        computeStageFrame(config.startSec, score),
-        config.customPose
-      ),
-    [config.startSec, score, config.customPose]
-  );
+  const initialFrame = useMemo(() => {
+    const initialTimestampSec = resolveRecorderFrameTimestampSec(
+      config.initialFrameIndex ?? 0,
+      config.fps,
+      config.startSec,
+      config.endSec,
+      score.durationSec
+    );
+    return applyCustomPoseToFrame(
+      computeStageFrame(initialTimestampSec, score),
+      config.customPose
+    );
+  }, [
+    config.initialFrameIndex,
+    config.fps,
+    config.startSec,
+    config.endSec,
+    score,
+    config.customPose,
+  ]);
 
-  const [uiFrame, setUiFrame] = useState<StageFrame>(initialFrame);
+  const [uiFrameState, setUiFrameState] = useState<{
+    frame: StageFrame;
+    revision: number;
+  }>({ frame: initialFrame, revision: 0 });
+  const uiFrame = uiFrameState.frame;
   const frameRef = useRef<StageFrame>(initialFrame);
   const lastCommittedUiFrameRef = useRef<StageFrame>(initialFrame);
+  const uiFrameRevisionRef = useRef<number>(0);
+  const committedR3fRevisionRef = useRef<number>(0);
   const lastManualSeekIdRef = useRef<number>(0);
   const r3fTickCountRef = useRef<number>(0);
   const advanceRef = useRef<((timestamp: number) => void) | null>(null);
@@ -124,6 +147,13 @@ export const HeadlessRecorderView: React.FC = () => {
     },
     []
   );
+
+  const handleUiFrameCommit = useCallback((revision: number) => {
+    committedR3fRevisionRef.current = Math.max(
+      committedR3fRevisionRef.current,
+      revision
+    );
+  }, []);
 
   const handleSkinLoad = useCallback((url: string) => {
     settledSkinUrlsRef.current.add(url);
@@ -164,11 +194,6 @@ export const HeadlessRecorderView: React.FC = () => {
     [effectiveTheme]
   );
 
-  // Synchronize ref on uiFrame change
-  useEffect(() => {
-    frameRef.current = uiFrame;
-  }, [uiFrame]);
-
   // Frame evaluation tick passed to DioramaCanvas
   const evaluateTick60fps = useCallback(() => {
     r3fTickCountRef.current += 1;
@@ -180,10 +205,12 @@ export const HeadlessRecorderView: React.FC = () => {
     return new Promise((resolve) => {
       const cfg = configRef.current;
       const currentScore = scoreRef.current;
-      const timeOffsetSec = frameIndex / cfg.fps;
-      const currentTimestampSec = Math.min(
-        cfg.startSec + timeOffsetSec,
-        cfg.endSec > cfg.startSec ? cfg.endSec : currentScore.durationSec
+      const currentTimestampSec = resolveRecorderFrameTimestampSec(
+        frameIndex,
+        cfg.fps,
+        cfg.startSec,
+        cfg.endSec,
+        currentScore.durationSec
       );
 
       const rawFrame = computeStageFrame(currentTimestampSec, currentScore);
@@ -195,9 +222,12 @@ export const HeadlessRecorderView: React.FC = () => {
         lastCommittedUiFrameRef.current,
         nextFrame
       );
+      let targetRevision = uiFrameRevisionRef.current;
       if (boundaryChanged) {
         lastCommittedUiFrameRef.current = nextFrame;
-        setUiFrame(nextFrame);
+        targetRevision = uiFrameRevisionRef.current + 1;
+        uiFrameRevisionRef.current = targetRevision;
+        setUiFrameState({ frame: nextFrame, revision: targetRevision });
       }
 
       const finishStep = () => {
@@ -226,8 +256,23 @@ export const HeadlessRecorderView: React.FC = () => {
       };
 
       if (boundaryChanged) {
-        // Wait 1 rAF so React commits boundary JSX (trails, HUD, labels) before advance()
-        requestAnimationFrame(finishStep);
+        // Wait until the inner R3F Fiber root commits targetRevision before calling advance()
+        let attempts = 0;
+        const waitForR3fCommit = () => {
+          if (
+            isRecorderR3fReadyForStep(
+              committedR3fRevisionRef.current,
+              targetRevision
+            ) ||
+            attempts >= 60
+          ) {
+            finishStep();
+            return;
+          }
+          attempts += 1;
+          requestAnimationFrame(waitForR3fCommit);
+        };
+        requestAnimationFrame(waitForR3fCommit);
       } else {
         finishStep();
       }
@@ -275,20 +320,28 @@ export const HeadlessRecorderView: React.FC = () => {
           1,
           Math.ceil((effectiveEnd - newConfig.startSec) * newConfig.fps)
         );
-        const rawFirstFrame = computeStageFrame(newConfig.startSec, parsed);
+        const initialTimestampSec = resolveRecorderFrameTimestampSec(
+          newConfig.initialFrameIndex ?? 0,
+          newConfig.fps,
+          newConfig.startSec,
+          newConfig.endSec,
+          parsed.durationSec
+        );
+        const rawFirstFrame = computeStageFrame(initialTimestampSec, parsed);
         const firstFrame = applyCustomPoseToFrame(
           rawFirstFrame,
           newConfig.customPose
         );
         frameRef.current = firstFrame;
         lastCommittedUiFrameRef.current = firstFrame;
-        setUiFrame(firstFrame);
+        lastManualSeekIdRef.current += 1;
+        const initTargetRevision = uiFrameRevisionRef.current + 1;
+        uiFrameRevisionRef.current = initTargetRevision;
+        setUiFrameState({ frame: firstFrame, revision: initTargetRevision });
 
-        // Wait until R3F advance bridge + all configured .glb/.gltf skins settle,
-        // execute post-load synchronous advance() ticks, and flush compositor before Frame 0.
-        const initialTickFloor = r3fTickCountRef.current + 4;
-        let postSkinTargetTick: number | null =
-          expectedSkinUrls.length === 0 ? initialTickFloor : null;
+        // Wait until the inner R3F root commits initTargetRevision and all configured
+        // .glb/.gltf skins settle, then pump post-load advance() warm-up ticks.
+        let postSkinTargetTick: number | null = null;
         const deadlineMs =
           performance.now() + (expectedSkinUrls.length > 0 ? 15000 : 5000);
 
@@ -299,21 +352,25 @@ export const HeadlessRecorderView: React.FC = () => {
               return;
             }
 
-            if (advanceRef.current) {
-              advanceRef.current(performance.now());
-            }
-
             const allSkinsSettled = expectedSkinUrls.every((u) =>
               settledSkinUrlsRef.current.has(u)
             );
-            if (allSkinsSettled && postSkinTargetTick === null && advanceRef.current) {
-              postSkinTargetTick = r3fTickCountRef.current + 2;
+            const canAdvance = shouldAdvanceDuringRecorderInit(
+              Boolean(advanceRef.current),
+              allSkinsSettled,
+              committedR3fRevisionRef.current,
+              initTargetRevision
+            );
+
+            if (canAdvance && advanceRef.current) {
+              if (postSkinTargetTick === null) {
+                postSkinTargetTick = r3fTickCountRef.current + 2;
+              }
+              advanceRef.current(performance.now());
             }
 
             if (
-              (allSkinsSettled &&
-                advanceRef.current &&
-                postSkinTargetTick !== null &&
+              (postSkinTargetTick !== null &&
                 r3fTickCountRef.current >= postSkinTargetTick) ||
               performance.now() >= deadlineMs
             ) {
@@ -362,6 +419,8 @@ export const HeadlessRecorderView: React.FC = () => {
         frameloopMode="never"
         preserveDrawingBuffer={true}
         onAdvanceReady={handleAdvanceReady}
+        uiFrameRevision={uiFrameState.revision}
+        onUiFrameCommit={handleUiFrameCommit}
         frameRef={frameRef}
         uiFrame={uiFrame}
         lastManualSeekIdRef={lastManualSeekIdRef}

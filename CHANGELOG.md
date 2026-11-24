@@ -58,6 +58,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Headless Multi-Worker Shard-Boundary & Inner-R3F Commit Race (`src/recorder/recorderSync.ts`, `src/recorder/recorderTypes.ts`, `src/recorder/HeadlessRecorderView.tsx`, `src/stage/DioramaCanvas.tsx`, `scripts/record/workerRecorder.ts`, `tests/unit/recorder.test.ts`, `docs/ARCHITECTURE_FILE_MAP.md`, `docs/VIEWPORT_RECORDER_GUIDE.md`)**:
+  - Added `src/recorder/recorderSync.ts` (`resolveRecorderFrameTimestampSec`, `isRecorderR3fReadyForStep`, `shouldAdvanceDuringRecorderInit`) and optional `RecorderConfig.initialFrameIndex`, passed by `workerRecorder.ts` (`startFrame`) so parallel worker shards initialize directly at their shard start timestamp instead of `t = 0.00s`.
+  - Added an inner-R3F commit barrier (`uiFrameRevision` / `onUiFrameCommit`) to `HeadlessAdvanceBridge` placed after all sibling 3D scene/rig/DoF components inside `DioramaCanvas.tsx`, preventing `HeadlessRecorderView.tsx` `stepFrame()` and `init()` from calling `advance()` before the nested R3F reconciler commits boundary `uiFrame` updates (eliminating 1-frame `shot-01` flashes at shard seams with `.glb` skins).
+  - Removed the redundant `useEffect(() => { frameRef.current = uiFrame; })` overwrite in `HeadlessRecorderView.tsx`, incremented `lastManualSeekIdRef` during `init()`, and gated `init()` warm-up `advance()` ticks until both `.glb` skins settle and the inner R3F tree commits `initTargetRevision`.
+  - Added unit tests in `tests/unit/recorder.test.ts` and updated `docs/ARCHITECTURE_FILE_MAP.md` and `docs/VIEWPORT_RECORDER_GUIDE.md`.
 - **Study Kinematic Continuity & CLI Recorder Default (`src/scores/studies/three-years-late.yaml`, `src/scores/studies/observation-only.yaml`, `scripts/record/cliArgs.ts`, `docs/VIEWPORT_RECORDER_GUIDE.md`)**:
   - Added explicit `from:` anchors across `obs-02`–`obs-05` in `three-years-late.yaml` to eliminate observer camera eye jumps at shot boundaries (`< 0.05m` across `59.083s`, `91.167s`, and `112.667s`).
   - Adjusted `blk-john-walkout` `end: 58.100` in `observation-only.yaml` so John arrives smoothly at `[0, 0, 5.15]` right as `exit_door_left` and `exit_door_right` swing open (`|rotationYRad| > 1.0` at `59.0s`).

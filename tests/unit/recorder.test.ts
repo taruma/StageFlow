@@ -28,6 +28,11 @@ import {
 } from '../../scripts/record/workerScheduler';
 import { computeStageFrame } from '../../src/core/frameEngine';
 import { findCatalogItem, loadBundledScore } from '../../src/core/scoreCatalog';
+import {
+  isRecorderR3fReadyForStep,
+  resolveRecorderFrameTimestampSec,
+  shouldAdvanceDuringRecorderInit,
+} from '../../src/recorder/recorderSync';
 
 describe('Recorder Camera Presets', () => {
   it('defines valid pitch, yaw, and distance for all presets', () => {
@@ -399,5 +404,36 @@ describe('CLI Default Output Path Resolution', () => {
     expect(hideAllChars.stageDisplay?.showCharacters).toBe(false);
 
     expect(() => parseArgs(['01', '--floor', 'glass'])).toThrow(/Invalid --floor/);
+  });
+});
+
+describe('Headless Recorder R3F Commit Barrier & Shard Timestamp Sync', () => {
+  it('resolves identical deterministic timestamps for shard start frames and mid-slice bounds', () => {
+    // 30fps shard boundaries across 34.792s score (frames 0, 261, 522, 783)
+    expect(resolveRecorderFrameTimestampSec(0, 30, 0, 0, 34.792)).toBe(0);
+    expect(resolveRecorderFrameTimestampSec(261, 30, 0, 0, 34.792)).toBeCloseTo(8.7, 6);
+    expect(resolveRecorderFrameTimestampSec(522, 30, 0, 0, 34.792)).toBeCloseTo(17.4, 6);
+    expect(resolveRecorderFrameTimestampSec(783, 30, 0, 0, 34.792)).toBeCloseTo(26.1, 6);
+
+    // Clamps to endSec or scoreDurationSec when frame overshoots
+    expect(resolveRecorderFrameTimestampSec(1200, 30, 0, 0, 34.792)).toBe(34.792);
+    expect(resolveRecorderFrameTimestampSec(300, 30, 4.0, 10.5, 34.792)).toBe(10.5);
+    expect(resolveRecorderFrameTimestampSec(30, 30, 4.0, 10.5, 34.792)).toBeCloseTo(5.0, 6);
+    expect(resolveRecorderFrameTimestampSec(-5, 30, 2.5, 10.5, 34.792)).toBe(2.5);
+  });
+
+  it('gates stepFrame advance() until inner R3F commits the target uiFrame revision', () => {
+    expect(isRecorderR3fReadyForStep(0, 1)).toBe(false);
+    expect(isRecorderR3fReadyForStep(1, 2)).toBe(false);
+    expect(isRecorderR3fReadyForStep(2, 2)).toBe(true);
+    expect(isRecorderR3fReadyForStep(3, 2)).toBe(true);
+  });
+
+  it('gates init() warm-up advance() ticks on advance handle, settled skins, and committed revision', () => {
+    expect(shouldAdvanceDuringRecorderInit(false, true, 1, 1)).toBe(false);
+    expect(shouldAdvanceDuringRecorderInit(true, false, 1, 1)).toBe(false);
+    expect(shouldAdvanceDuringRecorderInit(true, true, 0, 1)).toBe(false);
+    expect(shouldAdvanceDuringRecorderInit(true, true, 1, 1)).toBe(true);
+    expect(shouldAdvanceDuringRecorderInit(true, true, 2, 1)).toBe(true);
   });
 });

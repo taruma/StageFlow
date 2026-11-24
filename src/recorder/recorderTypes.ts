@@ -23,6 +23,7 @@ export interface RecorderConfig {
   height: number;
   startSec: number;
   endSec: number;
+  initialFrameIndex?: number;
   stageSkinUrl?: string;
   entitySkinUrls?: Record<string, string>;
   customPose?: {
