@@ -1,0 +1,956 @@
+version: "1.0"
+id: "screaming-amber-wood"
+title: "Screaming Amber Wood"
+subtitle: "CODEX-LW0941 — Spatial Blocking & Camera Study"
+description: "Rosa defies Robert's ghost along a frozen root corridor to rip a living heart from an amber sap pool, awakening the bone-white skull grove and pulling Robert back into mortal flesh."
+video: "https://www.youtube.com/watch?v=jbf9kY_XMEo"
+aspect_ratio: "16:9"
+duration: 65.542
+
+metadata:
+  source_codex: "CODEX-LW0941 by Taruma Sakti"
+  cast:
+    rosa: "Princess — walks -X to +X along the 180° axis to the Amber Pool"
+    robert: "Spectral knight — hovers off-axis on -Z bank so frontal CUs stay unobstructed; crashes solid in Scene 14"
+  staging_notes:
+    - "Primary axis runs Stage Left (-X, frozen grove) to Stage Right (+X, Amber Pool at x=1.95)"
+    - "Frontal CUs (#02, #09, #12) sit ahead of Robert with lateral Z clearance to prevent foreground occlusion"
+    - "Observer uses a single unbroken 6-waypoint Catmull-Rom spline orbit (0–65.542s) with zero boundary snaps"
+
+optics:
+  dof_blur: true
+  dof: "medium"
+
+stage:
+  width: 22
+  depth: 18
+  grid_step: 2
+  show_rigs: true
+  observer_camera:
+    target: [-2.8, 1.6, 1.6]
+    distance: 18.5
+    pitch: 28
+    yaw: -48
+    lens: 28mm
+  stage_camera:
+    target: ["rosa", "robert"]
+    target_offset: [0, -0.55, 0]
+    distance: 5.2
+    pitch: 3
+    yaw: 0
+    lens: 35mm
+
+# ==============================================================================
+# SCENE ENTITIES (Characters, Hero Props, Transforming Grove & Floor Markers)
+# ==============================================================================
+entities:
+  # --- Principal Cast ---
+  - id: "rosa"
+    label: "Rosa"
+    kind: "character"
+    style: "mannequin"
+    position: [-6.5, 0.0, 0.0]
+    rotation: 90
+    size: [0.50, 1.68, 0.44]
+    color: "#3b82f6"
+
+  - id: "robert"
+    label: "Robert"
+    kind: "character"
+    style: "mannequin"
+    position: [-3.8, 0.45, -0.65]
+    rotation: -90
+    pitch: 6
+    size: [0.62, 1.80, 0.52]
+    color: "#38bdf8"
+
+  # --- Hero Ritual Prop (Hidden beneath pool until Shot 12) ---
+  - id: "amber_heart"
+    label: "Amber Heart"
+    kind: "prop"
+    shape: "sphere"
+    style: "solid"
+    position: [1.35, 0.0, 0.0]
+    size: [0.28, 0.34, 0.26]
+    color: "#ff4500"
+
+  # --- Central Amber Sap Pool & Magma Veins (Drain after Shot 13) ---
+  - id: "amber_pool"
+    label: "Amber Pool"
+    kind: "prop"
+    shape: "cylinder"
+    style: "solid"
+    position: [1.95, 0.0, 0.0]
+    size: [2.30, 0.14, 2.60]
+    color: "#f59e0b"
+
+  - id: "sap_vein_ne"
+    label: "NE Sap Fissure"
+    kind: "prop"
+    shape: "box"
+    style: "solid"
+    position: [4.8, 0.0, -2.8]
+    rotation: 42
+    size: [1.0, 0.10, 5.5]
+    color: "#ea580c"
+
+  - id: "sap_vein_sw"
+    label: "SW Sap Fissure"
+    kind: "prop"
+    shape: "box"
+    style: "solid"
+    position: [-0.8, 0.0, 3.0]
+    rotation: 42
+    size: [1.0, 0.10, 5.2]
+    color: "#ea580c"
+
+  - id: "sap_vein_se"
+    label: "SE Sap Fissure"
+    kind: "prop"
+    shape: "box"
+    style: "solid"
+    position: [3.6, 0.0, 3.4]
+    rotation: -28
+    size: [0.9, 0.10, 4.8]
+    color: "#f97316"
+
+  - id: "root_bank_left"
+    label: "West Root Bank"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [0.55, 0.0, 0.0]
+    size: [0.90, 0.24, 2.80]
+    color: "#9a3412"
+
+  - id: "root_bank_right"
+    label: "East Root Bank"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [3.35, 0.0, 0.0]
+    size: [0.90, 0.24, 2.80]
+    color: "#9a3412"
+
+  # --- Frozen Dark Grove Roots (Scenes 1–12; replaced at 44.708s) ---
+  - id: "dark_root_1"
+    label: "Frozen Root W"
+    kind: "prop"
+    shape: "cylinder"
+    style: "edges"
+    position: [-6.5, 0.0, -2.6]
+    pitch: 12
+    roll: -18
+    size: [0.90, 4.6, 0.90]
+    color: "#1e3a5f"
+
+  - id: "dark_root_2"
+    label: "Frozen Root Mid"
+    kind: "prop"
+    shape: "cylinder"
+    style: "edges"
+    position: [-3.2, 0.0, -2.8]
+    pitch: 10
+    roll: -22
+    size: [1.0, 5.0, 1.0]
+    color: "#334155"
+
+  - id: "dark_root_3"
+    label: "Pool Arch Trunk"
+    kind: "prop"
+    shape: "cylinder"
+    style: "edges"
+    position: [1.9, 0.0, -3.4]
+    pitch: 8
+    roll: -8
+    size: [1.3, 5.4, 1.3]
+    color: "#431407"
+
+  - id: "dark_root_4"
+    label: "Frozen Root E"
+    kind: "prop"
+    shape: "cylinder"
+    style: "edges"
+    position: [5.2, 0.0, -2.6]
+    pitch: 10
+    roll: 16
+    size: [1.0, 4.8, 1.0]
+    color: "#431407"
+
+  # --- Awakened Screaming Skull-Trees (Erupt in Scene 13 at 44.708s) ---
+  - id: "skull_tree_bg_l"
+    label: "Skull Tree NW"
+    kind: "prop"
+    shape: "capsule"
+    style: "solid"
+    position: [-1.4, 0.0, -2.8]
+    roll: 18
+    size: [0.85, 5.2, 0.85]
+    color: "#e7e5e4"
+
+  - id: "skull_tree_bg_c"
+    label: "Skull Tree N"
+    kind: "prop"
+    shape: "capsule"
+    style: "solid"
+    position: [1.8, 0.0, -3.3]
+    roll: -12
+    size: [1.0, 5.6, 1.0]
+    color: "#d6d3d1"
+
+  - id: "skull_tree_bg_r"
+    label: "Skull Tree NE"
+    kind: "prop"
+    shape: "capsule"
+    style: "solid"
+    position: [4.8, 0.0, -2.5]
+    roll: -20
+    size: [0.90, 5.2, 0.90]
+    color: "#e7e5e4"
+
+  - id: "skull_tree_fg_l"
+    label: "Skull Canopy SW"
+    kind: "prop"
+    shape: "capsule"
+    style: "solid"
+    position: [-2.8, 0.0, 4.2]
+    pitch: -10
+    roll: -14
+    size: [1.1, 6.4, 1.1]
+    color: "#e7e5e4"
+
+  - id: "skull_tree_fg_r"
+    label: "Skull Canopy SE"
+    kind: "prop"
+    shape: "capsule"
+    style: "solid"
+    position: [6.4, 0.0, 3.8]
+    pitch: -10
+    roll: 14
+    size: [1.1, 6.4, 1.1]
+    color: "#e7e5e4"
+
+  # --- Spatial Floor Markers ---
+  - id: "mark_frost_path"
+    label: "Frost Glow Trail"
+    kind: "marker"
+    shape: "circle"
+    style: "glow"
+    position: [-5.2, 0.0, 0.0]
+    size: [3.2, 0.12, 1.4]
+    color: "#2dd4bf"
+
+  - id: "mark_ritual_bank"
+    label: "Ritual Kneel Mark"
+    kind: "marker"
+    shape: "t"
+    style: "glow"
+    position: [0.85, 0.0, 0.0]
+    size: [0.80, 0.10, 0.80]
+    color: "#fb923c"
+
+  - id: "mark_impact_spot"
+    label: "Robert Fall Mark"
+    kind: "marker"
+    shape: "x"
+    style: "tape"
+    position: [2.95, 0.0, 0.0]
+    size: [1.0, 0.10, 1.0]
+    color: "#38bdf8"
+
+# ==============================================================================
+# DECOUPLED BLOCKING TIMELINE (Characters & Transforming Environment)
+# ==============================================================================
+blocking:
+  # --- Initial Visibility Setup (Hide Heart & Skull-Trees until awakened) ---
+  - id: "init-hidden-props"
+    start: 0.000
+    end: 0.050
+    entities:
+      amber_heart: { visible: false }
+      skull_tree_bg_l: { visible: false }
+      skull_tree_bg_c: { visible: false }
+      skull_tree_bg_r: { visible: false }
+      skull_tree_fg_l: { visible: false }
+      skull_tree_fg_r: { visible: false }
+
+  # --- Scene 1 (0.000 - 3.875): Approach Through Cold Frost Corridor ---
+  - id: "blk-s01-approach"
+    start: 0.000
+    end: 3.875
+    easing: "linear"
+    entities:
+      rosa:
+        from: [-6.5, 0.0, 0.0]
+        position: [-4.0, 0.0, 0.0]
+        rotation: 90
+      robert:
+        from: [-3.8, 0.45, -0.65]
+        position: [-1.6, 0.42, -0.65]
+        look_at: "rosa"
+        pitch: 6
+        easing: "smooth"
+
+  # --- Scene 2 (3.875 - 6.750): Rosa Holds Resolve While Stepping Forward ---
+  - id: "blk-s02-resolve"
+    start: 3.875
+    end: 6.750
+    easing: "smooth"
+    entities:
+      rosa:
+        position: [-3.4, 0.0, 0.0]
+        rotation: 90
+      robert:
+        position: [-1.3, 0.45, -0.65]
+        look_at: "rosa"
+
+  # --- Scene 3 (6.750 - 12.167): Argument Standoff in Corridor ---
+  - id: "blk-s03-argument"
+    start: 6.750
+    end: 12.167
+    easing: "smooth"
+    entities:
+      rosa:
+        position: [-3.1, 0.0, 0.0]
+        rotation: 90
+      robert:
+        position: [-1.5, 0.45, -0.35]
+        look_at: "rosa"
+        pitch: 8
+
+  # --- Scene 4 (12.167 - 14.875): Boots Push Forward, Robert Drops Low ---
+  - id: "blk-s04-boots-plea"
+    start: 12.167
+    end: 14.875
+    easing: "cruise"
+    entities:
+      rosa:
+        position: [-1.8, 0.0, 0.0]
+        rotation: 90
+      robert:
+        position: [-0.8, 0.16, -0.15]
+        height: 1.50
+        pitch: 10
+        look_at: "rosa"
+
+  # --- Scene 5 (14.875 - 18.333): Robert Rises Back to Eye Level ---
+  - id: "blk-s05-eye-level"
+    start: 14.875
+    end: 18.333
+    easing: "smooth"
+    entities:
+      rosa:
+        position: [-1.4, 0.0, 0.0]
+        rotation: 90
+      robert:
+        position: [-0.5, 0.40, -0.05]
+        height: 1.80
+        pitch: 4
+        look_at: "rosa"
+
+  # --- Scene 6 (18.333 - 21.667): Rosa Walks Past Robert Toward Amber Glow ---
+  - id: "blk-s06-cross-past"
+    start: 18.333
+    end: 21.667
+    easing: "cruise"
+    entities:
+      rosa:
+        position: [0.1, 0.0, 0.1]
+        rotation: 90
+      robert:
+        position: [-1.2, 0.38, -0.25]
+        look_at: "rosa"
+        pitch: 12
+
+  # --- Scene 7 (21.667 - 24.667): Arrive at Pool Bank, Robert Crosses Over ---
+  - id: "blk-s07-master-arrival"
+    start: 21.667
+    end: 24.667
+    easing: "smooth"
+    entities:
+      rosa:
+        position: [0.8, 0.0, 0.0]
+        rotation: 90
+      robert:
+        position: [3.3, 0.12, -0.65]
+        height: 1.55
+        look_at: "rosa"
+        pitch: 6
+      mark_frost_path:
+        visible: false
+
+  # --- Scene 8 (24.667 - 30.042): Rosa Crouches Over Amber Pool ---
+  - id: "blk-s08-crouch"
+    start: 25.400
+    end: 28.800
+    easing: "smooth"
+    entities:
+      rosa:
+        position: [0.8, 0.0, 0.0]
+        height: 1.05
+        pitch: 16
+        rotation: 90
+      robert:
+        position: [3.3, 0.15, -0.65]
+        height: 1.55
+        pitch: 10
+        look_at: "rosa"
+
+  # --- Scene 9 (30.042 - 37.583): Incantation Over Glowing Sap ---
+  - id: "blk-s09-chant"
+    start: 30.042
+    end: 37.583
+    easing: "smooth"
+    entities:
+      rosa:
+        position: [0.85, 0.0, 0.0]
+        height: 1.02
+        pitch: 20
+
+  # --- Scene 10 (37.583 - 40.292): Hands Plunge Into Molten Amber ---
+  - id: "blk-s10-plunge"
+    start: 37.583
+    end: 40.292
+    easing: "ease-in"
+    entities:
+      rosa:
+        position: [0.95, 0.0, 0.0]
+        height: 0.90
+        pitch: 34
+      amber_pool:
+        height: 0.24
+
+  # --- Scene 11 (40.292 - 43.458): Coiled Amber Roots & Pull Struggle ---
+  - id: "blk-s11-strain"
+    start: 40.292
+    end: 43.458
+    easing: "smooth"
+    entities:
+      rosa:
+        position: [0.95, 0.0, 0.0]
+        height: 0.88
+        pitch: 28
+
+  # --- Scene 12 (43.458 - 44.708): Heart Ripped Free ("BREAK!") ---
+  - id: "blk-s12-heart-rip"
+    start: 43.458
+    end: 44.500
+    easing: "pop"
+    entities:
+      rosa:
+        position: [0.85, 0.0, 0.0]
+        height: 1.12
+        pitch: 6
+      amber_heart:
+        visible: true
+        from: [1.35, 0.0, 0.0]
+        position: [1.05, 0.72, 0.0]
+
+  # --- Scene 13 (44.708 - 48.042): Grove Bleaches & Screaming Skulls Erupt ---
+  - id: "blk-s13-grove-awakens"
+    start: 44.708
+    end: 47.400
+    easing: "ease-out"
+    entities:
+      rosa:
+        position: [0.85, 0.0, 0.0]
+        height: 1.05
+        pitch: 6
+      amber_heart:
+        position: [1.02, 0.68, 0.0]
+      robert:
+        position: [3.1, 0.35, 0.0]
+        height: 1.65
+        pitch: 0
+        look_at: "rosa"
+      dark_root_1: { visible: false }
+      dark_root_2: { visible: false }
+      dark_root_3: { visible: false }
+      dark_root_4: { visible: false }
+      skull_tree_bg_l: { visible: true, from_height: 1.2, height: 5.2 }
+      skull_tree_bg_c: { visible: true, from_height: 1.2, height: 5.6 }
+      skull_tree_bg_r: { visible: true, from_height: 1.2, height: 5.2 }
+      skull_tree_fg_l: { visible: true, from_height: 1.5, height: 6.4 }
+      skull_tree_fg_r: { visible: true, from_height: 1.5, height: 6.4 }
+
+  # --- Scene 14a (48.042 - 49.050): Pool Drains & Robert Slams Solid Into Snow ---
+  - id: "blk-s14-resurrection-drop"
+    start: 48.042
+    end: 49.050
+    easing: "ease-in"
+    entities:
+      amber_pool: { visible: false }
+      sap_vein_ne: { visible: false }
+      sap_vein_sw: { visible: false }
+      sap_vein_se: { visible: false }
+      root_bank_left: { visible: false }
+      root_bank_right: { visible: false }
+      robert:
+        position: [2.95, 0.0, 0.0]
+        height: 0.76
+        pitch: 52
+        look_at: "rosa"
+
+  # --- Scene 14b (49.050 - 50.750): Robert Gasps on Hands and Knees ---
+  - id: "blk-s14-gasp"
+    start: 49.050
+    end: 50.750
+    easing: "ease-out"
+    entities:
+      robert:
+        position: [2.90, 0.0, 0.0]
+        height: 0.90
+        pitch: 34
+        look_at: "rosa"
+
+  # --- Scene 15 (50.750 - 54.958): Robert Looks Across at Kneeling Rosa ---
+  - id: "blk-s15-aftermath"
+    start: 50.750
+    end: 54.958
+    easing: "smooth"
+    entities:
+      rosa:
+        position: [0.85, 0.0, 0.0]
+        height: 1.05
+        pitch: 6
+        look_at: "robert"
+      robert:
+        position: [2.90, 0.0, 0.0]
+        height: 1.00
+        pitch: 28
+        look_at: "rosa"
+
+  # --- Scene 16 (54.958 - 57.333): Rosa Rises Holding the Living Heart ---
+  - id: "blk-s16-rosa-rises"
+    start: 54.958
+    end: 57.333
+    easing: "smooth"
+    entities:
+      rosa:
+        position: [0.85, 0.0, 0.0]
+        height: 1.68
+        pitch: 0
+        look_at: "robert"
+      amber_heart:
+        position: [1.05, 1.15, 0.0]
+      robert:
+        position: [2.90, 0.0, 0.0]
+        height: 1.05
+        pitch: 28
+        look_at: "rosa"
+
+# ==============================================================================
+# FILM COVERAGE SHOTS (Exact 17 CSV Cuts + Unobstructed Sightlines)
+# ==============================================================================
+shots:
+  - id: "shot-01"
+    shot: 1
+    label: "Frost Corridor Track"
+    description: "Lateral 35mm dolly track along +Z matching Rosa's left-to-right stride as Robert retreats hovering ahead."
+    start: 0.000
+    end: 3.875
+    stage_camera:
+      target: ["rosa", "robert"]
+      target_offset: [0, -0.55, 0]
+      rig:
+        type: "track"
+        from: [-5.15, 1.45, 5.10]
+        to: [-2.80, 1.45, 4.80]
+      easing: "linear"
+      lens: 35mm
+      focus: "rosa"
+      dof: "medium"
+    entities:
+      rosa: { highlighted: true, note: "Marches +X through glowing snow" }
+      robert: { note: "Retreats hovering slightly upstage" }
+
+  - id: "shot-02"
+    shot: 2
+    label: "Rosa Frontal Close-Up"
+    description: "72mm frontal push-in seated ahead of Robert's -Z hover line for a clean, unobstructed close-up."
+    start: 3.875
+    end: 6.750
+    stage_camera:
+      target: "rosa.eyes"
+      target_offset: [0, -0.05, 0]
+      maneuver: "dolly"
+      easing: "smooth"
+      distance_start: 2.15
+      distance_end: 1.95
+      pitch: 1
+      yaw: 86
+      lens: 72mm
+      focus: "rosa.eyes"
+      aperture: 2.0
+    entities:
+      rosa: { highlighted: true, note: "Cold breath; unwavering stare" }
+
+  - id: "shot-03"
+    shot: 3
+    label: "Medium Profile Confrontation"
+    description: "Slight -12° bias favors Robert's 3/4 plea while holding Rosa in crisp profile on screen-left."
+    start: 6.750
+    end: 12.167
+    stage_camera:
+      target: ["rosa.eyes", "robert.chest"]
+      target_offset: [0, -0.05, 0]
+      maneuver: "dolly"
+      easing: "smooth"
+      distance_start: 3.45
+      distance_end: 3.25
+      pitch: 3
+      yaw_start: -10
+      yaw_end: -14
+      lens: 55mm
+      focus: ["rosa", "robert"]
+      dof: "shallow"
+    entities:
+      robert: { highlighted: true, note: "Pleads about fire at mother's gates" }
+
+  - id: "shot-04"
+    shot: 4
+    label: "Low Boot Track & Drop"
+    description: "Ground-skimming -3° tracking dolly contrasts Rosa's relentless strides with Robert sinking low."
+    start: 12.167
+    end: 14.875
+    stage_camera:
+      target: ["rosa.feet", "robert.waist"]
+      target_offset: [0, 0.25, 0]
+      maneuver: "dolly"
+      easing: "cruise"
+      distance_start: 3.80
+      distance_end: 3.60
+      pitch: -3
+      yaw: -6
+      lens: 50mm
+      focus: "robert.eyes"
+      dof: "shallow"
+    entities:
+      rosa: { note: "Boots press relentlessly right" }
+      robert: { highlighted: true, note: "Drops near snow pleading upward" }
+
+  - id: "shot-05"
+    shot: 5
+    label: "OTS Past Rosa to Robert"
+    description: "68mm shallow OTS from +Z behind Rosa's left shoulder, pushing gently into Robert's eyes."
+    start: 14.875
+    end: 18.333
+    stage_camera:
+      target: "robert.eyes"
+      target_offset: [-0.15, -0.15, 0]
+      maneuver: "dolly"
+      easing: "smooth"
+      distance_start: 3.10
+      distance_end: 2.95
+      pitch: -2
+      yaw: -62
+      lens: 68mm
+      focus: "robert.eyes"
+      aperture: 2.0
+    entities:
+      robert: { highlighted: true, note: "Rises to eye level defending his sacrifice" }
+
+  - id: "shot-06"
+    shot: 6
+    label: "Crossing Pass Track"
+    description: "Parallel 55mm track holds the midpoint as Rosa walks cleanly past Robert, reversing screen sides."
+    start: 18.333
+    end: 21.667
+    stage_camera:
+      target: ["rosa.chest", "robert.chest"]
+      rig:
+        type: "track"
+        from: [-0.95, 1.60, 3.55]
+        to: [-0.55, 1.60, 3.40]
+      easing: "cruise"
+      lens: 55mm
+      focus: "rosa.eyes"
+      dof: "shallow"
+    entities:
+      rosa: { highlighted: true, note: "Crosses past Robert into orange amber glow" }
+      robert: { note: "Spins to reach after her cloak" }
+
+  - id: "shot-07"
+    shot: 7
+    label: "Master — Amber Fissure Clearing"
+    description: "24mm high-angle establishing crane reveals the Y-shaped molten fissure as Rosa hits the bank and Robert arcs across."
+    start: 21.667
+    end: 24.667
+    stage_camera:
+      target: "amber_pool"
+      maneuver: "dolly"
+      easing: "smooth"
+      distance_start: 12.20
+      distance_end: 11.60
+      pitch_start: 56
+      pitch_end: 52
+      yaw_start: -12
+      yaw_end: -8
+      lens: 24mm
+      dof: "deep"
+    entities:
+      rosa: { highlighted: true, note: "Stops at west bank of Amber Pool" }
+      robert: { note: "Swoops across pool to east-north bank" }
+
+  - id: "shot-08"
+    shot: 8
+    label: "Pool Bank Two-Shot"
+    description: "Locked low tripod at 50mm across the glowing pool lets Rosa crouch down into a balanced two-shot."
+    start: 24.667
+    end: 30.042
+    stage_camera:
+      target: "amber_pool"
+      target_offset: [0, 0.72, 0]
+      rig:
+        type: "tripod"
+        position: [1.95, 0.95, 4.40]
+      lens: 50mm
+      focus: "amber_pool"
+      dof: "medium"
+    entities:
+      rosa: { highlighted: true, note: "Crouches into frame; reaches over sap" }
+      robert: { note: "Hovers across pool warning her" }
+
+  - id: "shot-09"
+    shot: 9
+    label: "Incantation Push-In"
+    description: "Low -6° frontal 65mm push-in positioned over the pool ahead of Robert for a clean, unobstructed chant."
+    start: 30.042
+    end: 37.583
+    stage_camera:
+      target: "rosa.eyes"
+      target_offset: [0, -0.08, 0]
+      maneuver: "dolly"
+      easing: "linear"
+      distance_start: 2.25
+      distance_end: 1.95
+      pitch: -6
+      yaw: 88
+      lens: 65mm
+      focus: "rosa.eyes"
+      aperture: 2.0
+    entities:
+      rosa: { highlighted: true, note: "Chants incantation bathed in amber glow" }
+
+  - id: "shot-10"
+    shot: 10
+    label: "Top-Down Plunge POV"
+    description: "Steep 74°–80° downward 28mm POV dives over Rosa's gloved hands into the boiling sap."
+    start: 37.583
+    end: 40.292
+    stage_camera:
+      target: [1.35, 0.05, 0.0]
+      maneuver: "dolly"
+      easing: "ease-in"
+      distance_start: 1.55
+      distance_end: 1.15
+      pitch_start: 74
+      pitch_end: 80
+      yaw: -90
+      lens: 28mm
+      focus: "amber_pool"
+      dof: "shallow"
+    entities:
+      rosa: { highlighted: true, note: "Plunges both hands beneath surface" }
+
+  - id: "shot-11"
+    shot: 11
+    label: "Profile Struggle"
+    description: "Tight 50mm side profile creeps in as glowing roots coil up Rosa's submerged forearms."
+    start: 40.292
+    end: 43.458
+    stage_camera:
+      target: "rosa.waist"
+      target_offset: [0.35, 0.05, 0]
+      maneuver: "dolly"
+      easing: "smooth"
+      distance_start: 2.95
+      distance_end: 2.75
+      pitch: 4
+      yaw: 0
+      lens: 50mm
+      focus: "rosa.chest"
+      dof: "shallow"
+    entities:
+      rosa: { highlighted: true, note: "Strains against coiling amber roots" }
+
+  - id: "shot-12"
+    shot: 12
+    label: "Heart Wrench Pull-Back"
+    description: "60mm low frontal pull-back clears Robert laterally as Rosa rips the blazing heart to her chest."
+    start: 43.458
+    end: 44.708
+    stage_camera:
+      target: "rosa.chest"
+      target_offset: [0, 0.08, 0]
+      maneuver: "dolly"
+      easing: "ease-out"
+      distance_start: 2.05
+      distance_end: 2.55
+      pitch_start: -4
+      pitch_end: -8
+      yaw: 82
+      lens: 60mm
+      focus: "amber_heart"
+      aperture: 2.0
+    entities:
+      rosa: { highlighted: true, note: "Wrenches heart free on 'BREAK!'" }
+      amber_heart: { highlighted: true, note: "Erupts from pool into Rosa's arms" }
+
+  - id: "shot-13"
+    shot: 13
+    label: "Master — Screaming Grove Awakens"
+    description: "Matched 24mm aerial pull-back from Shot 07 unveils pale screaming skull trees rising in foreground."
+    start: 44.708
+    end: 48.042
+    stage_camera:
+      target: "amber_pool"
+      maneuver: "dolly"
+      easing: "ease-out"
+      distance_start: 11.60
+      distance_end: 13.80
+      pitch_start: 52
+      pitch_end: 48
+      yaw: -8
+      lens: 24mm
+      dof: "deep"
+    entities:
+      rosa: { note: "Kneels clutching heart amid shockwave" }
+      skull_tree_fg_l: { highlighted: true, note: "Bone-white skull canopy erupts" }
+      skull_tree_fg_r: { highlighted: true, note: "Frames wide horror reveal" }
+
+  - id: "shot-14"
+    shot: 14
+    label: "Resurrection Crash Push-In"
+    description: "Starts OTS past Rosa's glowing heart, then plunges onto solid Robert as gravity slams him into snow."
+    start: 48.042
+    end: 50.750
+    stage_camera:
+      target: "robert.chest"
+      target_offset_start: [0, -0.30, 0]
+      target_offset_end: [0, 0.15, 0]
+      maneuver: "dolly"
+      easing: "expo"
+      distance_start: 3.60
+      distance_end: 2.10
+      pitch_start: -4
+      pitch_end: 4
+      yaw_start: -64
+      yaw_end: -82
+      lens_start: 50mm
+      lens_end: 65mm
+      focus: "robert.eyes"
+      aperture: 2.4
+    entities:
+      robert: { highlighted: true, note: "Turns solid and crashes onto hands and knees" }
+
+  - id: "shot-15"
+    shot: 15
+    label: "Reverse OTS — Mistake"
+    description: "65mm reverse OTS past solid Robert's right shoulder creeps toward kneeling Rosa clutching the heart."
+    start: 50.750
+    end: 54.958
+    stage_camera:
+      target: "rosa.chest"
+      target_offset: [0.20, -0.05, 0]
+      maneuver: "dolly"
+      easing: "smooth"
+      distance_start: 3.65
+      distance_end: 3.45
+      pitch: 4
+      yaw: 66
+      lens: 65mm
+      focus: "rosa.eyes"
+      aperture: 2.8
+    entities:
+      rosa: { highlighted: true, note: "Kneels silently clutching blazing heart" }
+      robert: { note: "Whispers 'this was a mistake'" }
+
+  - id: "shot-16"
+    shot: 16
+    label: "Wide OTS — Rosa Rises"
+    description: "Wider 35mm low pull-back behind kneeling Robert lets Rosa rise full height under screaming skull arches."
+    start: 54.958
+    end: 57.333
+    stage_camera:
+      target: "rosa.chest"
+      target_offset: [0.35, 0.0, 0]
+      maneuver: "dolly"
+      easing: "smooth"
+      distance_start: 4.35
+      distance_end: 4.65
+      pitch_start: 2
+      pitch_end: -3
+      yaw: 60
+      lens: 35mm
+      focus: "rosa.eyes"
+      dof: "medium"
+    entities:
+      rosa: { highlighted: true, note: "Stands resolute over kneeling Robert" }
+      robert: { note: "Remains pinned to snow in foreground" }
+
+  - id: "shot-17"
+    shot: 17
+    label: "Title Card — Final Tableau"
+    description: "Picture cuts to black for title card; diorama slowly pulls wide over the awakened grove tableau."
+    start: 57.333
+    end: 65.542
+    stage_camera:
+      target: ["rosa.waist", "robert.waist"]
+      maneuver: "dolly"
+      easing: "smooth"
+      distance_start: 5.50
+      distance_end: 8.20
+      pitch_start: 8
+      pitch_end: 22
+      yaw_start: 45
+      yaw_end: 18
+      lens: 35mm
+      dof: "deep"
+
+# ==============================================================================
+# DECOUPLED DIORAMA OBSERVER TRACK (Single Unbroken C1 Catmull-Rom Orbit)
+# ==============================================================================
+observer_shots:
+  - id: "obs-continuous-master-orbit"
+    label: "Continuous Wide Stage & Camera Orbit"
+    start: 0.000
+    end: 65.542
+    from: [-2.8, 1.6, 1.6]
+    maneuver: "spline"
+    easing: "linear"
+    distance_start: 18.5
+    pitch_start: 28
+    yaw_start: -48
+    lens_start: 28mm
+    waypoints:
+      - target: [-1.2, 2.0, 1.6]
+        distance: 19.0
+        pitch: 30
+        yaw: -24
+        lens: 28mm
+      - target: [1.0, 3.2, 2.2]
+        distance: 24.5
+        pitch: 34
+        yaw: 2
+        lens: 28mm
+      - target: [1.6, 2.0, 1.4]
+        distance: 20.5
+        pitch: 30
+        yaw: 26
+        lens: 28mm
+      - target: [1.5, 3.2, 2.2]
+        distance: 25.5
+        pitch: 34
+        yaw: 48
+        lens: 28mm
+      - target: [1.8, 2.0, 1.6]
+        distance: 21.0
+        pitch: 28
+        yaw: 66
+        lens: 28mm
+      - target: [1.8, 2.4, 1.8]
+        distance: 23.0
+        pitch: 30
+        yaw: 84
+        lens: 28mm

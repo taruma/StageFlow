@@ -6,7 +6,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { findCatalogItem } from '../../src/core/scoreCatalog';
+import { findCatalogItem, loadBundledScore } from '../../src/core/scoreCatalog';
 import { runRecordSession } from './playwrightDriver';
 import type { CliOptions } from './recorderTypes';
 import { RESOLUTION_PRESETS } from './recorderTypes';
@@ -53,11 +53,12 @@ async function runBatch(): Promise<void> {
 
   try {
     for (const bp of BLUEPRINT_TARGETS) {
-      const catalogItem = findCatalogItem(bp.id);
-      if (!catalogItem) {
+      const matched = findCatalogItem(bp.id);
+      if (!matched) {
         console.error(`❌ Catalog item "${bp.id}" not found. Skipping.`);
         continue;
       }
+      const catalogItem = await loadBundledScore(matched.id);
 
       for (const { mode, label } of MODES) {
         const fileName = `${bp.prefix}_${label}_${bp.name}.mp4`;
@@ -114,7 +115,7 @@ async function runBatch(): Promise<void> {
   console.log(`======================================================\n`);
 }
 
-runBatch().catch((err) => {
+await runBatch().catch((err) => {
   console.error('\n❌ Batch recording failed:', err);
   process.exit(1);
 });

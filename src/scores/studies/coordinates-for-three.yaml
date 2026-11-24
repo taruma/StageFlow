@@ -1,0 +1,1186 @@
+version: "1.0"
+id: "coordinates-for-three"
+title: "Coordinates for Three"
+subtitle: "2-Level Japanese House Spatial Blocking & Cinematography Score"
+description: >
+  Full 3D two-level spatial reconstruction of "Coordinates for Three" (by Taruma Sakti).
+  Opens with a deep-focus tatami living room tableau, breaks into a ground-floor hallway chase
+  and wooden staircase ascent to Level 2 (Y = 3.0m), and culminates in a symmetric 3-person
+  Resonance Disc activation and zero-gravity golden ascension.
+
+metadata:
+  director: "Taruma Sakti"
+  structure:
+    ground_floor: "Y = 0.0m — Tatami Living Room, West Bamboo Engawa, South Corridor"
+    vertical_connector: "X = +5.4m — 3-Flight Wooden Staircase (Y = 0.0m -> 3.0m)"
+    upper_floor: "Y = 3.0m — Upstairs Tatami Workshop, Resonance Disc Table & Closet"
+  staging_notes:
+    - "CSV Scene 6 (19.292s–25.458s) is subdivided into 3 shots (Shots 6–8) to reflect the living room breakout, hallway lead-tracking sprint, and lateral apron-tug profile."
+    - "All character kinematics, prone/supine postures, stair ascents, and levitations run on the decoupled root blocking timeline."
+    - "Observer camera runs as a single continuous wide architectural crane (11.5m–14.8m) focusing on Level 1 first, elevating smoothly to Level 2, then pulling back for the ascension."
+
+video: "https://www.youtube.com/watch?v=yKp3APsZANM"
+aspect_ratio: "16:9"
+duration: 69.958
+offset: 0.0
+
+optics:
+  dof_blur: false
+  dof: "medium"
+
+# ==============================================================================
+# STAGE GEOMETRY & BASELINE CAMERAS
+# ==============================================================================
+stage:
+  width: 16
+  depth: 12
+  grid_step: 1
+  show_rigs: true
+
+  observer_camera:
+    target: [-0.20, 0.75, 0.20]
+    distance: 13.2
+    pitch: 30
+    yaw: 32
+    roll: 0
+    lens: 35mm
+
+  stage_camera:
+    target: [0.20, 0.68, -0.15]
+    distance: 3.70
+    pitch: -4.8
+    yaw: 12
+    roll: 0
+    lens: 22mm
+
+# ==============================================================================
+# SCENE ENTITIES (CHARACTERS, PROPS & ARCHITECTURAL MARKERS)
+# ==============================================================================
+entities:
+  # --- Characters (t = 0.0s Opening Tableau Postures) ---
+  - id: "ruby"
+    label: "Ruby"
+    kind: "character"
+    style: "mannequin"
+    position: [2.10, 0.22, 0.90]
+    rotation: 90
+    pitch: -90
+    pivot: "base"
+    width: 0.46
+    height: 1.20
+    depth: 0.38
+    color: "#f97316"
+
+  - id: "arthur"
+    label: "Arthur"
+    kind: "character"
+    style: "mannequin"
+    position: [-1.05, 0.14, -1.88]
+    rotation: 10
+    pitch: 74
+    pivot: "base"
+    width: 0.68
+    height: 1.28
+    depth: 0.48
+    color: "#3b82f6"
+
+  - id: "oscar"
+    label: "Oscar"
+    kind: "character"
+    style: "mannequin"
+    position: [-2.85, 0.0, -0.75]
+    rotation: 75
+    width: 0.56
+    height: 1.05
+    depth: 0.46
+    color: "#94a3b8"
+
+  # --- Level 1 (Ground Floor, Y = 0.0m) Living Room Props ---
+  - id: "chabudai"
+    label: "Low Table (L1)"
+    kind: "prop"
+    shape: "box"
+    style: "solid"
+    position: [-0.95, 0.0, -0.68]
+    size: [1.35, 0.36, 0.80]
+    color: "#92400e"
+
+  - id: "teacup"
+    label: "Teacup & Saucer"
+    kind: "prop"
+    shape: "cylinder"
+    style: "solid"
+    position: [-1.22, 0.36, -0.45]
+    size: [0.14, 0.12, 0.14]
+    color: "#d6d3d1"
+
+  - id: "fan"
+    label: "Oscillating Fan"
+    kind: "prop"
+    shape: "cylinder"
+    style: "edges"
+    position: [0.42, 0.0, 1.05]
+    rotation: 90
+    size: [0.34, 0.52, 0.26]
+    color: "#5eead4"
+
+  - id: "ruby_cushion"
+    label: "Ruby's Cushion"
+    kind: "prop"
+    shape: "box"
+    style: "solid"
+    position: [1.55, 0.0, 0.90]
+    size: [1.15, 0.12, 0.72]
+    color: "#1e3a8a"
+
+  - id: "arthur_cushion"
+    label: "Arthur's Cushion"
+    kind: "prop"
+    shape: "box"
+    style: "solid"
+    position: [-1.02, 0.0, -1.65]
+    size: [0.72, 0.08, 0.72]
+    color: "#1e3a8a"
+
+  - id: "dice"
+    label: "Wooden Die"
+    kind: "prop"
+    shape: "box"
+    style: "solid"
+    position: [1.02, 0.36, 0.90]
+    size: [0.08, 0.08, 0.08]
+    color: "#d97706"
+
+  # --- Level 1 Architecture, Corridor & Wooden Staircase ---
+  - id: "engawa_deck"
+    label: "Engawa Veranda"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [-3.25, 0.0, -0.50]
+    size: [0.90, 0.05, 4.40]
+    color: "#b45309"
+
+  - id: "bamboo_grove"
+    label: "Bamboo Garden"
+    kind: "prop"
+    shape: "box"
+    style: "glass"
+    position: [-4.40, 0.0, 0.50]
+    size: [0.60, 3.20, 7.60]
+    color: "#4ade80"
+
+  - id: "door_l1_mark"
+    label: "L1 Hallway Doorway"
+    kind: "marker"
+    shape: "t"
+    style: "tape"
+    position: [1.15, 0.0, 2.55]
+    rotation: 0
+    size: [1.20, 0.10, 0.30]
+    color: "#fbbf24"
+
+  - id: "hallway_mark"
+    label: "L1 Hallway Sprint Lane"
+    kind: "marker"
+    shape: "puck"
+    style: "tape"
+    position: [3.20, 0.0, 3.45]
+    size: [0.45, 0.05, 0.45]
+    color: "#94a3b8"
+
+  - id: "stair_pillar"
+    label: "Staircase Pillar"
+    kind: "prop"
+    shape: "cylinder"
+    style: "solid"
+    position: [4.75, 0.0, 2.75]
+    size: [0.22, 3.00, 0.22]
+    color: "#78350f"
+
+  - id: "stairs_lower"
+    label: "Stairs (Lower Flight)"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [5.40, 0.0, 1.80]
+    size: [1.15, 1.00, 1.50]
+    color: "#92400e"
+
+  - id: "stairs_mid"
+    label: "Stairs (Mid Flight)"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [5.40, 1.00, 0.40]
+    size: [1.15, 1.00, 1.40]
+    color: "#92400e"
+
+  - id: "stairs_upper"
+    label: "Stairs (Upper Flight)"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [5.40, 2.00, -1.00]
+    size: [1.15, 1.00, 1.40]
+    color: "#92400e"
+
+  # --- Level 2 (Upper Floor, Y = 3.0m) Workshop Props & Architecture ---
+  - id: "upper_floor"
+    label: "Upper Floor Deck (L2)"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [1.30, 2.94, -0.80]
+    size: [7.20, 0.06, 4.40]
+    color: "#78716c"
+
+  - id: "upstairs_table"
+    label: "Workshop Table (L2)"
+    kind: "prop"
+    shape: "box"
+    style: "solid"
+    position: [0.70, 3.00, -0.60]
+    size: [1.05, 0.52, 1.35]
+    color: "#7c2d12"
+
+  - id: "artifact_cushion"
+    label: "Artifact Velvet Cushion"
+    kind: "prop"
+    shape: "box"
+    style: "solid"
+    position: [0.70, 3.52, -0.60]
+    size: [0.56, 0.06, 0.56]
+    color: "#1e1b4b"
+
+  - id: "artifact_disc"
+    label: "Resonance Disc"
+    kind: "prop"
+    shape: "cylinder"
+    style: "solid"
+    position: [0.70, 3.58, -0.60]
+    size: [0.42, 0.06, 0.42]
+    color: "#f59e0b"
+
+  - id: "futon_stack"
+    label: "Closet Cushion Stack (L2)"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [2.85, 3.00, -1.95]
+    size: [0.75, 0.72, 0.65]
+    color: "#1e3a8a"
+
+  - id: "door_l2_mark"
+    label: "L2 Workshop Doorway"
+    kind: "marker"
+    shape: "t"
+    style: "glow"
+    position: [1.45, 3.00, -2.55]
+    rotation: 0
+    size: [1.80, 0.10, 0.30]
+    color: "#38bdf8"
+
+# ==============================================================================
+# DECOUPLED PHYSICAL BLOCKING TIMELINE (ALL CHARACTERS & ANIMATED PROPS)
+# ==============================================================================
+blocking:
+  # --- Wooden Die Tumble (Shot 4) ---
+  - id: "dice-tumble-floor"
+    entity: "dice"
+    start: 16.250
+    end: 17.300
+    position: [0.65, 0.0, 0.90]
+    rotation: 135
+    pitch: 180
+    pivot: "center"
+    easing: "ease-out"
+    note: "Wooden die tumbles off Ruby's nose onto the sunlit tatami mat"
+
+  # --- Arthur Blocking (Level 1 -> Hallway -> Stairs -> Level 2 -> Levitation) ---
+  - id: "arthur-startled-lift"
+    entity: "arthur"
+    start: 17.625
+    end: 19.000
+    position: [-1.05, 0.14, -1.88]
+    rotation: 10
+    pitch: 66
+    pivot: "base"
+    easing: "ease-out"
+    note: "Perks head up slightly off table at Oscar's suggestion"
+
+  - id: "arthur-push-up"
+    entity: "arthur"
+    start: 19.292
+    end: 19.950
+    position: [0.05, 0.0, -0.95]
+    rotation: 20
+    pitch: 28
+    height: 1.35
+    easing: "ease-out"
+    note: "Pushes off low table onto knees and swings around East end of table"
+
+  - id: "arthur-bolt-door"
+    entity: "arthur"
+    start: 19.950
+    end: 21.100
+    position: [1.25, 0.0, 2.85]
+    pitch: 8
+    height: 1.85
+    easing: "accel"
+    note: "Springs up and charges through South living room doorway after Ruby"
+
+  - id: "arthur-hall-sprint-1"
+    entity: "arthur"
+    start: 21.100
+    end: 22.800
+    position: [3.85, 0.0, 3.18]
+    rotation: 90
+    pitch: 10
+    easing: "linear"
+    note: "Bursts into corridor North lane and overtakes Ruby ('Hey, it's my house!')"
+
+  - id: "arthur-hall-sprint-2"
+    entity: "arthur"
+    start: 22.800
+    end: 25.458
+    position: [5.40, 0.0, 2.55]
+    rotation: 145
+    pitch: 12
+    easing: "cruise"
+    note: "Sprints East past doorway and pivots onto the foot of the staircase"
+
+  - id: "arthur-stairs-climb"
+    entity: "arthur"
+    start: 25.458
+    end: 27.100
+    position: [5.40, 3.00, -1.55]
+    rotation: 180
+    pitch: 18
+    easing: "linear"
+    note: "Races up wooden staircase towing Ruby by his apron ties ('No pulling!')"
+
+  - id: "arthur-l2-hallway"
+    entity: "arthur"
+    start: 27.100
+    end: 29.400
+    position: [1.45, 3.00, -2.50]
+    pitch: 0
+    height: 1.85
+    easing: "cruise"
+    note: "Crosses Level 2 landing West toward workshop doorway"
+
+  - id: "arthur-l2-kneel"
+    entity: "arthur"
+    start: 29.400
+    end: 31.800
+    position: [-0.18, 3.00, -0.60]
+    rotation: 90
+    pitch: 18
+    height: 1.25
+    easing: "smooth"
+    note: "Kneels on West side of upstairs workshop table catching breath"
+
+  - id: "arthur-levitate-start"
+    entity: "arthur"
+    start: 53.300
+    end: 54.792
+    position: [-0.38, 3.55, -0.45]
+    look_at: "artifact_disc"
+    pitch: -6
+    height: 1.85
+    easing: "ease-out"
+    note: "Lifts off tatami floor as golden resonance rings erupt"
+
+  - id: "arthur-levitate-rise"
+    entity: "arthur"
+    start: 54.792
+    end: 59.750
+    position: [-0.55, 4.85, -0.15]
+    look_at: "artifact_disc"
+    pitch: -10
+    roll: -8
+    pivot: "center"
+    height: 1.85
+    easing: "smooth"
+    note: "Ascends weightlessly in concentric golden rings into white-out"
+
+  # --- Ruby Blocking (Level 1 -> Hallway -> Stairs -> Level 2 -> Levitation) ---
+  - id: "ruby-sit-up"
+    entity: "ruby"
+    start: 19.292
+    end: 19.850
+    position: [1.55, 0.0, 0.95]
+    rotation: 0
+    pitch: 0
+    height: 1.10
+    easing: "ease-out"
+    note: "Flips legs off East wall and sits up on blue floor cushion"
+
+  - id: "ruby-stand-bolt"
+    entity: "ruby"
+    start: 19.850
+    end: 20.800
+    position: [1.15, 0.0, 2.75]
+    height: 1.65
+    easing: "accel"
+    note: "Springs up yelling 'Dibs on the front seat!' and dashes through South doorway"
+
+  - id: "ruby-hall-sprint-1"
+    entity: "ruby"
+    start: 20.800
+    end: 22.800
+    position: [3.40, 0.0, 3.65]
+    rotation: 90
+    pitch: 8
+    easing: "linear"
+    note: "Sprints East down hallway South lane as Arthur overtakes on her left"
+
+  - id: "ruby-hall-sprint-2"
+    entity: "ruby"
+    start: 22.800
+    end: 25.458
+    position: [4.85, 0.0, 3.35]
+    rotation: 80
+    pitch: 14
+    easing: "cruise"
+    note: "Catches up behind Arthur and grabs his apron strings"
+
+  - id: "ruby-stairs-climb"
+    entity: "ruby"
+    start: 25.458
+    end: 27.600
+    position: [5.40, 3.00, -1.50]
+    rotation: 180
+    pitch: 28
+    height: 1.30
+    easing: "linear"
+    note: "Pulled up staircase by apron strings, scrambling over top step onto Level 2"
+
+  - id: "ruby-l2-hallway"
+    entity: "ruby"
+    start: 27.600
+    end: 29.800
+    position: [1.85, 3.00, -2.50]
+    pitch: 0
+    height: 1.65
+    easing: "cruise"
+    note: "Runs West along Level 2 landing into workshop"
+
+  - id: "ruby-l2-kneel"
+    entity: "ruby"
+    start: 29.800
+    end: 32.200
+    position: [1.58, 3.00, -0.60]
+    rotation: -90
+    pitch: 15
+    height: 1.15
+    easing: "smooth"
+    note: "Kneels on East side of upstairs workshop table pointing at Resonance Disc"
+
+  - id: "ruby-turn-to-oscar"
+    entity: "ruby"
+    start: 39.500
+    end: 40.600
+    position: [1.58, 3.00, -0.60]
+    look_at: "oscar"
+    pitch: 10
+    height: 1.18
+    easing: "smooth"
+    note: "Turns toward Oscar entering behind her ('Oscar, how does this one even work?')"
+
+  - id: "ruby-turn-to-disc"
+    entity: "ruby"
+    start: 44.000
+    end: 45.200
+    position: [1.58, 3.00, -0.60]
+    rotation: -90
+    pitch: 18
+    height: 1.15
+    easing: "smooth"
+    note: "Faces back across table toward Arthur and Resonance Disc"
+
+  - id: "ruby-levitate-start"
+    entity: "ruby"
+    start: 53.300
+    end: 54.792
+    position: [1.75, 3.55, -0.45]
+    look_at: "artifact_disc"
+    pitch: -6
+    height: 1.65
+    easing: "ease-out"
+    note: "Lifts off tatami floor surrounded by expanding golden energy rings"
+
+  - id: "ruby-levitate-rise"
+    entity: "ruby"
+    start: 54.792
+    end: 59.750
+    position: [1.95, 4.85, -0.15]
+    look_at: "artifact_disc"
+    pitch: -10
+    roll: 8
+    pivot: "center"
+    height: 1.65
+    easing: "smooth"
+    note: "Floats upward in luminous spiral rings until white-out"
+
+  # --- Oscar Blocking (Engawa -> Hallway -> Leisurely Stair Ascent -> Level 2 -> Levitation) ---
+  - id: "oscar-stand-up"
+    entity: "oscar"
+    start: 21.500
+    end: 22.800
+    position: [-2.40, 0.0, -0.35]
+    height: 1.72
+    easing: "smooth"
+    note: "Rises unhurriedly from the bamboo engawa veranda"
+
+  - id: "oscar-exit-living"
+    entity: "oscar"
+    start: 22.800
+    end: 24.800
+    position: [1.15, 0.0, 3.35]
+    easing: "cruise"
+    note: "Walks calmly across tatami room and out the South doorway"
+
+  - id: "oscar-hall-stroll"
+    entity: "oscar"
+    start: 24.800
+    end: 27.350
+    position: [4.55, 0.0, 3.20]
+    rotation: 75
+    easing: "cruise"
+    note: "Arrives leisurely at the wooden pillar at the foot of the staircase"
+
+  - id: "oscar-pillar-turn"
+    entity: "oscar"
+    start: 27.350
+    end: 28.500
+    position: [5.35, 0.20, 2.45]
+    rotation: 180
+    easing: "smooth"
+    note: "Rests hand on wooden pillar and steps onto bottom stair"
+
+  - id: "oscar-stairs-climb"
+    entity: "oscar"
+    start: 28.500
+    end: 34.500
+    position: [5.40, 3.00, -1.60]
+    rotation: 180
+    pitch: 6
+    easing: "linear"
+    note: "Climbs wooden staircase steadily step-by-step up to Level 2"
+
+  - id: "oscar-l2-hallway"
+    entity: "oscar"
+    start: 34.500
+    end: 38.792
+    position: [1.95, 3.00, -2.65]
+    rotation: 0
+    pitch: 0
+    easing: "cruise"
+    note: "Strolls West down Level 2 upper hallway to workshop doorway"
+
+  - id: "oscar-enter-workshop"
+    entity: "oscar"
+    start: 38.792
+    end: 41.200
+    position: [2.20, 3.00, -1.55]
+    look_at: "ruby"
+    easing: "smooth"
+    note: "Steps into upstairs workshop behind Ruby, hands in pockets ('Does it matter?')"
+
+  - id: "oscar-take-center-table"
+    entity: "oscar"
+    start: 43.875
+    end: 45.708
+    position: [0.70, 3.00, -1.62]
+    rotation: 0
+    pitch: 10
+    height: 1.62
+    easing: "smooth"
+    note: "Walks behind North side of workshop table to complete the trio"
+
+  - id: "oscar-levitate-start"
+    entity: "oscar"
+    start: 53.300
+    end: 54.792
+    position: [0.70, 3.55, -1.85]
+    look_at: "artifact_disc"
+    pitch: -4
+    height: 1.72
+    easing: "ease-out"
+    note: "Lifts gently off floor as resonance field expands"
+
+  - id: "oscar-levitate-rise"
+    entity: "oscar"
+    start: 54.792
+    end: 59.750
+    position: [0.70, 4.85, -2.05]
+    look_at: "artifact_disc"
+    pitch: -8
+    pivot: "center"
+    height: 1.72
+    easing: "smooth"
+    note: "Hovers in luminous spiral rings above the workshop table"
+
+  # --- Resonance Disc Activation & Ascension (Shots 17–19 / CSV Scenes 15–17) ---
+  - id: "disc-ignite-levitate"
+    entity: "artifact_disc"
+    start: 53.083
+    end: 54.792
+    position: [0.70, 3.98, -0.60]
+    rotation: 120
+    easing: "ease-out"
+    note: "Resonance Disc ignites with white-gold light and levitates off velvet cushion"
+
+  - id: "disc-ascend-spin"
+    entity: "artifact_disc"
+    start: 54.792
+    end: 59.750
+    position: [0.70, 4.55, -0.60]
+    rotation: 360
+    easing: "smooth"
+    note: "Rises spinning at the glowing epicenter of the levitating trio"
+
+# ==============================================================================
+# DECOUPLED CONTINUOUS DIORAMA OBSERVER CAMERA (L1 -> L2 -> FULL 2-LEVEL HOUSE)
+# ==============================================================================
+observer_shots:
+  - id: "obs-01-first-floor"
+    label: "L1 Wide Overview (Living Room & Hallway Chase)"
+    start: 0.000
+    end: 25.458
+    maneuver: "dolly"
+    easing: "accel"
+    from: [-0.20, 0.75, 0.20]
+    target: [1.80, 0.85, 1.40]
+    distance_start: 13.2
+    distance_end: 13.6
+    pitch_start: 30
+    pitch_end: 28
+    yaw_start: 32
+    yaw_end: 18
+    lens: 35mm
+
+  - id: "obs-02-ascend-second-floor"
+    label: "Continuous Elevation to L2 (Staircase Ascent)"
+    continuous: true
+    end: 33.500
+    maneuver: "dolly"
+    easing: "linear"
+    from: [1.80, 0.85, 1.40]
+    target: [0.85, 3.65, -0.70]
+    distance: 11.8
+    pitch: 24
+    yaw: 10
+    lens: 35mm
+
+  - id: "obs-03-second-floor-workshop"
+    label: "L2 Workshop Wide Panorama (Resonance Disc Table)"
+    continuous: true
+    end: 53.083
+    maneuver: "dolly"
+    easing: "linear"
+    from: [0.85, 3.65, -0.70]
+    target: [0.70, 3.70, -0.65]
+    distance: 11.5
+    pitch: 25
+    yaw: -18
+    lens: 35mm
+
+  - id: "obs-04-ascension-full-house"
+    label: "Golden Ascension & Full 2-Level House Pull-Out"
+    continuous: true
+    end: 69.958
+    maneuver: "dolly"
+    easing: "deccel"
+    from: [0.70, 3.70, -0.65]
+    target: [0.70, 3.90, -0.60]
+    distance: 14.8
+    pitch: 32
+    yaw: -34
+    lens: 35mm
+
+# ==============================================================================
+# FILM COVERAGE SHOTS (STAGE CAMERA — 20 EDITORIAL SHOTS / 18 CSV SCENES)
+# ==============================================================================
+shots:
+  # --- Scene 1 (00:00:00.000 -> 00:00:05.375) ---
+  - id: "shot-01-opening-tableau"
+    shot: 1
+    label: "S01: Opening Deep-Focus Living Room Tableau"
+    description: "Floor-level 22mm wide master framing Ruby supine with die on nose (FG right), fan (FG center), Arthur prone at low table (MG left), and Oscar in sunlit bamboo engawa (BG far-left)."
+    start: 0.000
+    end: 5.375
+    stage_camera:
+      target: [0.20, 0.68, -0.15]
+      maneuver: "cut"
+      distance: 3.70
+      pitch: -4.8
+      yaw: 12
+      lens: 22mm
+      dof: "deep"
+      frustum_color: "#f59e0b"
+    entities:
+      ruby:
+        highlighted: true
+        note: "Supine on blue pillow, legs up East wall, balancing die on nose"
+
+  # --- Scene 2 (00:00:05.375 -> 00:00:11.042) ---
+  - id: "shot-02-arthur-tabletop-cu"
+    shot: 2
+    label: "S02: Arthur Tabletop Close-Up"
+    description: "Low tabletop 85mm close-up across the foreground teacup onto Arthur resting his chin on the chabudai, glancing right at Ruby."
+    start: 5.375
+    end: 11.042
+    stage_camera:
+      target: "arthur.head"
+      target_offset: [-0.08, 0.02, 0]
+      maneuver: "cut"
+      distance: 2.45
+      pitch: 2
+      yaw: 6
+      lens: 85mm
+      focus: "arthur.head"
+      dof: "shallow"
+    entities:
+      arthur:
+        highlighted: true
+        note: "'I'll tell them you passed away doing what you loved: complaining.'"
+
+  # --- Scene 3 (00:00:11.042 -> 00:00:15.875) ---
+  - id: "shot-03-oscar-engawa"
+    shot: 3
+    label: "S03: Oscar on the Bamboo Veranda"
+    description: "Warm 50mm medium shot looking West toward Oscar sitting cross-legged in the open engawa doorway against the sunlit bamboo forest."
+    start: 11.042
+    end: 15.875
+    stage_camera:
+      target: "oscar.center"
+      target_offset: [0, 0.12, 0]
+      maneuver: "cut"
+      distance: 3.65
+      pitch: 6
+      yaw: 78
+      lens: 50mm
+      focus: "oscar.head"
+      dof: "medium"
+    entities:
+      oscar:
+        highlighted: true
+        note: "'Well, we could always go back up.'"
+
+  # --- Scene 4 (00:00:15.875 -> 00:00:17.625) ---
+  - id: "shot-04-ruby-overhead-dice"
+    shot: 4
+    label: "S04: Inverted Top-Down on Ruby & Tumbling Die"
+    description: "Bird's-eye 50mm overhead directly above Ruby (shoulders at top of frame, crown at bottom) as her eyes snap wide and the wooden die tumbles off her nose."
+    start: 15.875
+    end: 17.625
+    stage_camera:
+      target: "ruby.head"
+      target_offset: [0.08, 0, 0]
+      maneuver: "cut"
+      distance: 2.25
+      pitch: 84
+      yaw: -90
+      lens: 50mm
+      focus: "ruby.head"
+      dof: "medium"
+    entities:
+      ruby:
+        highlighted: true
+        note: "Eyes snap open; die rolls off forehead toward sunlit tatami"
+      dice:
+        highlighted: true
+
+  # --- Scene 5 (00:00:17.625 -> 00:00:19.292) ---
+  - id: "shot-05-arthur-oscar-two-shot"
+    shot: 5
+    label: "S05: Startled Arthur & Smiling Oscar Two-Shot"
+    description: "Diagonal 45mm over-table two-shot placing startled Arthur & teacup in foreground right with Oscar smiling in the bamboo engawa background left."
+    start: 17.625
+    end: 19.292
+    stage_camera:
+      target: "arthur.head"
+      target_offset: [-0.28, 0.04, 0]
+      maneuver: "cut"
+      distance: 2.60
+      pitch: 3
+      yaw: 48
+      lens: 45mm
+      focus: "arthur.head"
+      dof: "medium"
+    entities:
+      arthur:
+        highlighted: true
+        note: "Eyes widen and chin lifts off table"
+      oscar:
+        highlighted: true
+
+  # --- Scene 6a (00:00:19.292 -> 00:00:20.800) ---
+  - id: "shot-06-living-room-breakout"
+    shot: 6
+    label: "S06a: Living Room Wide Reverse Breakout"
+    description: "180-degree reverse 24mm wide from behind Arthur looking South-West: Ruby (left) springs up and bolts through the South hallway door, Arthur (center) gives chase, Oscar watches from engawa (right)."
+    start: 19.292
+    end: 20.800
+    stage_camera:
+      target: [-0.65, 0.55, 0.25]
+      maneuver: "cut"
+      distance: 4.65
+      pitch: 14
+      yaw: 172
+      lens: 24mm
+      dof: "deep"
+    entities:
+      ruby:
+        highlighted: true
+        note: "'Dibs on the front seat!'"
+      arthur:
+        highlighted: true
+
+  # --- Scene 6b (00:00:20.800 -> 00:00:22.800) ---
+  - id: "shot-07-hallway-front-sprint"
+    shot: 7
+    label: "S06b: Hallway Front Lead-Tracking Sprint"
+    description: "32mm backward-tracking corridor lead shot looking West toward the sunlit bamboo garden as Ruby sprints East and Arthur bursts out of the right doorway to overtake her."
+    start: 20.800
+    end: 22.800
+    stage_camera:
+      target: ["ruby", "arthur"]
+      target_offset: [0, -0.15, 0]
+      maneuver: "dolly"
+      easing: "linear"
+      distance_start: 2.90
+      distance_end: 2.40
+      pitch: 2
+      yaw: 90
+      lens: 32mm
+      focus: ["ruby", "arthur"]
+      dof: "medium"
+    entities:
+      arthur:
+        highlighted: true
+        note: "'Hey, it's my house!'"
+      ruby:
+        highlighted: true
+
+  # --- Scene 6c (00:00:22.800 -> 00:00:25.458) ---
+  - id: "shot-08-hallway-lateral-tug"
+    shot: 8
+    label: "S06c: Hallway Lateral Profile & Apron Tug"
+    description: "45mm side-profile lateral tracking shot moving East alongside Arthur (left-to-right), widening slightly as Ruby catches up from screen-left to grab his apron ties."
+    start: 22.800
+    end: 25.458
+    stage_camera:
+      from: "arthur.chest"
+      target: ["ruby.chest", "arthur.chest"]
+      maneuver: "dolly"
+      easing: "linear"
+      distance_start: 2.30
+      distance_end: 2.75
+      pitch: 3
+      yaw: 0
+      lens: 45mm
+      focus: "arthur"
+      dof: "medium"
+    entities:
+      ruby:
+        highlighted: true
+        note: "Grabs Arthur's apron ties mid-sprint"
+      arthur:
+        highlighted: true
+
+  # --- Scene 7 (00:00:25.458 -> 00:00:27.292) ---
+  - id: "shot-09-staircase-low-ascent"
+    shot: 9
+    label: "S07: Staircase Low-Angle Ascent & Apron Pull"
+    description: "Stationary low tripod at the lower-right foot of the stairs tilting upward as Arthur charges around the banister and pulls Ruby up the wooden steps by his apron strings."
+    start: 25.458
+    end: 27.292
+    stage_camera:
+      from: "arthur.chest"
+      target: ["arthur.waist", "ruby.head"]
+      maneuver: "dolly"
+      easing: "linear"
+      rig:
+        type: "tripod"
+        position: [6.75, 0.80, 4.15]
+      lens: 32mm
+      focus: "arthur"
+      dof: "medium"
+    entities:
+      arthur:
+        highlighted: true
+        note: "'No pulling!'"
+      ruby:
+        highlighted: true
+
+  # --- Scene 8 (00:00:27.292 -> 00:00:32.708) ---
+  - id: "shot-10-staircase-oscar-climb"
+    shot: 10
+    label: "S08: Staircase Foot — Ruby Top & Oscar Ascends"
+    description: "Locked-off 28mm low-angle shot looking straight up the steep wooden staircase past the left pillar as Ruby scrambles onto Level 2 and Oscar arrives calmly to climb step-by-step."
+    start: 27.292
+    end: 32.708
+    stage_camera:
+      target: [5.20, 2.05, 0.40]
+      maneuver: "cut"
+      distance: 4.50
+      pitch: -18
+      yaw: 0
+      lens: 28mm
+      dof: "deep"
+    entities:
+      oscar:
+        highlighted: true
+        note: "Rests hand on wooden pillar and ascends leisurely to Level 2"
+
+  # --- Scene 9 (00:00:32.708 -> 00:00:35.042) ---
+  - id: "shot-11-l2-ots-arthur"
+    shot: 11
+    label: "S09: Upstairs Workshop OTS onto Arthur"
+    description: "Level 2 (Y=3.0m) 50mm over-the-shoulder past Ruby's pointing hand (FG right) across the Resonance Disc onto breathless Arthur (MG left)."
+    start: 32.708
+    end: 35.042
+    stage_camera:
+      target: ["arthur.head", "artifact_disc"]
+      maneuver: "cut"
+      distance: 2.55
+      pitch: 8
+      yaw: 38
+      lens: 50mm
+      focus: "arthur.head"
+      dof: "medium"
+    entities:
+      arthur:
+        highlighted: true
+        note: "'Ruby, don't touch it.'"
+      artifact_disc:
+        highlighted: true
+
+  # --- Scene 10 (00:00:35.042 -> 00:00:38.792) ---
+  - id: "shot-12-l2-ots-ruby"
+    shot: 12
+    label: "S10: Reverse OTS Past Arthur onto Ruby"
+    description: "Intimate 65mm reverse over-the-shoulder past Arthur's left shoulder (FG left) onto Ruby mischievously hovering her finger over the Resonance Disc."
+    start: 35.042
+    end: 38.792
+    stage_camera:
+      target: "ruby.head"
+      target_offset: [-0.18, -0.06, 0]
+      maneuver: "cut"
+      distance: 2.45
+      pitch: 8
+      yaw: -52
+      lens: 65mm
+      focus: "ruby.head"
+      dof: "shallow"
+    entities:
+      ruby:
+        highlighted: true
+        note: "Hovers index finger millimeter above Resonance Disc with playful grin"
+
+  # --- Scene 11 (00:00:38.792 -> 00:00:43.875) ---
+  - id: "shot-13-oscar-enters-l2"
+    shot: 13
+    label: "S11: Oscar Enters Upstairs Workshop Behind Ruby"
+    description: "Low-angle 38mm two-shot across the disc with subtle rack focus from Ruby to Oscar as he walks in through the Level 2 doorway behind her, hands in pockets."
+    start: 38.792
+    end: 43.875
+    stage_camera:
+      target: [1.55, 4.05, -1.25]
+      maneuver: "dolly"
+      easing: "smooth"
+      distance_start: 3.15
+      distance_end: 3.05
+      pitch: -5
+      yaw: -36
+      lens: 38mm
+      focus_start: "ruby.head"
+      focus_end: "oscar.head"
+      dof: "medium"
+    entities:
+      ruby:
+        highlighted: true
+        note: "'Oscar, how does this one even work?'"
+      oscar:
+        highlighted: true
+        note: "'Does it matter?'"
+
+  # --- Scene 12 (00:00:43.875 -> 00:00:45.708) ---
+  - id: "shot-14-arthur-deadpan-cu"
+    shot: 14
+    label: "S12: Arthur Deadpan Close-Up ('Nope!')"
+    description: "Tight 75mm close-up across the workshop table on Arthur breaking into a big grin and pointing forward."
+    start: 43.875
+    end: 45.708
+    stage_camera:
+      target: "arthur.head"
+      maneuver: "cut"
+      distance: 1.65
+      pitch: 2
+      yaw: 68
+      lens: 75mm
+      focus: "arthur.head"
+      dof: "shallow"
+    entities:
+      arthur:
+        highlighted: true
+        note: "'Nope!'"
+
+  # --- Scene 13 (00:00:45.708 -> 00:00:50.958) ---
+  - id: "shot-15-symmetric-three-shot"
+    shot: 15
+    label: "S13: Symmetric Three-Shot Around Resonance Disc"
+    description: "Dead-center 40mm three-shot looking North down the workshop table: Arthur (left), Oscar (center-back before open doorway), and Ruby (right) poised above the three disc nodes."
+    start: 45.708
+    end: 50.958
+    stage_camera:
+      target: [0.70, 4.02, -0.85]
+      maneuver: "cut"
+      distance: 3.05
+      pitch: 8
+      yaw: 0
+      lens: 40mm
+      focus: "artifact_disc"
+      dof: "medium"
+    entities:
+      arthur:
+        highlighted: true
+      oscar:
+        highlighted: true
+        note: "'You ready for an adventure?'"
+      ruby:
+        highlighted: true
+        note: "'I was born ready.'"
+      artifact_disc:
+        highlighted: true
+
+  # --- Scene 14 (00:00:50.958 -> 00:00:53.083) ---
+  - id: "shot-16-macro-three-fingers"
+    shot: 16
+    label: "S14: Top-Down Macro — Three Fingers Ignite Disc"
+    description: "Straight bird's-eye 50mm insert directly above the Resonance Disc (Oscar's finger top, Arthur's left, Ruby's right) as the concentric gold channels light up."
+    start: 50.958
+    end: 53.083
+    stage_camera:
+      target: "artifact_disc"
+      maneuver: "cut"
+      distance: 1.45
+      pitch: 84
+      yaw: 0
+      lens: 50mm
+      focus: "artifact_disc"
+      dof: "shallow"
+    entities:
+      artifact_disc:
+        highlighted: true
+        note: "All three nodes pressed simultaneously; golden grooves ignite"
+
+  # --- Scene 15 (00:00:53.083 -> 00:00:54.792) ---
+  - id: "shot-17-ignition-liftoff"
+    shot: 17
+    label: "S15: Disc Levitation & Trio Zero-G Lift-Off"
+    description: "35mm dolly pull-out and slight tilt-up from the symmetric 3-shot as the Resonance Disc levitates off its cushion and golden rings lift all three characters into mid-air."
+    start: 53.083
+    end: 54.792
+    stage_camera:
+      target: ["arthur", "oscar", "ruby"]
+      target_offset: [0, -0.25, 0]
+      maneuver: "dolly"
+      easing: "ease-out"
+      distance_start: 3.10
+      distance_end: 3.55
+      pitch_start: 8
+      pitch_end: -4
+      yaw: 0
+      lens: 35mm
+      focus: "artifact_disc"
+      dof: "deep"
+    entities:
+      artifact_disc:
+        highlighted: true
+      arthur:
+        highlighted: true
+      oscar:
+        highlighted: true
+      ruby:
+        highlighted: true
+
+  # --- Scene 16 (00:00:54.792 -> 00:00:56.708) ---
+  - id: "shot-18-golden-ring-orbit"
+    shot: 18
+    label: "S16: Whirlwind Golden Ring CCW Orbit"
+    description: "Dynamic low-angle 24mm counter-clockwise orbit with gentle zero-G Dutch bank sweeping past floating Oscar and Ruby toward the blinding golden-lit shoji windows."
+    start: 54.792
+    end: 56.708
+    stage_camera:
+      from: ["oscar", "ruby"]
+      target: "artifact_disc"
+      maneuver: "orbit"
+      direction: "ccw"
+      easing: "accel"
+      distance_start: 3.10
+      distance_end: 2.75
+      pitch_start: -12
+      pitch_end: -16
+      yaw_start: -12
+      yaw_end: 82
+      roll_start: 0
+      roll_end: 8
+      lens: 24mm
+      focus: "oscar"
+      dof: "deep"
+    entities:
+      oscar:
+        highlighted: true
+      ruby:
+        highlighted: true
+
+  # --- Scene 17 (00:00:56.708 -> 00:00:59.750) ---
+  - id: "shot-19-overhead-ascension"
+    shot: 19
+    label: "S17: Bird's-Eye Spiral Ascension into White-Out"
+    description: "God's-eye 24mm overhead (Arthur 11:00, Oscar 4:00, Ruby 8:00) accelerating smoothly upward and CCW as golden rings dissolve the tatami room into pure white light."
+    start: 56.708
+    end: 59.750
+    stage_camera:
+      target: "artifact_disc"
+      maneuver: "orbit"
+      direction: "ccw"
+      easing: "accel"
+      distance_start: 4.20
+      distance_end: 6.40
+      pitch_start: 84
+      pitch_end: 76
+      yaw_start: 110
+      yaw_end: 138
+      lens: 24mm
+      focus: "artifact_disc"
+      dof: "deep"
+    entities:
+      artifact_disc:
+        highlighted: true
+        note: "Glowing epicenter dissolving room into pure white light"
+
+  # --- Scene 18 (00:00:59.750 -> 00:01:09.958) ---
+  - id: "shot-20-title-card-pullout"
+    shot: 20
+    label: "S18: White-Out & Title Card ('Coordinates for Three')"
+    description: "Seamless continuous continuation of Shot 19's CCW spiral pull-out, decelerating smoothly while unveiling the entire two-level Japanese house during the end credits."
+    continuous: true
+    end: 69.958
+    stage_camera:
+      target: "artifact_disc"
+      maneuver: "orbit"
+      direction: "ccw"
+      easing: "deccel"
+      distance: 11.20
+      pitch: 42
+      yaw: 210
+      lens_start: 24mm
+      lens_end: 28mm
+      dof: "deep"
+      show_path: false

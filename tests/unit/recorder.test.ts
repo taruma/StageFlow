@@ -27,7 +27,7 @@ import {
   resolveOptimalWorkers,
 } from '../../scripts/record/workerScheduler';
 import { computeStageFrame } from '../../src/core/frameEngine';
-import { INITIAL_CATALOG_ITEMS, findCatalogItem } from '../../src/core/scoreCatalog';
+import { findCatalogItem, loadBundledScore } from '../../src/core/scoreCatalog';
 
 describe('Recorder Camera Presets', () => {
   it('defines valid pitch, yaw, and distance for all presets', () => {
@@ -83,8 +83,8 @@ describe('FFmpeg Path Resolver', () => {
 });
 
 describe('Deterministic Frame Evaluation', () => {
-  it('evaluates frames identically at stepped intervals', () => {
-    const score = INITIAL_CATALOG_ITEMS[0].score;
+  it('evaluates frames identically at stepped intervals', async () => {
+    const { score } = await loadBundledScore('vector-field');
     const fps = 60;
     const totalFrames = 60; // 1 second
 
@@ -112,7 +112,7 @@ describe('Recorder Audio Track Configuration', () => {
 });
 
 describe('Bundled Scene Shortcuts & Catalog Resolution', () => {
-  it('resolves all 7 blueprints and vector field correctly', () => {
+  it('resolves all 7 blueprints and 12 scene studies correctly', () => {
     const resolveShortcut = (input: string) => {
       const direct = findCatalogItem(input);
       if (direct) return direct;
@@ -146,27 +146,44 @@ describe('Bundled Scene Shortcuts & Catalog Resolution', () => {
     expect(resolveShortcut('vf')?.id).toBe('vector-field');
     expect(resolveShortcut('vector_field')?.id).toBe('vector-field');
     expect(resolveShortcut('vector-field-taruma-sakti')?.id).toBe('vector-field');
+
+    // All 12 studies & registered aliases
+    expect(resolveShortcut('afraid')?.id).toBe('afraid');
+    expect(resolveShortcut('afraid-taruma-sakti')?.id).toBe('afraid');
+    expect(resolveShortcut('coordinates-for-three')?.id).toBe('coordinates-for-three');
+    expect(resolveShortcut('entropy')?.id).toBe('entropy');
+    expect(resolveShortcut('entropy-taruma-sakti')?.id).toBe('entropy');
+    expect(resolveShortcut('frequency-over-force')?.id).toBe('frequency-over-force');
+    expect(resolveShortcut('not-about-fish')?.id).toBe('not-about-fish');
+    expect(resolveShortcut('not-about-fish-2026')?.id).toBe('not-about-fish');
+    expect(resolveShortcut('observation-only')?.id).toBe('observation-only');
+    expect(resolveShortcut('screaming-amber-wood')?.id).toBe('screaming-amber-wood');
+    expect(resolveShortcut('the-expansion')?.id).toBe('the-expansion');
+    expect(resolveShortcut('the-expansion-taruma-sakti')?.id).toBe('the-expansion');
+    expect(resolveShortcut('the-third-passenger')?.id).toBe('the-third-passenger');
+    expect(resolveShortcut('the-unresolved-variable')?.id).toBe('the-unresolved-variable');
+    expect(resolveShortcut('three-years-late')?.id).toBe('three-years-late');
   });
 });
 
 describe('Optics Bokeh Blur Invariant in Headless Recorder', () => {
-  it('respects score optics dofBlur when CLI flag is omitted', () => {
-    const bp06 = findCatalogItem('blueprint-06');
-    expect(bp06?.score.optics?.dofBlur).toBe(true);
+  it('respects score optics dofBlur when CLI flag is omitted', async () => {
+    const bp06 = await loadBundledScore('blueprint-06');
+    expect(bp06.score.optics?.dofBlur).toBe(true);
 
-    const bp01 = findCatalogItem('demo');
-    expect(bp01?.score.optics?.dofBlur ?? false).toBe(false);
+    const bp01 = await loadBundledScore('demo');
+    expect(bp01.score.optics?.dofBlur ?? false).toBe(false);
 
     const resolveBlur = (cliBlur?: boolean, scoreBlur?: boolean) =>
       cliBlur !== undefined ? cliBlur : (scoreBlur ?? false);
 
     // Default inherit from score
-    expect(resolveBlur(undefined, bp06?.score.optics?.dofBlur)).toBe(true);
-    expect(resolveBlur(undefined, bp01?.score.optics?.dofBlur)).toBe(false);
+    expect(resolveBlur(undefined, bp06.score.optics?.dofBlur)).toBe(true);
+    expect(resolveBlur(undefined, bp01.score.optics?.dofBlur)).toBe(false);
 
     // Explicit override via CLI flag
-    expect(resolveBlur(false, bp06?.score.optics?.dofBlur)).toBe(false);
-    expect(resolveBlur(true, bp01?.score.optics?.dofBlur)).toBe(true);
+    expect(resolveBlur(false, bp06.score.optics?.dofBlur)).toBe(false);
+    expect(resolveBlur(true, bp01.score.optics?.dofBlur)).toBe(true);
   });
 });
 
@@ -185,7 +202,7 @@ describe('Headless Recorder .GLB / .GLTF Skin Resolver', () => {
     expect(() => parseEntitySkinAssignment('hero=')).toThrow();
   });
 
-  it('auto-matches --skins-dir files, honors explicit overrides, and builds virtual route map', () => {
+  it('auto-matches --skins-dir files, honors explicit overrides, and builds virtual route map', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'stageflow-skins-'));
     try {
       const stageGlb = path.join(tmpDir, 'stage-environment.glb');
@@ -195,7 +212,7 @@ describe('Headless Recorder .GLB / .GLTF Skin Resolver', () => {
       fs.writeFileSync(heroGlb, 'glb-hero');
       fs.writeFileSync(overrideGlb, '{}');
 
-      const score = INITIAL_CATALOG_ITEMS[0].score;
+      const { score } = await loadBundledScore('vector-field');
       const resolved = resolveRecorderSkins(
         {
           skinsDir: tmpDir,

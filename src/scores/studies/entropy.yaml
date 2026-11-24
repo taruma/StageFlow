@@ -1,0 +1,1029 @@
+version: "1.0"
+id: "entropy-taruma-sakti"
+title: "Entropy"
+subtitle: "by Taruma Sakti"
+description: "Two men debate deterministic chaos across a rain-swept Gothic booth table while milk blooms in iced coffee."
+video: "https://www.youtube.com/watch?v=8Cbt1E1JotI"
+aspect_ratio: "16:9"
+duration: 63.125
+
+metadata:
+  director: "Taruma Sakti"
+  staging:
+    - "180-degree dialogue axis across booth table; Mark (-X), Robert (+X)"
+    - "Side walls terminate at z=+0.35m for unobstructed OTS cameras; wireframe window preserves exterior sightlines"
+  optics_package: "35mm/45mm/50mm masters, 65mm-72mm OTS coverage, 60mm-85mm tabletop inserts"
+
+optics:
+  dof_blur: true
+  dof: "shallow"
+
+stage:
+  width: 12
+  depth: 14
+  grid_step: 1
+  show_rigs: true
+  observer_camera:
+    target: "center"
+    distance: 14.5
+    pitch: 28
+    yaw: 35
+    roll: 0
+    lens: 35mm
+  stage_camera:
+    target: ["mark", "robert"]
+    target_offset: [0, 0.25, 0]
+    distance: 5.0
+    pitch: 2
+    yaw: 0
+    lens: 35mm
+
+# ==============================================================================
+# SCENE ENTITIES (Characters, Tabletop Props, Architecture & Floor Markers)
+# ==============================================================================
+entities:
+  # --- Characters (Seated Proportions) ---
+  - id: "mark"
+    label: "Mark"
+    kind: "character"
+    style: "mannequin"
+    position: [-0.92, 0, 0.04]
+    rotation: 90
+    pitch: 14
+    pivot: "base"
+    size: [0.54, 1.32, 0.44]
+    color: "#38bdf8"
+
+  - id: "robert"
+    label: "Robert"
+    kind: "character"
+    style: "mannequin"
+    position: [0.92, 0, 0.04]
+    rotation: -90
+    pitch: 2
+    pivot: "base"
+    size: [0.54, 1.36, 0.44]
+    color: "#a78bfa"
+
+  # --- Tabletop Props (Table Surface Y = 0.74m) ---
+  - id: "table"
+    label: "Booth Table"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [0, 0, 0]
+    size: [1.20, 0.74, 0.88]
+    color: "#78583a"
+
+  - id: "coffee_glass"
+    label: "Iced Coffee Glass"
+    kind: "prop"
+    shape: "cylinder"
+    style: "glass"
+    position: [-0.26, 0.74, -0.02]
+    size: [0.085, 0.16, 0.085]
+    color: "#92400e"
+
+  - id: "coffee_puddle"
+    label: "Coffee Spill"
+    kind: "prop"
+    shape: "cylinder"
+    style: "solid"
+    position: [-0.26, 0.742, 0.0]
+    size: [0.06, 0.005, 0.06]
+    color: "#b45309"
+
+  - id: "milk_pitcher"
+    label: "Milk Pitcher"
+    kind: "prop"
+    shape: "cylinder"
+    style: "solid"
+    position: [-0.36, 0.94, 0.14]
+    rotation: 148
+    pitch: 40
+    pivot: "center"
+    size: [0.095, 0.11, 0.095]
+    color: "#f8fafc"
+
+  - id: "robert_saucer"
+    label: "Tea Saucer"
+    kind: "prop"
+    shape: "cylinder"
+    style: "solid"
+    position: [0.36, 0.74, 0.04]
+    size: [0.16, 0.015, 0.16]
+    color: "#cbd5e1"
+
+  - id: "robert_cup"
+    label: "Robert's Teacup"
+    kind: "prop"
+    shape: "cylinder"
+    style: "solid"
+    position: [0.64, 1.12, 0.04]
+    size: [0.095, 0.08, 0.095]
+    color: "#f1f5f9"
+
+  - id: "equations_notes"
+    label: "Equation Sheets"
+    kind: "prop"
+    shape: "box"
+    style: "solid"
+    position: [0.08, 0.742, -0.18]
+    size: [0.28, 0.008, 0.24]
+    color: "#e2e8f0"
+
+  - id: "pen"
+    label: "Fountain Pen"
+    kind: "prop"
+    shape: "cylinder"
+    style: "solid"
+    position: [0.12, 0.752, -0.24]
+    rotation: 55
+    pitch: 90
+    pivot: "center"
+    size: [0.014, 0.15, 0.014]
+    color: "#1e293b"
+
+  - id: "robert_glasses"
+    label: "Robert's Glasses"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [0.76, 1.18, 0.04]
+    rotation: -90
+    size: [0.14, 0.04, 0.13]
+    color: "#d97706"
+
+  # --- Booth Benches, Overhead Lamp & Gothic Architecture ---
+  - id: "bench_mark"
+    label: "Left Bench"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [-1.14, 0, -0.05]
+    size: [0.56, 0.44, 1.25]
+    color: "#57412e"
+
+  - id: "bench_robert"
+    label: "Right Bench"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [1.14, 0, -0.05]
+    size: [0.56, 0.44, 1.25]
+    color: "#57412e"
+
+  - id: "pendant_lamp"
+    label: "Brass Pendant Lamp"
+    kind: "prop"
+    shape: "cylinder"
+    style: "edges"
+    position: [0, 1.88, 0]
+    size: [0.42, 0.24, 0.42]
+    color: "#fbbf24"
+
+  - id: "lamp_cord"
+    label: "Lamp Chain"
+    kind: "prop"
+    shape: "cylinder"
+    style: "solid"
+    position: [0, 2.12, 0]
+    size: [0.025, 1.28, 0.025]
+    color: "#78716c"
+
+  - id: "wall_left"
+    label: "Left Paneled Wall"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [-1.58, 0, -0.45]
+    size: [0.10, 3.40, 1.60]
+    color: "#475569"
+
+  - id: "wall_right"
+    label: "Right Paneled Wall"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [1.58, 0, -0.45]
+    size: [0.10, 3.40, 1.60]
+    color: "#475569"
+
+  - id: "window_sill"
+    label: "Window Wainscot & Sill"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [0, 0, -1.25]
+    size: [3.26, 0.92, 0.20]
+    color: "#64748b"
+
+  - id: "window_glass"
+    label: "3-Bay Gothic Window"
+    kind: "prop"
+    shape: "box"
+    style: "wireframe"
+    position: [0, 0.92, -1.25]
+    size: [2.72, 2.48, 0.04]
+    color: "#93c5fd"
+
+  - id: "window_mullion_l"
+    label: "Left Window Mullion"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [-0.46, 0.92, -1.25]
+    size: [0.12, 2.48, 0.20]
+    color: "#94a3b8"
+
+  - id: "window_mullion_r"
+    label: "Right Window Mullion"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [0.46, 0.92, -1.25]
+    size: [0.12, 2.48, 0.20]
+    color: "#94a3b8"
+
+  - id: "window_jamb_l"
+    label: "Left Window Jamb"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [-1.46, 0.92, -1.25]
+    size: [0.28, 2.48, 0.24]
+    color: "#94a3b8"
+
+  - id: "window_jamb_r"
+    label: "Right Window Jamb"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [1.46, 0.92, -1.25]
+    size: [0.28, 2.48, 0.24]
+    color: "#94a3b8"
+
+  - id: "pillar_left"
+    label: "Left Stone Pillar"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [-1.88, 0, 1.38]
+    size: [0.42, 3.40, 0.42]
+    color: "#64748b"
+
+  - id: "pillar_right"
+    label: "Right Stone Pillar"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [1.88, 0, 1.38]
+    size: [0.42, 3.40, 0.42]
+    color: "#64748b"
+
+  # --- Staging & Camera Floor Marks ---
+  - id: "mark_center"
+    label: "Table Center Spike"
+    kind: "marker"
+    shape: "x"
+    style: "tape"
+    position: [0, 0, 0]
+    color: "#f59e0b"
+
+  - id: "mark_cam_master"
+    label: "Master Cam Mark"
+    kind: "marker"
+    shape: "t"
+    style: "glow"
+    position: [0, 0, 5.0]
+    color: "#22c55e"
+
+  - id: "mark_cam_ots_mark"
+    label: "OTS Mark Spike"
+    kind: "marker"
+    shape: "circle"
+    style: "tape"
+    position: [1.84, 0, 0.60]
+    color: "#38bdf8"
+
+  - id: "mark_cam_ots_robert"
+    label: "OTS Robert Spike"
+    kind: "marker"
+    shape: "circle"
+    style: "tape"
+    position: [-1.84, 0, 0.60]
+    color: "#a78bfa"
+
+  - id: "mark_cam_exterior"
+    label: "Exterior Cam Mark"
+    kind: "marker"
+    shape: "t"
+    style: "glow"
+    position: [0, 0, -5.25]
+    color: "#60a5fa"
+
+# ==============================================================================
+# DECOUPLED BLOCKING TIMELINE (Posture Shifts & Tabletop Prop Kinematics)
+# ==============================================================================
+blocking:
+  # --- Mark Seated Posture & Lean Beats ---
+  - id: "mark-pour-lean"
+    entity: "mark"
+    start: 0.000
+    end: 6.875
+    position: [-0.90, 0, 0.04]
+    rotation: 90
+    pitch: 15
+    height: 1.30
+    easing: "smooth"
+    note: "Leans over glass pouring milk"
+
+  - id: "mark-finish-pour"
+    entity: "mark"
+    start: 6.875
+    end: 9.667
+    position: [-0.92, 0, 0.04]
+    rotation: 90
+    pitch: 12
+    height: 1.32
+    easing: "smooth"
+    note: "Sets pitcher down, watches bloom"
+
+  - id: "mark-cold-hands"
+    entity: "mark"
+    start: 13.625
+    end: 16.667
+    position: [-0.91, 0, 0.04]
+    rotation: 90
+    pitch: 15
+    height: 1.29
+    easing: "smooth"
+    note: "Hands splayed; stares at coffee"
+
+  - id: "mark-boundary-argument"
+    entity: "mark"
+    start: 16.667
+    end: 22.208
+    position: [-0.88, 0, 0.04]
+    rotation: 90
+    pitch: 17
+    height: 1.31
+    easing: "smooth"
+    note: "Leans in gesturing intently"
+
+  - id: "mark-stung-recoil"
+    entity: "mark"
+    start: 26.333
+    end: 28.875
+    position: [-0.94, 0, 0.04]
+    rotation: 90
+    pitch: 8
+    height: 1.33
+    easing: "ease-out"
+    note: "Freezes at board meeting remark"
+
+  - id: "mark-turbulence-surge"
+    entity: "mark"
+    start: 30.500
+    end: 37.958
+    position: [-0.86, 0, 0.04]
+    rotation: 90
+    pitch: 18
+    height: 1.30
+    easing: "cruise"
+    note: "Surges forward over table"
+
+  - id: "mark-urgent-question"
+    entity: "mark"
+    start: 40.667
+    end: 42.917
+    position: [-0.88, 0, 0.04]
+    rotation: 90
+    pitch: 15
+    height: 1.32
+    easing: "smooth"
+    note: "Presses forward asking Robert"
+
+  - id: "mark-quiet-acceptance"
+    entity: "mark"
+    start: 51.958
+    end: 63.125
+    position: [-0.94, 0, 0.04]
+    rotation: 90
+    pitch: 10
+    height: 1.31
+    easing: "smooth"
+    note: "Lowers gaze in quiet resignation"
+
+  # --- Robert Seated Posture & Glasses Beats ---
+  - id: "robert-initial-sip"
+    entity: "robert"
+    start: 0.000
+    end: 9.667
+    position: [0.92, 0, 0.04]
+    rotation: -90
+    pitch: 2
+    height: 1.36
+    easing: "smooth"
+    note: "Sips teacup calmly"
+
+  - id: "robert-composed-back"
+    entity: "robert"
+    start: 9.667
+    end: 13.625
+    position: [0.94, 0, 0.04]
+    rotation: -90
+    pitch: -3
+    height: 1.37
+    easing: "smooth"
+    note: "Sets cup down; relaxed poise"
+
+  - id: "robert-board-rebuke"
+    entity: "robert"
+    start: 19.583
+    end: 26.333
+    position: [0.91, 0, 0.04]
+    rotation: -90
+    pitch: 4
+    height: 1.36
+    easing: "smooth"
+    note: "Slight lean-in delivering rebuke"
+
+  - id: "robert-listens-cup"
+    entity: "robert"
+    start: 28.875
+    end: 37.958
+    position: [0.93, 0, 0.04]
+    rotation: -90
+    pitch: 0
+    height: 1.36
+    easing: "smooth"
+    note: "Sips and listens steadily"
+
+  - id: "robert-know-the-math"
+    entity: "robert"
+    start: 37.958
+    end: 42.917
+    position: [0.92, 0, 0.04]
+    rotation: -90
+    pitch: 3
+    height: 1.36
+    easing: "smooth"
+    note: "Lowers cup onto saucer"
+
+  - id: "robert-glasses-confession"
+    entity: "robert"
+    start: 42.917
+    end: 48.875
+    position: [0.87, 0, 0.04]
+    rotation: -90
+    pitch: 9
+    height: 1.34
+    easing: "smooth"
+    note: "Removes glasses, leans in earnestly"
+
+  - id: "robert-final-sip-posture"
+    entity: "robert"
+    start: 54.500
+    end: 63.125
+    position: [0.93, 0, 0.04]
+    rotation: -90
+    pitch: 1
+    height: 1.36
+    easing: "smooth"
+    note: "Settles upright for quiet sip"
+
+  # --- Tabletop Prop Animations ---
+  - id: "pitcher-set-down"
+    entity: "milk_pitcher"
+    start: 7.800
+    end: 9.400
+    position: [-0.36, 0.74, 0.16]
+    rotation: 90
+    pitch: 0
+    easing: "smooth"
+    note: "Lowered upright onto table"
+
+  - id: "puddle-hidden-preroll"
+    entity: "coffee_puddle"
+    start: 0.000
+    end: 13.625
+    visible: false
+
+  - id: "puddle-spreads"
+    entity: "coffee_puddle"
+    start: 13.625
+    end: 17.500
+    visible: true
+    from_size: [0.06, 0.005, 0.06]
+    size: [0.22, 0.006, 0.22]
+    easing: "ease-out"
+    note: "Spill blooms around glass base"
+
+  - id: "cup-down-shot4"
+    entity: "robert_cup"
+    start: 10.200
+    end: 12.200
+    position: [0.36, 0.755, 0.04]
+    easing: "smooth"
+
+  - id: "cup-up-shot10"
+    entity: "robert_cup"
+    start: 28.500
+    end: 29.200
+    position: [0.64, 1.12, 0.04]
+    easing: "smooth"
+
+  - id: "cup-mid-shot11"
+    entity: "robert_cup"
+    start: 30.500
+    end: 34.250
+    position: [0.58, 1.00, 0.04]
+    easing: "smooth"
+
+  - id: "cup-down-shot13"
+    entity: "robert_cup"
+    start: 37.958
+    end: 39.600
+    position: [0.36, 0.755, 0.04]
+    easing: "smooth"
+
+  - id: "cup-up-shot18"
+    entity: "robert_cup"
+    start: 54.500
+    end: 56.000
+    position: [0.64, 1.12, 0.04]
+    easing: "smooth"
+
+  - id: "glasses-placed-on-table"
+    entity: "robert_glasses"
+    start: 45.200
+    end: 47.600
+    position: [-0.02, 0.748, -0.06]
+    rotation: 28
+    pitch: 0
+    size: [0.15, 0.04, 0.14]
+    easing: "smooth"
+    note: "Set beside puddle and notes"
+
+observer_shots:
+  # Beat 1 (0.000s -> 28.875s): Ramps smoothly from front-right (35°) around Stage Right (+90°)
+  # to the rear-right exterior (190°), arriving outside the Gothic window right as Shot 10 cuts outside.
+  - id: "obs-01-orbit-to-exterior"
+    label: "Continuous 360° Crane Orbit (Part 1: Exterior Arrival)"
+    start: 0.000
+    end: 28.875
+    target: "center"
+    maneuver: "orbit"
+    direction: "ccw"
+    easing: "accel"
+    distance_start: 14.5
+    distance_end: 15.0
+    pitch_start: 28
+    pitch_end: 24
+    yaw_start: 35
+    yaw_end: 190
+    lens: 35mm
+
+  # Beat 2 (28.875s -> 48.875s): Continues seamlessly at matched angular velocity (~6.75°/s)
+  # past the exterior window (180°) and around the Stage Left flank (270° -> 325°), rising over the booth walls.
+  - id: "obs-02-orbit-around-flank"
+    label: "Continuous 360° Crane Orbit (Part 2: Stage Left Flank)"
+    continuous: true
+    end: 48.875
+    target: "center"
+    maneuver: "orbit"
+    direction: "ccw"
+    easing: "linear"
+    distance: 14.0
+    pitch: 29
+    yaw: 325
+    lens: 35mm
+
+  # Beat 3 (48.875s -> 63.125s): Completes the full revolution (325° -> 42° CCW, +77°)
+  # while pulling back to 16.5m and climbing to 34° for a full bird's-eye reveal of Shot 19's exterior rig.
+  - id: "obs-03-orbit-crane-finale"
+    label: "Continuous 360° Crane Orbit (Part 3: High Pull-Back Finale)"
+    continuous: true
+    end: 63.125
+    target: "center"
+    maneuver: "orbit"
+    direction: "ccw"
+    easing: "deccel"
+    distance: 16.5
+    pitch: 34
+    yaw: 42
+    lens: 35mm
+
+# ==============================================================================
+# FILM COVERAGE SHOTS (19 Shots Synchronized to CSV Timecodes)
+# ==============================================================================
+shots:
+  - id: "shot-01"
+    shot: 1
+    label: "Wide Symmetrical Establishing Master"
+    description: "Symmetrical wide framing both men in the Gothic alcove beneath the brass lamp."
+    start: 0.000
+    end: 2.292
+    stage_camera:
+      target: ["mark", "robert"]
+      target_offset: [0, 0.25, 0]
+      maneuver: "cut"
+      distance: 5.0
+      pitch: 2
+      yaw: 0
+      lens: 35mm
+      focus: ["mark", "robert"]
+      dof: "medium"
+      rig: { type: "tripod" }
+      show_path: false
+    entities:
+      mark: { highlighted: true, note: "Pours milk" }
+      robert: { highlighted: true, note: "Sips tea" }
+
+  - id: "shot-02"
+    shot: 2
+    label: "High-Angle Insert: Milk Pour"
+    description: "Steep insert on cream blooming inside dark coffee beside equation sheets."
+    start: 2.292
+    end: 6.875
+    stage_camera:
+      target: "coffee_glass"
+      target_offset: [0.02, 0.02, 0]
+      maneuver: "dolly"
+      easing: "linear"
+      distance_start: 1.15
+      distance_end: 1.05
+      pitch: 56
+      yaw: -8
+      lens: 85mm
+      focus: "coffee_glass"
+      dof: "shallow"
+      show_path: false
+    entities:
+      coffee_glass: { highlighted: true, note: "Milk blooms" }
+      milk_pitcher: { highlighted: true }
+
+  - id: "shot-03"
+    shot: 3
+    label: "OTS Mark: Setting Pitcher Down"
+    description: "OTS over Robert's left shoulder as Mark finishes pouring and sets pitcher down."
+    start: 6.875
+    end: 9.667
+    stage_camera:
+      target: "mark"
+      target_offset: [0.10, -0.10, -0.02]
+      maneuver: "cut"
+      distance: 2.75
+      pitch: 5
+      yaw: 77
+      lens: 65mm
+      focus: "mark.eyes"
+      dof: "shallow"
+      rig: { type: "tripod" }
+      show_path: false
+    entities:
+      mark: { highlighted: true, note: "Never blooms the same way twice" }
+
+  - id: "shot-04"
+    shot: 4
+    label: "OTS Robert: Moving the Glass"
+    description: "Reverse OTS over Mark's right shoulder as Robert lowers his teacup."
+    start: 9.667
+    end: 13.625
+    stage_camera:
+      target: "robert"
+      target_offset: [-0.10, -0.10, -0.02]
+      maneuver: "cut"
+      distance: 2.80
+      pitch: 5
+      yaw: -77
+      lens: 65mm
+      focus: "robert.eyes"
+      dof: "shallow"
+      rig: { type: "tripod" }
+      show_path: false
+    entities:
+      robert: { highlighted: true, note: "Because you moved the glass" }
+
+  - id: "shot-05"
+    shot: 5
+    label: "OTS Mark: Cold Hands"
+    description: "OTS on Mark with hand splayed on table staring down at his glass."
+    start: 13.625
+    end: 16.667
+    stage_camera:
+      target: "mark"
+      target_offset: [0.10, -0.10, -0.02]
+      maneuver: "cut"
+      distance: 2.70
+      pitch: 6
+      yaw: 77
+      lens: 68mm
+      focus: "mark.eyes"
+      dof: "shallow"
+      rig: { type: "tripod" }
+      show_path: false
+    entities:
+      mark: { highlighted: true, note: "Stares at coffee" }
+
+  - id: "shot-06"
+    shot: 6
+    label: "Tabletop Insert: Puddle & Hand"
+    description: "Low tabletop close-up past coffee puddle and pitcher as Mark gestures."
+    start: 16.667
+    end: 19.583
+    stage_camera:
+      target: "coffee_glass"
+      target_offset: [0, 0.04, 0.02]
+      maneuver: "cut"
+      distance: 1.15
+      pitch: 18
+      yaw: 70
+      lens: 60mm
+      focus: "coffee_glass"
+      dof: "shallow"
+      show_path: false
+    entities:
+      coffee_glass: { highlighted: true }
+      coffee_puddle: { highlighted: true, note: "Spill widens" }
+
+  - id: "shot-07"
+    shot: 7
+    label: "Tighter Profile Two-Shot Master"
+    description: "Medium profile master as Mark argues boundary conditions across the table."
+    start: 19.583
+    end: 22.208
+    stage_camera:
+      target: ["mark", "robert"]
+      target_offset: [0, 0.12, 0]
+      maneuver: "cut"
+      distance: 3.95
+      pitch: 2
+      yaw: 0
+      lens: 50mm
+      focus: ["mark", "robert"]
+      dof: "medium"
+      rig: { type: "tripod" }
+      show_path: false
+    entities:
+      mark: { highlighted: true, note: "Field fractures" }
+
+  - id: "shot-08"
+    shot: 8
+    label: "OTS Robert: Board Meeting Rebuke"
+    description: "Subtle dolly-in OTS on Robert smiling wryly before delivering his rebuke."
+    start: 22.208
+    end: 26.333
+    stage_camera:
+      target: "robert"
+      target_offset: [-0.10, -0.10, -0.02]
+      maneuver: "dolly"
+      easing: "smooth"
+      distance_start: 2.80
+      distance_end: 2.68
+      pitch: 5
+      yaw: -77
+      lens: 68mm
+      focus: "robert.eyes"
+      dof: "shallow"
+      show_path: true
+    entities:
+      robert: { highlighted: true, note: "Mentions board meeting" }
+
+  - id: "shot-09"
+    shot: 9
+    label: "OTS Mark: Stung Silence"
+    description: "Slow tightening OTS as Mark freezes and drops his gaze in silence."
+    start: 26.333
+    end: 28.875
+    stage_camera:
+      target: "mark"
+      target_offset: [0.10, -0.08, -0.02]
+      maneuver: "dolly"
+      easing: "smooth"
+      distance_start: 2.75
+      distance_end: 2.65
+      pitch: 5
+      yaw: 77
+      lens: 70mm
+      focus: "mark.eyes"
+      dof: "shallow"
+      show_path: true
+    entities:
+      mark: { highlighted: true, note: "Silent reaction" }
+
+  - id: "shot-10"
+    shot: 10
+    label: "Exterior Rainy Window View"
+    description: "Exterior vantage outside the rain-streaked Gothic window looking in."
+    start: 28.875
+    end: 30.500
+    stage_camera:
+      target: ["mark", "robert"]
+      target_offset: [0, 0.32, 0]
+      maneuver: "cut"
+      distance: 5.25
+      pitch: -2
+      yaw: 180
+      lens: 45mm
+      focus: "window_glass"
+      dof: "medium"
+      rig: { type: "tripod" }
+      show_path: false
+    entities:
+      window_glass: { highlighted: true, note: "Rain on leaded glass" }
+
+  - id: "shot-11"
+    shot: 11
+    label: "Profile Two-Shot: Turbulence"
+    description: "Closer profile two-shot as Mark argues non-linear turbulence."
+    start: 30.500
+    end: 34.250
+    stage_camera:
+      target: ["mark", "robert"]
+      target_offset: [0, 0.12, 0]
+      maneuver: "cut"
+      distance: 3.75
+      pitch: 2
+      yaw: 0
+      lens: 52mm
+      focus: ["mark", "robert"]
+      dof: "medium"
+      rig: { type: "tripod" }
+      show_path: false
+    entities:
+      mark: { highlighted: true, note: "Non-linear turbulence" }
+
+  - id: "shot-12"
+    shot: 12
+    label: "OTS Mark: Passionate Peak"
+    description: "Pushing OTS on Mark gesturing intently until Robert's marriage remark stops him."
+    start: 34.250
+    end: 37.958
+    stage_camera:
+      target: "mark"
+      target_offset: [0.10, -0.08, -0.02]
+      maneuver: "dolly"
+      easing: "smooth"
+      distance_start: 2.70
+      distance_end: 2.55
+      pitch: 5
+      yaw: 77
+      lens: 72mm
+      focus: "mark.eyes"
+      dof: "shallow"
+      show_path: true
+    entities:
+      mark: { highlighted: true, note: "Cut off by Robert" }
+
+  - id: "shot-13"
+    shot: 13
+    label: "OTS Robert: I Know the Math"
+    description: "Reverse OTS as Robert sets his cup down with quiet authority."
+    start: 37.958
+    end: 40.667
+    stage_camera:
+      target: "robert"
+      target_offset: [-0.10, -0.10, -0.02]
+      maneuver: "cut"
+      distance: 2.75
+      pitch: 5
+      yaw: -77
+      lens: 68mm
+      focus: "robert.eyes"
+      dof: "shallow"
+      rig: { type: "tripod" }
+      show_path: false
+    entities:
+      robert: { highlighted: true, note: "I know the math, Mark" }
+
+  - id: "shot-14"
+    shot: 14
+    label: "OTS Mark: Why Build Models?"
+    description: "Tight OTS on Mark urgently questioning Robert across the table."
+    start: 40.667
+    end: 42.917
+    stage_camera:
+      target: "mark"
+      target_offset: [0.10, -0.08, -0.02]
+      maneuver: "cut"
+      distance: 2.65
+      pitch: 5
+      yaw: 77
+      lens: 72mm
+      focus: "mark.eyes"
+      dof: "shallow"
+      rig: { type: "tripod" }
+      show_path: false
+    entities:
+      mark: { highlighted: true, note: "Why keep building models?" }
+
+  - id: "shot-15"
+    shot: 15
+    label: "OTS Robert: Removes Glasses"
+    description: "Slow dolly-in OTS as Robert removes his glasses and confesses fear of chaos."
+    start: 42.917
+    end: 48.875
+    stage_camera:
+      target: "robert"
+      target_offset: [-0.10, -0.10, -0.02]
+      maneuver: "dolly"
+      easing: "smooth"
+      distance_start: 2.80
+      distance_end: 2.55
+      pitch: 5
+      yaw: -77
+      lens: 70mm
+      focus: "robert.eyes"
+      dof: "shallow"
+      show_path: true
+    entities:
+      robert: { highlighted: true, note: "Takes off glasses" }
+      robert_glasses: { highlighted: true }
+
+  - id: "shot-16"
+    shot: 16
+    label: "High-Angle Insert: Glasses & Spill"
+    description: "Steep tabletop still-life framing glasses across equations beside the coffee spill."
+    start: 48.875
+    end: 51.958
+    stage_camera:
+      target: ["coffee_puddle", "robert_glasses"]
+      target_offset: [0.02, 0, -0.02]
+      maneuver: "cut"
+      distance: 1.15
+      pitch: 62
+      yaw: -8
+      lens: 70mm
+      focus: "robert_glasses"
+      dof: "shallow"
+      show_path: false
+    entities:
+      robert_glasses: { highlighted: true, note: "Rests on equations" }
+      coffee_puddle: { highlighted: true }
+      equations_notes: { highlighted: true }
+
+  - id: "shot-17"
+    shot: 17
+    label: "OTS Mark: Quiet Empathy"
+    description: "OTS on Mark absorbing Robert's confession and lowering his eyes."
+    start: 51.958
+    end: 54.500
+    stage_camera:
+      target: "mark"
+      target_offset: [0.10, -0.08, -0.02]
+      maneuver: "cut"
+      distance: 2.75
+      pitch: 5
+      yaw: 77
+      lens: 70mm
+      focus: "mark.eyes"
+      dof: "shallow"
+      rig: { type: "tripod" }
+      show_path: false
+    entities:
+      mark: { highlighted: true, note: "Quiet acceptance" }
+
+  - id: "shot-18"
+    shot: 18
+    label: "OTS Robert: Final Sip"
+    description: "Reverse OTS on Robert without glasses raising his teacup for a calm sip."
+    start: 54.500
+    end: 56.375
+    stage_camera:
+      target: "robert"
+      target_offset: [-0.10, -0.10, -0.02]
+      maneuver: "cut"
+      distance: 2.75
+      pitch: 5
+      yaw: -77
+      lens: 70mm
+      focus: "robert.eyes"
+      dof: "shallow"
+      rig: { type: "tripod" }
+      show_path: false
+    entities:
+      robert: { highlighted: true, note: "Final sip without glasses" }
+
+  - id: "shot-19"
+    shot: 19
+    label: "Exterior Window Finale & Title"
+    description: "Slow pull-back outside the rainy window as the scene fades into the title card."
+    start: 56.375
+    end: 63.125
+    stage_camera:
+      target: ["mark", "robert"]
+      target_offset: [0, 0.32, 0]
+      maneuver: "dolly"
+      easing: "deccel"
+      distance_start: 5.25
+      distance_end: 5.75
+      pitch: -2
+      yaw: 180
+      lens: 45mm
+      focus: "window_glass"
+      dof: "medium"
+      show_path: true
+    entities:
+      window_glass: { highlighted: true, note: "Fade to title card" }

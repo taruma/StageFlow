@@ -13,7 +13,12 @@ import type { ScoreDiagnostic, StageScore } from '../core/types';
 import {
   INITIAL_CATALOG_ITEMS,
   findCatalogItem,
+  generateBlankScoreYaml,
+  getCachedBundledScore,
+  getDefaultSceneId,
   isBundledSceneId,
+  loadBundledScore,
+  type LoadedScoreCatalogItem,
   type ScoreCatalogItem,
 } from '../core/scoreCatalog';
 import { parseStageScore } from '../core/scoreParser';
@@ -93,8 +98,8 @@ export const InteractiveStudioApp: React.FC = () => {
   const [subpanelViewMode, setSubpanelViewMode] =
     useState<SubpanelViewMode>('brief');
 
-  const [catalog, setCatalog] = useState<ScoreCatalogItem[]>(
-    INITIAL_CATALOG_ITEMS
+  const [catalog, setCatalog] = useState<ScoreCatalogItem[]>(() =>
+    INITIAL_CATALOG_ITEMS.map((item) => getCachedBundledScore(item.id) ?? item)
   );
 
   // Synchronously hydrate active scene id from localStorage or ?score= / ?scene= query param
@@ -108,7 +113,7 @@ export const InteractiveStudioApp: React.FC = () => {
       }
     }
     const stored = loadStoredActiveSceneId();
-    return stored || INITIAL_CATALOG_ITEMS[0].id;
+    return stored || getDefaultSceneId();
   });
 
   const setActiveSceneId = useCallback((id: string) => {
@@ -179,9 +184,17 @@ export const InteractiveStudioApp: React.FC = () => {
 
   const isNarrowDiorama = dioramaWidth < 768;
 
-  const initialItem =
-    INITIAL_CATALOG_ITEMS.find((item) => item.id === activeSceneId) ??
-    INITIAL_CATALOG_ITEMS[0];
+  const cachedInitialItem =
+    getCachedBundledScore(activeSceneId) ??
+    getCachedBundledScore(getDefaultSceneId());
+  const initialBlankYaml = cachedInitialItem
+    ? null
+    : generateBlankScoreYaml(activeSceneId);
+  const initialItem = cachedInitialItem ?? {
+    id: activeSceneId,
+    rawYaml: initialBlankYaml!,
+    score: parseStageScore(initialBlankYaml!, activeSceneId).score!,
+  };
 
   const [rawYaml, setRawYaml] = useState<string>(initialItem.rawYaml);
   const [activeScore, setActiveScore] = useState(initialItem.score);
@@ -204,20 +217,45 @@ export const InteractiveStudioApp: React.FC = () => {
   }, [activeScore.optics?.dofBlur, display.setDofBlurEnabled]);
 
   const handleExportScore = useCallback(
-    (item: ScoreCatalogItem) => {
-      downloadYamlBlob(`${item.id}.yaml`, item.rawYaml);
+    async (item: ScoreCatalogItem) => {
+      let yamlToExport = item.rawYaml;
+      if (!yamlToExport && !item.isCustom && isBundledSceneId(item.id)) {
+        try {
+          const loaded = await loadBundledScore(item.id);
+          yamlToExport = loaded.rawYaml;
+          setCatalog((prev) =>
+            prev.map((c) => (c.id === loaded.id ? loaded : c))
+          );
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          showToast(`Failed to export score "${item.title}": ${msg}`, 'error');
+          return;
+        }
+      }
+      if (!yamlToExport) {
+        showToast(
+          `Score "${item.title}" has no YAML content to export`,
+          'error'
+        );
+        return;
+      }
+      downloadYamlBlob(`${item.id}.yaml`, yamlToExport);
       showToast(`Exported score "${item.id}.yaml"`, 'success');
     },
     [showToast]
   );
 
   const handleExportActiveScore = useCallback(() => {
-    handleExportScore({
+    void handleExportScore({
       id: activeSceneId,
       title: activeScore.title,
+      category: 'custom',
+      durationSec: activeScore.durationSec,
+      shotCount: activeScore.shots.length,
+      aspectRatio: activeScore.aspectRatio,
+      videoUrl: activeScore.videoUrl,
       rawYaml,
       score: activeScore,
-      category: 'custom',
       isCustom: false,
     });
   }, [activeSceneId, activeScore, rawYaml, handleExportScore]);
@@ -356,22 +394,73 @@ export const InteractiveStudioApp: React.FC = () => {
     [stageLoop]
   );
 
-  // Switch between catalog scenes
+  const selectSceneSeqRef = useRef(0);
+
+  // Switch between catalog scenes (lazy-loading bundled YAML payloads on demand)
   const handleSelectScene = useCallback(
-    (sceneId: string) => {
+    async (sceneId: string) => {
       const found = catalog.find((item) => item.id === sceneId);
       if (!found) return;
+
+      const seq = ++selectSceneSeqRef.current;
+      let resolvedYaml = found.rawYaml;
+      let resolvedScore = found.score;
+
+      if (
+        (!resolvedYaml || !resolvedScore) &&
+        !found.isCustom &&
+        isBundledSceneId(found.id)
+      ) {
+        try {
+          const loaded = await loadBundledScore(found.id);
+          if (seq !== selectSceneSeqRef.current) return;
+          resolvedYaml = loaded.rawYaml;
+          resolvedScore = loaded.score;
+          setCatalog((prev) =>
+            prev.map((c) => (c.id === loaded.id ? loaded : c))
+          );
+        } catch (err: unknown) {
+          if (seq !== selectSceneSeqRef.current) return;
+          const msg = err instanceof Error ? err.message : String(err);
+          showToast(`Failed to load score "${found.title}": ${msg}`, 'error');
+          return;
+        }
+      }
+
+      if (seq !== selectSceneSeqRef.current) return;
+      if (!resolvedYaml || !resolvedScore) return;
+
       mediaClock.pause();
       setActiveSceneId(found.id);
-      setRawYaml(found.rawYaml);
-      setActiveScore(found.score);
+      setRawYaml(resolvedYaml);
+      setActiveScore(resolvedScore);
       setParseError(null);
       setParseWarning(null);
       setParseDiagnostics(undefined);
       setVideoOverrideUrl(null);
       triggerScoreReset();
     },
-    [catalog, mediaClock, setActiveSceneId, triggerScoreReset]
+    [catalog, mediaClock, setActiveSceneId, showToast, triggerScoreReset]
+  );
+
+  const handleEnsureScoreLoaded = useCallback(
+    async (sceneId: string) => {
+      const existing = catalog.find((c) => c.id === sceneId);
+      if (existing?.score && existing?.rawYaml) return;
+      if (!isBundledSceneId(sceneId)) return;
+
+      try {
+        const loaded = await loadBundledScore(sceneId);
+        setCatalog((prev) =>
+          prev.map((c) =>
+            c.id === loaded.id && (!c.score || !c.rawYaml) ? loaded : c
+          )
+        );
+      } catch {
+        // Inspector remains responsive with lightweight metadata if load fails
+      }
+    },
+    [catalog]
   );
 
   // Live YAML editing in the Inspector Drawer (custom projects only)
@@ -454,11 +543,15 @@ export const InteractiveStudioApp: React.FC = () => {
         const finalParsed = parseStageScore(finalYaml, finalId);
         const resolvedScore = finalParsed.score ?? result.score;
 
-        const newItem: ScoreCatalogItem = {
+        const newItem: LoadedScoreCatalogItem = {
           id: finalId,
           title: finalTitle,
           subtitle: resolvedScore.subtitle,
           category: 'custom',
+          durationSec: resolvedScore.durationSec,
+          shotCount: resolvedScore.shots.length,
+          aspectRatio: resolvedScore.aspectRatio,
+          videoUrl: resolvedScore.videoUrl,
           rawYaml: finalYaml,
           score: resolvedScore,
           isCustom: true,
@@ -539,10 +632,14 @@ export const InteractiveStudioApp: React.FC = () => {
         const finalParsed = parseStageScore(finalYaml, existing.id);
         const resolvedScore = finalParsed.score ?? parsed;
 
-        const updatedItem: ScoreCatalogItem = {
+        const updatedItem: LoadedScoreCatalogItem = {
           ...existing,
           title: resolvedScore.title,
           subtitle: resolvedScore.subtitle,
+          durationSec: resolvedScore.durationSec,
+          shotCount: resolvedScore.shots.length,
+          aspectRatio: resolvedScore.aspectRatio,
+          videoUrl: resolvedScore.videoUrl,
           rawYaml: finalYaml,
           score: resolvedScore,
           contentHash: hash,
@@ -588,11 +685,15 @@ export const InteractiveStudioApp: React.FC = () => {
         const finalParsed = parseStageScore(finalYaml, newId);
         const resolvedScore = finalParsed.score ?? parsed;
 
-        const newItem: ScoreCatalogItem = {
+        const newItem: LoadedScoreCatalogItem = {
           id: newId,
           title: newTitle,
           subtitle: resolvedScore.subtitle,
           category: 'custom',
+          durationSec: resolvedScore.durationSec,
+          shotCount: resolvedScore.shots.length,
+          aspectRatio: resolvedScore.aspectRatio,
+          videoUrl: resolvedScore.videoUrl,
           rawYaml: finalYaml,
           score: resolvedScore,
           isCustom: true,
@@ -653,7 +754,10 @@ export const InteractiveStudioApp: React.FC = () => {
       }
 
       // Check against existing Custom Projects using Unified Content-Hash Matcher
-      const customItems = catalog.filter((c) => c.isCustom);
+      const customItems = catalog.filter(
+        (c): c is LoadedScoreCatalogItem =>
+          Boolean(c.isCustom && c.rawYaml && c.score)
+      );
       const match = findDuplicateOrConflictingCustomScore(
         {
           rawYaml: yamlText,
@@ -711,11 +815,15 @@ export const InteractiveStudioApp: React.FC = () => {
       const resolvedScore = finalParsed.score ?? parsed.score;
       const hash = computeYamlContentHash(finalYaml);
 
-      const newItem: ScoreCatalogItem = {
+      const newItem: LoadedScoreCatalogItem = {
         id: finalId,
         title: resolvedScore.title,
         subtitle: resolvedScore.subtitle,
         category: 'custom',
+        durationSec: resolvedScore.durationSec,
+        shotCount: resolvedScore.shots.length,
+        aspectRatio: resolvedScore.aspectRatio,
+        videoUrl: resolvedScore.videoUrl,
         rawYaml: finalYaml,
         score: resolvedScore,
         isCustom: true,
@@ -1266,6 +1374,7 @@ export const InteractiveStudioApp: React.FC = () => {
           activeSceneId={activeSceneId}
           initialTab={libraryInitialTab}
           onSelectScene={handleSelectScene}
+          onEnsureScoreLoaded={handleEnsureScoreLoaded}
           onCreateBlankScore={async () => {
             const blank = await scorePersistence.createBlankScore();
             if (blank) {

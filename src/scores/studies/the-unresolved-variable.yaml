@@ -1,0 +1,695 @@
+version: "1.0"
+id: "the-unresolved-variable"
+title: "The Unresolved Variable"
+subtitle: "By Taruma Sakti"
+description: "Mark reclines beneath a hilltop oak tossing an apple until Robert arrives, questions him, and sits beside him."
+video: "https://www.youtube.com/watch?v=VJZnfNySwQA"
+aspect_ratio: "16:9"
+duration: 34.792
+offset: 0.0
+
+metadata:
+  director: "Taruma Sakti"
+  staging: "18-shot editorial coverage around a hilltop oak trunk with +1m framing clearance."
+  characters:
+    mark: "Reclining against oak trunk (+X), tossing red apple"
+    robert: "Approaches from front-left, stands over Mark, then sits beside him"
+
+optics:
+  dof_blur: true
+  dof: "medium"
+
+# ==============================================================================
+# STAGE GEOMETRY & BASELINE CAMERAS
+# ==============================================================================
+stage:
+  width: 36
+  depth: 36
+  grid_step: 2
+  show_rigs: true
+
+  observer_camera:
+    target: [1.8, 1.4, 0.1]
+    distance: 15.0
+    pitch: 28
+    yaw: 20
+    lens: 35mm
+
+  stage_camera:
+    target: [3.0, 3.8, 0.0]
+    distance: 18.5
+    pitch: -5
+    yaw: 0
+    lens: 35mm
+
+# ==============================================================================
+# SCENE ENTITIES (CHARACTERS, PROPS & FLOOR MARKERS)
+# ==============================================================================
+entities:
+  # --- Characters ---
+  - id: "mark"
+    label: "Mark"
+    kind: "character"
+    style: "mannequin"
+    position: [1.95, 0.0, 0.40]
+    rotation: 90
+    pitch: -48
+    pivot: "base"
+    size: [0.54, 1.25, 0.46]
+    color: "#38bdf8"
+
+  - id: "robert"
+    label: "Robert"
+    kind: "character"
+    style: "mannequin"
+    position: [5.40, 0.0, -0.30]
+    rotation: -102
+    pitch: 0
+    pivot: "base"
+    size: [0.58, 1.80, 0.48]
+    color: "#f59e0b"
+
+  # --- Props ---
+  - id: "oak_tree"
+    label: "Oak Trunk"
+    kind: "prop"
+    shape: "cylinder"
+    style: "edges"
+    position: [0.0, 0.0, 0.0]
+    size: [2.0, 5.5, 2.0]
+    color: "#78716c"
+
+  - id: "oak_canopy"
+    label: "Oak Canopy"
+    kind: "prop"
+    shape: "sphere"
+    style: "wireframe"
+    position: [0.5, 4.2, 0.0]
+    size: [12.0, 7.5, 10.0]
+    color: "#64748b"
+
+  - id: "apple"
+    label: "Red Apple"
+    kind: "prop"
+    shape: "sphere"
+    style: "solid"
+    position: [1.55, 0.48, 0.75]
+    size: [0.14, 0.14, 0.14]
+    color: "#ef4444"
+
+  # --- Floor Markers ---
+  - id: "mark_recline"
+    label: "Mark Spot"
+    kind: "marker"
+    shape: "t"
+    style: "tape"
+    position: [1.95, 0.0, 0.40]
+    rotation: 90
+    color: "#38bdf8"
+
+  - id: "mark_robert_stand"
+    label: "Robert Stand Mark"
+    kind: "marker"
+    shape: "x"
+    style: "glow"
+    position: [2.90, 0.0, 0.20]
+    color: "#f59e0b"
+
+  - id: "mark_robert_sit"
+    label: "Robert Sit Mark"
+    kind: "marker"
+    shape: "t"
+    style: "tape"
+    position: [1.55, 0.0, -0.45]
+    rotation: 90
+    color: "#fb923c"
+
+# ==============================================================================
+# DECOUPLED BLOCKING TIMELINE (ROBERT APPROACH/SIT & APPLE TOSSES)
+# ==============================================================================
+blocking:
+  # --- Robert Blocking ---
+  - id: "robert-offstage"
+    entity: "robert"
+    start: 0.000
+    end: 4.042
+    position: [5.40, 0.0, -0.30]
+    rotation: -102
+    visible: false
+
+  - id: "robert-approach"
+    label: "Robert Approaches Mark"
+    entity: "robert"
+    start: 4.042
+    end: 5.750
+    from: [5.40, 0.0, -0.30]
+    position: [2.90, 0.0, 0.20]
+    look_at: "mark"
+    visible: true
+    easing: "cruise"
+    note: "Walks in from front-left straight to Mark"
+
+  - id: "robert-stand-over-mark"
+    label: "Robert Stands Over Mark"
+    entity: "robert"
+    start: 5.750
+    end: 15.700
+    position: [2.90, 0.0, 0.20]
+    height: 1.80
+    pitch: 0
+    look_at: "mark"
+    note: "Stands facing Mark"
+
+  - id: "robert-crouch-start"
+    label: "Robert Begins Descending"
+    entity: "robert"
+    start: 15.700
+    end: 16.542
+    position: [2.80, 0.0, 0.10]
+    height: 1.54
+    look_at: "mark"
+    easing: "ease-in"
+
+  - id: "robert-sit-align"
+    entity: "robert"
+    start: 16.542
+    end: 16.562
+    cut: true
+    position: [2.05, 0.0, -0.50]
+    height: 1.52
+    rotation: 90
+    pitch: 0
+
+  - id: "robert-sits-down"
+    label: "Robert Sits Beside Mark"
+    entity: "robert"
+    start: 16.562
+    end: 17.900
+    position: [1.55, 0.0, -0.45]
+    height: 1.28
+    rotation: 90
+    pitch: -28
+    easing: "smooth"
+    note: "Settles against oak trunk beside Mark"
+
+  # --- Apple Prop Blocking ---
+  - id: "apple-toss-1-up"
+    entity: "apple"
+    start: 0.000
+    end: 0.400
+    from: [1.55, 0.48, 0.75]
+    position: [1.55, 1.65, 0.75]
+    easing: "ease-out"
+
+  - id: "apple-toss-1-catch"
+    entity: "apple"
+    start: 0.400
+    end: 0.900
+    position: [1.55, 0.48, 0.75]
+    easing: "ease-in"
+
+  - id: "apple-toss-2-up"
+    entity: "apple"
+    start: 2.900
+    end: 3.350
+    position: [1.55, 1.35, 0.75]
+    easing: "ease-out"
+
+  - id: "apple-toss-2-catch"
+    entity: "apple"
+    start: 3.350
+    end: 3.700
+    position: [1.55, 0.48, 0.75]
+    easing: "ease-in"
+
+  - id: "apple-toss-3-up"
+    entity: "apple"
+    start: 13.250
+    end: 13.750
+    position: [1.55, 1.65, 0.75]
+    easing: "ease-out"
+
+  - id: "apple-toss-3-catch"
+    entity: "apple"
+    start: 13.750
+    end: 14.250
+    position: [1.55, 0.48, 0.75]
+    easing: "ease-in"
+
+  - id: "apple-toss-4-up"
+    entity: "apple"
+    start: 19.850
+    end: 20.450
+    position: [1.55, 1.45, 0.75]
+    easing: "ease-out"
+
+  - id: "apple-toss-4-catch"
+    entity: "apple"
+    start: 20.450
+    end: 20.900
+    position: [1.55, 0.48, 0.75]
+    easing: "ease-in"
+
+  - id: "apple-bite"
+    label: "Mark Bites Apple"
+    entity: "apple"
+    start: 26.500
+    end: 27.200
+    position: [1.20, 0.74, 0.45]
+    easing: "smooth"
+
+# ==============================================================================
+# DECOUPLED OBSERVER VIEWPORT TIMELINE
+# ==============================================================================
+observer_shots:
+  # 1. Opening Establish & Gentle Push-In (Shots 01–05)
+  - id: "obs-01-open-orbit"
+    label: "Opening Orbit"
+    start: 0.000
+    end: 7.708
+    maneuver: "orbit"
+    direction: "ccw"
+    easing: "smooth"
+    from: [2.2, 1.6, 3.5]
+    target: [2.0, 1.2, 0.8]
+    distance_start: 30
+    distance_end: 12.5
+    pitch_start: 24
+    pitch_end: 22
+    yaw_start: 32
+    yaw_end: 68
+    lens: 35mm
+
+  # 2. Steady Side Orbit Across Standing Dialogue (Shots 06–10)
+  - id: "obs-02-dialogue-orbit"
+    label: "Standing Dialogue Orbit"
+    continuous: true
+    end: 16.542
+    maneuver: "orbit"
+    direction: "ccw"
+    easing: "smooth"
+    from: [2.0, 1.2, 0.8]
+    target: [1.8, 1.1, 0.2]
+    distance: 10.5
+    pitch: 21
+    yaw: 122
+
+  # 3. Intimate Rear-Side Orbit Around Seated Pair (Shots 11–15)
+  - id: "obs-03-seated-orbit"
+    label: "Seated Conversation Orbit"
+    continuous: true
+    end: 26.167
+    maneuver: "orbit"
+    direction: "ccw"
+    easing: "smooth"
+    from: [1.8, 1.1, 0.2]
+    target: [1.6, 1.0, 0.4]
+    distance: 10.0
+    pitch: 20
+    yaw: 162
+
+  # 4. Opposite-Side Drift Looking Downrange at Finale (Shots 16–18)
+  - id: "obs-04-finale-orbit"
+    label: "Hilltop Finale Drift"
+    continuous: true
+    end: 34.792
+    maneuver: "orbit"
+    direction: "ccw"
+    easing: "smooth"
+    from: [1.6, 1.0, 0.4]
+    target: [1.4, 2.2, 4.0]
+    distance: 17.5
+    pitch: 24
+    yaw: 174
+
+# ==============================================================================
+# FILM COVERAGE SHOTS (18 SHOTS SYNCED TO CSV TIMECODES)
+# ==============================================================================
+shots:
+  - id: "shot-01"
+    shot: 1
+    label: "Wide Establishing — Oak & Mark"
+    description: "Wide low-angle establishing shot; Mark tosses apple beneath bare oak."
+    start: 0.000
+    end: 1.500
+    stage_camera:
+      maneuver: "cut"
+      rig: { type: "tripod" }
+      target: [3.0, 3.8, 0.0]
+      distance: 18.5
+      pitch: -5
+      yaw: 0
+      lens: 35mm
+      dof: "deep"
+      show_path: false
+    entities:
+      mark: { highlighted: true }
+
+  - id: "shot-02"
+    shot: 2
+    label: "MCU — Mark Reclining"
+    description: "Reverse-side medium close-up on Mark leaning against trunk."
+    start: 1.500
+    end: 3.417
+    stage_camera:
+      maneuver: "cut"
+      rig: { type: "tripod" }
+      target: "mark.chest"
+      target_offset: [0.12, 0.05, 0.0]
+      distance: 5.0
+      pitch: -3
+      yaw: 165
+      lens: 85mm
+      focus: "mark.head"
+      dof: "shallow"
+      aperture: "f/2.8"
+      show_path: false
+    entities:
+      mark: { highlighted: true }
+
+  - id: "shot-03"
+    shot: 3
+    label: "ECU Insert — Apple Catch"
+    description: "Tight insert on Mark's right hand catching the apple."
+    start: 3.417
+    end: 4.042
+    stage_camera:
+      maneuver: "cut"
+      rig: { type: "tripod" }
+      target: [1.55, 0.52, 0.75]
+      distance: 2.8
+      pitch: -2
+      yaw: 168
+      lens: 105mm
+      focus: [1.55, 0.52, 0.75]
+      dof: "shallow"
+      aperture: "f/2.0"
+      show_path: false
+    entities:
+      apple: { highlighted: true }
+
+  - id: "shot-04"
+    shot: 4
+    label: "Medium-Wide — Robert Arrives"
+    description: "Same-side +Z setup in front of Mark; Robert walks in from screen-right."
+    start: 4.042
+    end: 5.750
+    stage_camera:
+      maneuver: "cut"
+      rig: { type: "tripod" }
+      target: [2.2, 1.5, 0.1]
+      distance: 11.5
+      pitch: -4
+      yaw: 15
+      lens: 50mm
+      dof: "deep"
+      show_path: false
+    entities:
+      robert: { highlighted: true }
+
+  - id: "shot-05"
+    shot: 5
+    label: "Medium Two-Shot — Mark & Robert"
+    description: "Mark looks up from trunk as Robert stands over him."
+    start: 5.750
+    end: 7.708
+    stage_camera:
+      maneuver: "cut"
+      rig: { type: "tripod" }
+      target: ["mark.head", "robert.chest"]
+      distance: 5.2
+      pitch: -4
+      yaw: 8
+      lens: 50mm
+      focus: ["mark.head", "robert.chest"]
+      dof: "medium"
+      show_path: false
+    entities:
+      mark: { highlighted: true }
+      robert: { highlighted: true }
+
+  - id: "shot-06"
+    shot: 6
+    label: "CU — Robert (Low Angle)"
+    description: "Low-angle close-up on Robert adjusting his glasses."
+    start: 7.708
+    end: 9.750
+    stage_camera:
+      maneuver: "cut"
+      rig: { type: "tripod" }
+      target: "robert.head"
+      distance: 2.9
+      pitch: -12
+      yaw: -42
+      lens: 85mm
+      focus: "robert.head"
+      dof: "shallow"
+      aperture: "f/2.0"
+      show_path: false
+    entities:
+      robert: { highlighted: true }
+
+  - id: "shot-07"
+    shot: 7
+    label: "Tight CU — Mark OTS (Robert Left)"
+    description: "High-angle CU on Mark from Robert's left side, grazing Robert's edge right."
+    start: 9.750
+    end: 10.625
+    stage_camera:
+      maneuver: "cut"
+      rig: { type: "tripod" }
+      target: "mark.head"
+      distance: 2.8
+      pitch: 15
+      yaw: 82
+      lens: 105mm
+      focus: "mark.head"
+      dof: "shallow"
+      aperture: "f/2.0"
+      show_path: false
+    entities:
+      mark: { highlighted: true }
+
+  - id: "shot-08"
+    shot: 8
+    label: "MCU — Mark OTS (Robert Left)"
+    description: "Wider high-angle OTS past Robert's blurred coat on foreground right."
+    start: 10.625
+    end: 13.417
+    stage_camera:
+      maneuver: "cut"
+      rig: { type: "tripod" }
+      target: "mark.head"
+      target_offset: [0.05, -0.05, 0.0]
+      distance: 3.1
+      pitch: 16
+      yaw: 84
+      lens: 85mm
+      focus: "mark.head"
+      dof: "shallow"
+      aperture: "f/2.0"
+      show_path: false
+    entities:
+      mark: { highlighted: true }
+
+  - id: "shot-09"
+    shot: 9
+    label: "Wide Return — Oak & Both Men"
+    description: "Matches Shot 1 wide master; Mark tosses apple as Robert watches."
+    start: 13.417
+    end: 14.792
+    stage_camera:
+      maneuver: "cut"
+      rig: { type: "tripod" }
+      target: [3.0, 3.8, 0.0]
+      distance: 18.5
+      pitch: -5
+      yaw: 0
+      lens: 35mm
+      dof: "deep"
+      show_path: false
+    entities:
+      mark: { highlighted: true }
+      robert: { highlighted: true }
+
+  - id: "shot-10"
+    shot: 10
+    label: "CU — Robert Begins Sitting"
+    description: "Low-angle CU on Robert as he starts lowering toward ground."
+    start: 14.792
+    end: 16.542
+    stage_camera:
+      maneuver: "cut"
+      rig: { type: "tripod" }
+      target: [2.95, 1.60, 0.25]
+      distance: 2.9
+      pitch: -12
+      yaw: -42
+      lens: 85mm
+      focus: "robert.head"
+      dof: "shallow"
+      aperture: "f/2.0"
+      show_path: false
+    entities:
+      robert: { highlighted: true }
+
+  - id: "shot-11"
+    shot: 11
+    label: "Low Front Two-Shot — Robert Sits"
+    description: "Low angle past Mark's boots as Robert sits beside him."
+    start: 16.542
+    end: 18.167
+    stage_camera:
+      maneuver: "cut"
+      rig: { type: "tripod" }
+      target: ["mark.chest", "robert.chest"]
+      distance: 3.9
+      pitch: -10
+      yaw: 90
+      lens: 35mm
+      focus: ["mark.chest", "robert.chest"]
+      dof: "medium"
+      show_path: false
+    entities:
+      mark: { highlighted: true }
+      robert: { highlighted: true }
+
+  - id: "shot-12"
+    shot: 12
+    label: "Tight CU — Mark (Chaos Line)"
+    description: "Tight reverse close-up on Mark looking upward."
+    start: 18.167
+    end: 20.500
+    stage_camera:
+      maneuver: "cut"
+      rig: { type: "tripod" }
+      target: "mark.head"
+      distance: 2.8
+      pitch: 14
+      yaw: 155
+      lens: 105mm
+      focus: "mark.head"
+      dof: "shallow"
+      aperture: "f/2.0"
+      show_path: false
+    entities:
+      mark: { highlighted: true }
+
+  - id: "shot-13"
+    shot: 13
+    label: "ECU Insert — Apple & Leaf"
+    description: "Locked insert on Mark's palm catching the apple with oak leaf."
+    start: 20.500
+    end: 22.875
+    stage_camera:
+      maneuver: "cut"
+      rig: { type: "tripod" }
+      target: [1.55, 0.52, 0.75]
+      distance: 2.8
+      pitch: -2
+      yaw: 168
+      lens: 105mm
+      focus: [1.55, 0.52, 0.75]
+      dof: "shallow"
+      aperture: "f/2.0"
+      show_path: false
+    entities:
+      apple: { highlighted: true }
+
+  - id: "shot-14"
+    shot: 14
+    label: "OTS CU — Seated Robert"
+    description: "Shallow-focus close-up on seated Robert past blurred Mark left."
+    start: 22.875
+    end: 24.833
+    stage_camera:
+      maneuver: "cut"
+      rig: { type: "tripod" }
+      target: "robert.head"
+      target_offset: [0.05, -0.04, 0.0]
+      distance: 3.3
+      pitch: -6
+      yaw: 24
+      lens: 85mm
+      focus: "robert.head"
+      dof: "shallow"
+      aperture: "f/2.0"
+      show_path: false
+    entities:
+      robert: { highlighted: true }
+
+  - id: "shot-15"
+    shot: 15
+    label: "OTS CU — Mark Final Line"
+    description: "Reverse CU on Mark past Robert's blurred profile screen-right."
+    start: 24.833
+    end: 26.167
+    stage_camera:
+      maneuver: "cut"
+      rig: { type: "tripod" }
+      target: "mark.head"
+      distance: 2.9
+      pitch: 8
+      yaw: 150
+      lens: 105mm
+      focus: "mark.head"
+      dof: "shallow"
+      aperture: "f/2.0"
+      show_path: false
+    entities:
+      mark: { highlighted: true }
+
+  - id: "shot-16"
+    shot: 16
+    label: "Wide Side Profile — Seated Pair"
+    description: "Both lean against trunk facing right; Mark bites the apple."
+    start: 26.167
+    end: 27.833
+    stage_camera:
+      maneuver: "cut"
+      rig: { type: "tripod" }
+      target: [2.4, 1.35, 0.0]
+      distance: 7.0
+      pitch: 2
+      yaw: 10
+      lens: 35mm
+      focus: ["mark.head", "robert.head"]
+      dof: "medium"
+      show_path: false
+    entities:
+      mark: { highlighted: true }
+      robert: { highlighted: true }
+
+  - id: "shot-17"
+    shot: 17
+    label: "Extreme Wide — Hilltop Silhouette"
+    description: "Symmetrical distant low-angle silhouette of oak on hill crest."
+    start: 27.833
+    end: 29.667
+    stage_camera:
+      maneuver: "cut"
+      rig: { type: "tripod" }
+      target: [0.0, 5.2, 0.0]
+      distance: 32.0
+      pitch: -7
+      yaw: 0
+      lens: 35mm
+      dof: "deep"
+      show_path: false
+
+  - id: "shot-18"
+    shot: 18
+    label: "Fade to Black & Title Card"
+    description: "Holds final hilltop framing through fade to black and credits."
+    start: 29.667
+    end: 34.792
+    stage_camera:
+      maneuver: "cut"
+      rig: { type: "tripod" }
+      target: [0.0, 5.2, 0.0]
+      distance: 32.0
+      pitch: -7
+      yaw: 0
+      lens: 35mm
+      dof: "deep"
+      show_path: false

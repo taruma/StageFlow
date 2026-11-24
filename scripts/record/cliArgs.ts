@@ -33,10 +33,10 @@ Usage:
   npm run record [scene] [options]
 
 Arguments:
-  scene                   Bundled shortcut (01-06, vf, vector-field)
-                          or bundled ID (blueprint_01_two_shot_arc, etc.)
+  scene                   Bundled shortcut (01-07, vf, or study slug)
+                          or bundled ID (demo, blueprint-02, vector-field, etc.)
                           or a path to a custom .yaml / .json file.
-                          Default: "blueprint_01_two_shot_arc".
+                          Default: "demo".
 
 Options:
   --camera <mode>         "scripted" (default) or "stage-pov"
@@ -117,7 +117,7 @@ export function parseArgs(
   args: string[],
   options?: { onHelp?: () => void }
 ): CliOptions {
-  let sceneInput = 'blueprint_01_two_shot_arc';
+  let sceneInput = 'demo';
   let cameraMode: CameraViewMode = 'scripted';
   let presetName: string | undefined;
   let labels: LabelDisplayMode = 'all';

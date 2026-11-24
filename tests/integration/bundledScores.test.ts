@@ -1,20 +1,33 @@
 import { describe, expect, it } from 'vitest';
 import { computeStageFrame } from '../../src/core/frameEngine';
-import { INITIAL_CATALOG_ITEMS, findCatalogItem } from '../../src/core/scoreCatalog';
+import {
+  getDefaultCatalogItem,
+  loadAllBundledScores,
+  loadBundledScore,
+} from '../../src/core/scoreCatalog';
+
+const ALL_LOADED_SCORES = await loadAllBundledScores();
 
 describe('Bundled Choreography Scores — Catalog & Blueprint Regression Suite', () => {
   it('registers and organizes scene studies and factory blueprints with distinct categories', () => {
-    expect(INITIAL_CATALOG_ITEMS.length).toBeGreaterThanOrEqual(8);
+    expect(ALL_LOADED_SCORES).toHaveLength(19);
 
-    const studies = INITIAL_CATALOG_ITEMS.filter((item) => item.category === 'study');
-    const blueprints = INITIAL_CATALOG_ITEMS.filter((item) => item.category === 'blueprint');
+    const studies = ALL_LOADED_SCORES.filter((item) => item.category === 'study');
+    const blueprints = ALL_LOADED_SCORES.filter((item) => item.category === 'blueprint');
 
-    expect(studies.length).toBeGreaterThanOrEqual(1);
-    expect(studies[0].id).toBe('vector-field');
-    expect(studies[0].aliases).toContain('vector-field-taruma-sakti');
-    expect(blueprints.length).toBe(7);
+    expect(studies).toHaveLength(12);
+    expect(blueprints).toHaveLength(7);
 
-    for (const item of INITIAL_CATALOG_ITEMS) {
+    const studyIds = studies.map((item) => item.id);
+    expect(studyIds).toEqual([...studyIds].sort((a, b) => a.localeCompare(b)));
+    expect(studyIds[0]).toBe('afraid');
+    expect(studyIds[studyIds.length - 1]).toBe('vector-field');
+
+    const defaultItem = getDefaultCatalogItem(ALL_LOADED_SCORES);
+    expect(defaultItem.id).toBe('vector-field');
+    expect(defaultItem.aliases).toContain('vector-field-taruma-sakti');
+
+    for (const item of ALL_LOADED_SCORES) {
       expect(item.id).toBeTruthy();
       expect(item.title).toBeTruthy();
       expect(item.score).toBeDefined();
@@ -24,8 +37,8 @@ describe('Bundled Choreography Scores — Catalog & Blueprint Regression Suite',
   });
 
   it('verifies all catalog items parse identically without errors (Golden Equivalence)', () => {
-    expect(INITIAL_CATALOG_ITEMS.length).toBeGreaterThanOrEqual(6);
-    for (const item of INITIAL_CATALOG_ITEMS) {
+    expect(ALL_LOADED_SCORES).toHaveLength(19);
+    for (const item of ALL_LOADED_SCORES) {
       expect(item.score).toBeDefined();
       expect(item.score.shots.length).toBeGreaterThan(0);
       expect(item.score.durationSec).toBeGreaterThan(0);
@@ -34,8 +47,8 @@ describe('Bundled Choreography Scores — Catalog & Blueprint Regression Suite',
     }
   });
 
-  it('asserts Golden Frame Equivalence across all bundled scene scores at multi-timestamps', () => {
-    for (const item of INITIAL_CATALOG_ITEMS) {
+  it('asserts Golden Frame Equivalence across all 19 bundled scene scores at multi-timestamps', () => {
+    for (const item of ALL_LOADED_SCORES) {
       const score = item.score;
       const duration = score.durationSec;
       const testTimestamps = [0.0, duration * 0.25, duration * 0.5, duration * 0.75, duration];
@@ -52,12 +65,47 @@ describe('Bundled Choreography Scores — Catalog & Blueprint Regression Suite',
         expect(frame.stageCamera.transform.fovDeg).toBeLessThan(120);
       }
     }
+  }, 20000);
+
+  it('validates Three Years Late observer camera continuity at shot boundaries', async () => {
+    const { score } = await loadBundledScore('three-years-late');
+    const boundaryTimes = [59.083, 91.167, 112.667];
+
+    for (const t of boundaryTimes) {
+      const before = computeStageFrame(t - 0.001, score).observerCamera.transform.position;
+      const after = computeStageFrame(t + 0.001, score).observerCamera.transform.position;
+      const jumpDist = Math.hypot(
+        after.x - before.x,
+        after.y - before.y,
+        after.z - before.z
+      );
+      expect(jumpDist, `Observer eye jump at ${t}s`).toBeLessThan(0.05);
+    }
   });
 
-  it('validates Blueprint 02 full timeline continuity and shot cut integrity across all 6 film shots', () => {
-    const bp2Item = findCatalogItem('blueprint-02');
+  it('validates Observation Only smooth John walkout and swinging exit doors at 58.1s..59.0s', async () => {
+    const { score } = await loadBundledScore('observation-only');
+
+    const johnBefore = computeStageFrame(58.099, score).entitiesById.get('john')!.position;
+    const johnAfter = computeStageFrame(58.101, score).entitiesById.get('john')!.position;
+    const johnJump = Math.hypot(
+      johnAfter.x - johnBefore.x,
+      johnAfter.y - johnBefore.y,
+      johnAfter.z - johnBefore.z
+    );
+    expect(johnJump).toBeLessThan(0.05);
+
+    const fDoorsOpen = computeStageFrame(59.0, score);
+    const doorLeft = fDoorsOpen.entitiesById.get('exit_door_left')!;
+    const doorRight = fDoorsOpen.entitiesById.get('exit_door_right')!;
+    expect(Math.abs(doorLeft.rotationYRad)).toBeGreaterThan(1.0);
+    expect(Math.abs(doorRight.rotationYRad)).toBeGreaterThan(1.0);
+  });
+
+  it('validates Blueprint 02 full timeline continuity and shot cut integrity across all 6 film shots', async () => {
+    const bp2Item = await loadBundledScore('blueprint-02');
     expect(bp2Item).toBeDefined();
-    const score = bp2Item!.score;
+    const score = bp2Item.score;
 
     expect(score.shots).toHaveLength(6);
     expect(score.observerShots).toHaveLength(3);
@@ -107,10 +155,10 @@ describe('Bundled Choreography Scores — Catalog & Blueprint Regression Suite',
     expect(Number.isFinite(fEnd.observerCamera.transform.position.x)).toBe(true);
   });
 
-  it('validates Blueprint 03 30m ball-pass choreography, parabolic arc, Ruby orbit, straight pass and camera roll tracking', () => {
-    const bp3Item = findCatalogItem('blueprint-03');
+  it('validates Blueprint 03 30m ball-pass choreography, parabolic arc, Ruby orbit, straight pass and camera roll tracking', async () => {
+    const bp3Item = await loadBundledScore('blueprint-03');
     expect(bp3Item).toBeDefined();
-    const score = bp3Item!.score;
+    const score = bp3Item.score;
 
     expect(score.durationSec).toBe(16.0);
     expect(score.shots).toHaveLength(6);
@@ -193,10 +241,10 @@ describe('Bundled Choreography Scores — Catalog & Blueprint Regression Suite',
     expect(obsPose0.yaw).toBeCloseTo(obsPose16.yaw, 5);
   });
 
-  it('validates Blueprint 04 Cinematography Tutorial 20s timeline across all 16 pedagogical shots', () => {
-    const bp4Item = findCatalogItem('blueprint-04');
+  it('validates Blueprint 04 Cinematography Tutorial 20s timeline across all 16 pedagogical shots', async () => {
+    const bp4Item = await loadBundledScore('blueprint-04');
     expect(bp4Item).toBeDefined();
-    const score = bp4Item!.score;
+    const score = bp4Item.score;
 
     expect(score.durationSec).toBe(20.0);
     expect(score.shots).toHaveLength(16);
@@ -276,10 +324,9 @@ describe('Bundled Choreography Scores — Catalog & Blueprint Regression Suite',
     expect(obsEnd.yaw).toBeCloseTo(171.7 * (Math.PI / 180), 3);
   });
 
-  it('evaluates Blueprint 05 (Two Rooms: Living Room to Bedroom Threshold Crossing) across all 17 shots', () => {
-    const bp05 = findCatalogItem('blueprint-05')?.score;
+  it('evaluates Blueprint 05 (Two Rooms: Living Room to Bedroom Threshold Crossing) across all 17 shots', async () => {
+    const bp05 = (await loadBundledScore('blueprint-05')).score;
     expect(bp05).toBeDefined();
-    if (!bp05) return;
 
     expect(bp05.durationSec).toBe(30.0);
     expect(bp05.shots).toHaveLength(17);
@@ -308,10 +355,9 @@ describe('Bundled Choreography Scores — Catalog & Blueprint Regression Suite',
     expect(fTwoShot.entitiesById.get('samira')!.position.x).toBeCloseTo(-1.4, 2);
   });
 
-  it('evaluates Blueprint 06 (Optics, Rack Focus & DoF) across all 8 shots and optical transitions', () => {
-    const bp06 = findCatalogItem('blueprint-06')?.score;
+  it('evaluates Blueprint 06 (Optics, Rack Focus & DoF) across all 8 shots and optical transitions', async () => {
+    const bp06 = (await loadBundledScore('blueprint-06')).score;
     expect(bp06).toBeDefined();
-    if (!bp06) return;
 
     expect(bp06.durationSec).toBe(36.0);
     expect(bp06.shots).toHaveLength(8);
@@ -358,10 +404,10 @@ describe('Bundled Choreography Scores — Catalog & Blueprint Regression Suite',
     expect(f8.stageCamera.dof.depthOfFieldM).toBe(Infinity);
   });
 
-  it('validates Blueprint 07 (Camera Rigs & Dolly Masterclass) compiles and runs cleanly across all 4 shots', () => {
-    const bp07Item = findCatalogItem('blueprint-07');
+  it('validates Blueprint 07 (Camera Rigs & Dolly Masterclass) compiles and runs cleanly across all 4 shots', async () => {
+    const bp07Item = await loadBundledScore('blueprint-07');
     expect(bp07Item).toBeDefined();
-    const bp07 = bp07Item!.score;
+    const bp07 = bp07Item.score;
 
     expect(bp07.durationSec).toBe(24.0);
     expect(bp07.shots).toHaveLength(4);

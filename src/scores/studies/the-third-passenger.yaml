@@ -1,0 +1,1467 @@
+version: "1.0"
+id: "the-third-passenger"
+title: "The Third Passenger"
+subtitle: "Comoving Train Interior, Relative Kinematics & Spatial Twist Study"
+description: |
+  A single-stage 3D choreography reconstruction of **The Third Passenger** (by Taruma Sakti) built in the **comoving Galilean reference frame** of a speeding interstellar train.
+
+  - **Axis Layout**: Forward (`-Z`) toward the locomotive and Forward Car (`z = -7.5m..0.0m`); Rear (`+Z`) toward the Lounge Car (`z = 0.0m..+8.0m`) and encroaching Erasure Void; Starboard (`+X`) holds the hero Green Armchair, Red Lounge Sofa, and Tea Table; Port (`-X`) holds opposite booths and travel luggage.
+  - **Relative Physics**: Shot 1 models the train's cruise velocity via a trackside camera translating at $-\vec{v}_{\text{train}}$ (`easing: "linear"`) past the consist. At `t = 30.80s`, collision deceleration generates a forward/lateral inertial impulse flinging the teapot, teacup, and passengers across the Lounge Car.
+  - **The Twist**: After Oscar's sacrifice seals the `z = 0.0m` bulkhead door, the Coordinate Disc activates anyway—revealing an unseen third presence anchored at `third_passenger_mark` (`[0, 0, -5.8]`) in the dark front end of the Forward Car.
+
+metadata:
+  director: "Taruma Sakti"
+  reference_frame: "Comoving Train Inertial Frame (Z = 0.0m Bulkhead Origin)"
+  lens_package:
+    wide_master: "24mm / 28mm Full-Frame"
+    standard_dialogue: "35mm / 40mm / 50mm"
+    telephoto_closeup: "85mm"
+  blocking_highlights:
+    - "Ruby executes a full 3D inverted chair flop (`pitch: -130`, `pivot: center`) and prone carpet trip (`pitch: 84`, `pivot: base`)."
+    - "180-degree spatial reversal between Shot 2 (`+Z`), Shot 4 (`+X/-Z`), and Master Shot 5 (`-Z`) unified along the `+X` Starboard wall."
+    - "Shot 14 splits seamlessly (`14a` -> `14b`, `continuous: true`) for exact rack-focus timing onto the igniting Coordinate Disc at `61.80s`."
+
+video: "https://www.youtube.com/watch?v=Rg5qBRLZfV0"
+aspect_ratio: "16:9"
+duration: 82.958
+offset: 0.0
+
+optics:
+  dof_blur: true
+  dof: "medium"
+
+# ==============================================================================
+# STAGE GEOMETRY & BASELINE CAMERAS
+# ==============================================================================
+stage:
+  width: 14
+  depth: 28
+  grid_step: 1
+  show_rigs: false
+  observer_camera:
+    target: [1.5, 1.4, -4.5]
+    distance: 20.0
+    pitch: 26
+    yaw: 68
+    lens: 32mm
+  stage_camera:
+    target: [0.0, 1.85, -4.5]
+    distance: 6.8
+    pitch: -12
+    yaw: 135
+    lens: 24mm
+
+# ==============================================================================
+# ENTITIES — CHARACTERS, ARCHITECTURAL PROPS, HERO ITEMS & FLOOR MARKS
+# ==============================================================================
+entities:
+  # --- CHARACTERS ---
+  - id: "ruby"
+    label: "Ruby"
+    kind: "character"
+    style: "mannequin"
+    position: [0.10, 0.0, 2.60]
+    rotation: 180
+    pitch: 45
+    pivot: "base"
+    size: [0.42, 1.58, 0.36]
+    color: "#f97316"
+
+  - id: "arthur"
+    label: "Arthur"
+    kind: "character"
+    style: "mannequin"
+    position: [0.92, 0.0, 3.45]
+    rotation: -140
+    size: [0.76, 1.42, 0.58]
+    color: "#38bdf8"
+
+  - id: "oscar"
+    label: "Oscar"
+    kind: "character"
+    style: "mannequin"
+    position: [-0.55, 0.0, 3.35]
+    rotation: 180
+    size: [0.50, 1.76, 0.42]
+    color: "#a78bfa"
+
+  # --- EXTERIOR CONSIST & CRYSTALLINE BRIDGE (SHOT 1 RELATIVE PASS) ---
+  - id: "crystal_rail"
+    label: "Crystalline Track"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [0.0, -0.40, 0.5]
+    size: [2.8, 0.40, 27.5]
+    color: "#38bdf8"
+
+  - id: "locomotive"
+    label: "Locomotive"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [0.0, 0.0, -10.3]
+    size: [3.1, 3.5, 5.2]
+    color: "#991b1b"
+
+  - id: "coach_fwd_ext"
+    label: "Forward Coach Shell"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [0.0, 0.0, -3.75]
+    size: [3.2, 3.3, 7.3]
+    color: "#7c2d12"
+
+  - id: "coach_lounge_ext"
+    label: "Lounge Coach Shell"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [0.0, 0.0, 4.0]
+    size: [3.2, 3.3, 7.8]
+    color: "#7c2d12"
+
+  - id: "coach_rear_ext"
+    label: "Rear Coach Shell"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [0.0, 0.0, 11.4]
+    size: [3.2, 3.3, 6.6]
+    color: "#7c2d12"
+
+  # --- INTERIOR ARCHITECTURE: CARPETS & BULKHEAD SLIDING DOOR (z = 0.0m) ---
+  - id: "aisle_carpet_lounge"
+    label: "Lounge Carpet"
+    kind: "prop"
+    shape: "box"
+    style: "solid"
+    position: [0.0, 0.0, 4.0]
+    size: [1.15, 0.02, 7.8]
+    color: "#7f1d1d"
+
+  - id: "aisle_carpet_fwd"
+    label: "Forward Carpet"
+    kind: "prop"
+    shape: "box"
+    style: "solid"
+    position: [0.0, 0.0, -3.75]
+    size: [1.15, 0.02, 7.3]
+    color: "#7f1d1d"
+
+  - id: "bulkhead_wall_l"
+    label: "Bulkhead Port"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [-1.08, 0.0, 0.0]
+    size: [1.05, 2.55, 0.16]
+    color: "#78350f"
+
+  - id: "bulkhead_wall_r"
+    label: "Bulkhead Starboard"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [1.08, 0.0, 0.0]
+    size: [1.05, 2.55, 0.16]
+    color: "#78350f"
+
+  - id: "bulkhead_door"
+    label: "Sliding Door"
+    kind: "prop"
+    shape: "box"
+    style: "solid"
+    position: [-1.02, 0.0, 0.0]
+    size: [1.12, 2.35, 0.10]
+    color: "#92400e"
+
+  # --- LOUNGE CAR FURNITURE & HERO PROPS (z = 0.0m..+8.0m) ---
+  - id: "green_chair"
+    label: "Green Velvet Chair"
+    kind: "prop"
+    shape: "box"
+    style: "solid"
+    position: [1.05, 0.0, 2.25]
+    rotation: -90
+    size: [0.85, 1.05, 0.85]
+    color: "#059669"
+
+  - id: "sofa_starboard"
+    label: "Starboard Red Sofa"
+    kind: "prop"
+    shape: "box"
+    style: "solid"
+    position: [1.18, 0.0, 3.85]
+    size: [0.84, 0.98, 2.15]
+    color: "#881337"
+
+  - id: "tea_table"
+    label: "Tea Table"
+    kind: "prop"
+    shape: "box"
+    style: "solid"
+    position: [0.40, 0.0, 3.75]
+    size: [0.56, 0.68, 0.92]
+    color: "#b45309"
+
+  - id: "brass_teapot"
+    label: "Brass Teapot"
+    kind: "prop"
+    shape: "sphere"
+    style: "solid"
+    position: [0.38, 0.68, 3.50]
+    size: [0.22, 0.24, 0.22]
+    color: "#d97706"
+
+  - id: "teacup"
+    label: "Teacup"
+    kind: "prop"
+    shape: "cylinder"
+    style: "solid"
+    position: [0.42, 0.68, 3.96]
+    size: [0.12, 0.10, 0.12]
+    color: "#f8fafc"
+
+  - id: "oscar_cane"
+    label: "Oscar's Cane"
+    kind: "prop"
+    shape: "cylinder"
+    style: "solid"
+    position: [-0.95, 0.0, 2.45]
+    size: [0.06, 0.92, 0.06]
+    color: "#eab308"
+
+  - id: "booth_starboard_fwd"
+    label: "Stbd Booth Fwd"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [1.18, 0.0, 0.95]
+    size: [0.84, 0.96, 0.95]
+    color: "#881337"
+
+  - id: "booth_starboard_rear"
+    label: "Stbd Booth Rear"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [1.18, 0.0, 6.10]
+    size: [0.84, 0.96, 1.15]
+    color: "#881337"
+
+  - id: "sofa_port_fwd"
+    label: "Port Booth Fwd"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [-1.18, 0.0, 1.65]
+    size: [0.84, 0.96, 1.30]
+    color: "#881337"
+
+  - id: "sofa_port_mid"
+    label: "Port Booth Mid"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [-1.18, 0.0, 3.75]
+    size: [0.84, 0.96, 1.85]
+    color: "#881337"
+
+  - id: "sofa_port_rear"
+    label: "Port Booth Rear"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [-1.18, 0.0, 6.00]
+    size: [0.84, 0.96, 1.30]
+    color: "#881337"
+
+  - id: "duffel_bag"
+    label: "Travel Duffel"
+    kind: "prop"
+    shape: "box"
+    style: "solid"
+    position: [-1.05, 0.48, 3.85]
+    rotation: 12
+    size: [0.36, 0.28, 0.56]
+    color: "#334155"
+
+  # --- FORWARD CAR BOOTHS & HERO CALIBRATION DISC (z = -7.5m..0.0m) ---
+  - id: "fwd_booth_l1"
+    label: "Fwd Port Booth 1"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [-1.18, 0.0, -1.65]
+    size: [0.84, 0.96, 1.35]
+    color: "#881337"
+
+  - id: "fwd_booth_l2"
+    label: "Fwd Port Booth 2"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [-1.18, 0.0, -3.95]
+    size: [0.84, 0.96, 1.35]
+    color: "#881337"
+
+  - id: "fwd_booth_r1"
+    label: "Fwd Stbd Booth 1"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [1.18, 0.0, -1.65]
+    size: [0.84, 0.96, 1.35]
+    color: "#881337"
+
+  - id: "fwd_booth_r2"
+    label: "Fwd Stbd Booth 2"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [1.18, 0.0, -3.95]
+    size: [0.84, 0.96, 1.35]
+    color: "#881337"
+
+  - id: "coord_disc"
+    label: "Coordinate Disc"
+    kind: "prop"
+    shape: "cylinder"
+    style: "solid"
+    position: [0.0, 1.15, 0.45]
+    size: [0.30, 0.06, 0.30]
+    color: "#f59e0b"
+
+  # --- SPACE DEBRIS & ERASURE VOID ANOMALY ---
+  - id: "crystal_debris"
+    label: "Crystal Debris"
+    kind: "prop"
+    shape: "sphere"
+    style: "edges"
+    position: [4.6, 1.45, 1.75]
+    size: [1.35, 1.35, 1.35]
+    color: "#22d3ee"
+
+  - id: "broken_track"
+    label: "Broken Rail"
+    kind: "prop"
+    shape: "box"
+    style: "wireframe"
+    position: [4.35, 1.15, 0.95]
+    roll: 18
+    pitch: -12
+    pivot: "center"
+    size: [0.16, 0.48, 1.65]
+    color: "#60a5fa"
+
+  - id: "void_anomaly"
+    label: "Erasure Void"
+    kind: "prop"
+    shape: "sphere"
+    style: "solid"
+    position: [0.0, 0.0, 9.2]
+    size: [3.3, 2.9, 3.3]
+    color: "#090414"
+
+  - id: "void_fwd_shadow"
+    label: "Forward Shadow"
+    kind: "prop"
+    shape: "box"
+    style: "glass"
+    position: [0.0, 0.0, -6.9]
+    size: [3.2, 2.8, 1.4]
+    color: "#0f0720"
+
+  # --- FLOOR SPIKE MARKS & TWIST BEACON ---
+  - id: "mark_doorway"
+    label: "Threshold Mark"
+    kind: "marker"
+    shape: "t"
+    style: "tape"
+    position: [0.0, 0.0, 0.0]
+    color: "#fbbf24"
+
+  - id: "mark_ruby_fall"
+    label: "Trip Spike"
+    kind: "marker"
+    shape: "x"
+    style: "tape"
+    position: [0.05, 0.0, 1.35]
+    color: "#f97316"
+
+  - id: "mark_disc_drop"
+    label: "Calibration Zone"
+    kind: "marker"
+    shape: "circle"
+    style: "glow"
+    position: [0.0, 0.0, -2.35]
+    color: "#f59e0b"
+
+  - id: "third_passenger_mark"
+    label: "Third Passenger (?)"
+    kind: "marker"
+    shape: "x"
+    style: "beacon"
+    position: [0.0, 0.0, -5.80]
+    color: "#e11d48"
+
+# ==============================================================================
+# DECOUPLED KINEMATIC BLOCKING TIMELINE (SOLVED CONTINUOUSLY ACROSS CUTS)
+# ==============================================================================
+blocking:
+  # --- T = 0.000s INITIAL VISIBILITY SETUP (EXTERIOR SHELLS ON; LATE PROPS HIDDEN) ---
+  - id: "init-hidden-props"
+    start: 0.0
+    end: 0.05
+    entities:
+      coord_disc: { visible: false }
+      crystal_debris: { visible: false }
+      broken_track: { visible: false }
+      void_anomaly: { visible: false }
+      third_passenger_mark: { visible: false }
+      mark_disc_drop: { visible: false }
+
+  - id: "cut-to-interior-shells"
+    start: 7.125
+    end: 7.20
+    entities:
+      locomotive: { visible: false }
+      coach_fwd_ext: { visible: false }
+      coach_lounge_ext: { visible: false }
+      coach_rear_ext: { visible: false }
+
+  # --- ACT I: ARRIVAL, UPSIDE-DOWN CHAIR FLOP & TEA POUR (7.125s - 30.800s) ---
+  - id: "ruby-straighten"
+    entity: "ruby"
+    start: 7.125
+    end: 8.80
+    position: [0.10, 0.0, 2.60]
+    rotation: 180
+    pitch: 0
+    pivot: "base"
+    easing: "smooth"
+    note: "Straightens up from exhaustion and wipes forehead"
+
+  - id: "ruby-walk-to-chair"
+    entity: "ruby"
+    start: 8.80
+    end: 10.40
+    position: [0.80, 0.0, 2.25]
+    rotation: 90
+    easing: "cruise"
+    note: "Crosses to starboard green velvet armchair"
+
+  - id: "ruby-flop-upside-down"
+    entity: "ruby"
+    start: 10.40
+    end: 11.75
+    position: [1.00, 0.0, 2.25]
+    rotation: 90
+    pitch: -130
+    pivot: "center"
+    height: 1.50
+    easing: "pop"
+    note: "Flops inverted into green armchair: boots high on window backrest, head hanging toward aisle"
+
+  - id: "arthur-stand-and-groan"
+    entity: "arthur"
+    start: 9.60
+    end: 10.85
+    position: [0.68, 0.0, 3.65]
+    height: 1.84
+    rotation: -115
+    easing: "smooth"
+    note: "Rises off starboard sofa clutching aching lower back"
+
+  - id: "arthur-sit-by-table"
+    entity: "arthur"
+    start: 10.85
+    end: 12.30
+    position: [0.92, 0.0, 4.20]
+    height: 1.36
+    rotation: -95
+    easing: "smooth"
+    note: "Lowers heavily onto starboard sofa beside tea table"
+
+  - id: "oscar-turn-and-cross"
+    start: 15.50
+    end: 20.958
+    easing: "cruise"
+    entities:
+      oscar:
+        position: [0.68, 0.0, 3.20]
+        rotation: -145
+        note: "Crosses aisle during Ruby's POV to stand beside tea table"
+      oscar_cane:
+        position: [0.76, 0.0, 3.05]
+
+  - id: "oscar-sit-and-pour-tea"
+    start: 20.958
+    end: 23.10
+    easing: "smooth"
+    entities:
+      oscar:
+        position: [0.92, 0.0, 3.30]
+        height: 1.34
+        look_at: "tea_table"
+        note: "Sits beside Arthur on starboard sofa and pours brass teapot"
+      oscar_cane:
+        position: [0.82, 0.0, 2.95]
+
+  - id: "oscar-sip-tea"
+    entity: "oscar"
+    start: 23.10
+    end: 30.80
+    position: [0.92, 0.0, 3.30]
+    height: 1.34
+    look_at: "arthur"
+    note: "Converses calmly with Arthur while sipping tea"
+
+  # --- ACT II: INERTIAL IMPACT JOLT & DEBRIS DISCOVERY (30.800s - 41.417s) ---
+  - id: "collision-inertial-jolt"
+    start: 30.80
+    end: 31.95
+    easing: "ease-out"
+    entities:
+      brass_teapot:
+        position: [-0.18, 0.0, 3.35]
+        roll: 85
+        pivot: "center"
+        note: "Sudden negative train acceleration flings teapot off table onto carpet"
+      teacup:
+        position: [-0.08, 0.0, 2.75]
+        pitch: 90
+        pivot: "center"
+        note: "Teacup shatters forward/left into center aisle"
+      arthur:
+        position: [0.78, 0.0, 4.10]
+        pitch: 24
+        pivot: "base"
+        note: "Lurches forward over table under inertial jolt"
+      oscar:
+        position: [0.76, 0.0, 3.25]
+        pitch: 22
+        pivot: "base"
+      ruby:
+        pitch: -85
+        roll: 20
+        pivot: "center"
+        note: "Thrown sideways out of inverted chair posture"
+
+  - id: "ruby-tumble-to-window"
+    entity: "ruby"
+    start: 32.208
+    end: 33.45
+    position: [1.10, 0.0, 2.25]
+    rotation: 90
+    pitch: 10
+    roll: 0
+    pivot: "base"
+    height: 1.48
+    easing: "ease-out"
+    note: "Scrambles upright and presses hand against starboard window glass"
+
+  - id: "debris-reveal-and-drift"
+    start: 33.40
+    end: 37.20
+    easing: "linear"
+    entities:
+      crystal_debris:
+        cut: true
+        visible: true
+        from: [4.6, 1.45, 1.70]
+        position: [4.6, 1.45, 2.35]
+        pitch: 12
+        roll: -16
+        pivot: "center"
+        note: "Residual relative drift of shattered crystal outside window"
+      broken_track:
+        cut: true
+        visible: true
+        from: [4.35, 1.15, 0.90]
+        position: [4.35, 1.15, 1.50]
+        roll: 28
+        pivot: "center"
+
+  - id: "debris-hide-after-window"
+    start: 37.25
+    end: 37.35
+    entities:
+      crystal_debris: { visible: false }
+      broken_track: { visible: false }
+
+  - id: "oscar-walk-to-rear-aisle"
+    start: 32.208
+    end: 37.042
+    easing: "cruise"
+    entities:
+      oscar:
+        position: [0.0, 0.0, 4.20]
+        height: 1.76
+        pitch: 0
+        rotation: 0
+        note: "Rises and advances down aisle toward rear (+Z) to inspect impact"
+      oscar_cane:
+        position: [0.24, 0.0, 4.18]
+
+  - id: "arthur-stumble-to-port-booth"
+    entity: "arthur"
+    start: 34.042
+    end: 39.333
+    position: [-0.78, 0.0, 3.10]
+    height: 1.42
+    pitch: 0
+    rotation: 20
+    easing: "smooth"
+    note: "Recovers offscreen across swaying aisle onto port red sofa"
+
+  - id: "oscar-turn-to-warn"
+    entity: "oscar"
+    start: 37.90
+    end: 39.20
+    position: [0.0, 0.0, 4.20]
+    rotation: 170
+    easing: "smooth"
+    note: "Turns back toward Ruby and Arthur: 'Worse. Something hit us.'"
+
+  - id: "void-devours-rear"
+    start: 39.333
+    end: 41.417
+    easing: "linear"
+    entities:
+      void_anomaly:
+        cut: true
+        visible: true
+        from: [0.0, 0.0, 8.8]
+        position: [0.0, 0.0, 6.7]
+        note: "Pitch-black erasure void advances forward consuming rear of Lounge Car"
+      booth_starboard_rear:
+        visible: false
+      sofa_port_rear:
+        visible: false
+      ruby:
+        position: [-0.10, 0.0, 3.15]
+        height: 1.58
+        pitch: 0
+        rotation: 0
+        note: "Steps from window into center aisle staring back at advancing void"
+      oscar:
+        position: [0.60, 0.0, 3.60]
+        rotation: 0
+      oscar_cane:
+        position: [0.80, 0.0, 3.60]
+
+  # --- ACT III: THREE-SHOT STANDOFF, SPRINT, TRIP & SACRIFICE (41.417s - 56.000s) ---
+  - id: "trio-reposition-facing-void"
+    start: 41.417
+    end: 43.30
+    easing: "smooth"
+    entities:
+      arthur:
+        position: [-0.65, 0.0, 3.40]
+        height: 1.86
+        rotation: 0
+        note: "Pushes upright on port (-X) side facing encroaching void"
+      oscar:
+        position: [0.0, 0.0, 3.55]
+        rotation: 0
+        note: "Steps dead center confronting erasure anomaly"
+      oscar_cane:
+        position: [0.22, 0.0, 3.55]
+      ruby:
+        position: [0.60, 0.0, 3.25]
+        rotation: 0
+        note: "Darts behind Oscar to starboard (+X) flank"
+      void_anomaly:
+        position: [0.0, 0.0, 5.8]
+
+  - id: "trio-pivot-and-bolt"
+    start: 45.40
+    end: 47.083
+    easing: "accel"
+    entities:
+      oscar:
+        position: [-0.28, 0.0, 3.00]
+        rotation: 180
+        note: "Pivots 180 deg toward Forward Car (-Z) and launches sprint"
+      oscar_cane:
+        position: [-0.45, 0.0, 3.00]
+      ruby:
+        position: [0.38, 0.0, 2.85]
+        rotation: 180
+      arthur:
+        position: [-0.08, 0.0, 3.75]
+        rotation: 180
+        note: "Shouts 'Run! Move to the forward car!' trailing behind"
+      void_anomaly:
+        position: [0.0, 0.0, 5.0]
+
+  - id: "aisle-sprint-and-trip"
+    start: 47.083
+    end: 48.65
+    easing: "linear"
+    entities:
+      ruby:
+        position: [0.22, 0.0, 1.55]
+        rotation: 180
+      oscar:
+        position: [-0.38, 0.0, 1.45]
+        rotation: 180
+      oscar_cane:
+        position: [-0.55, 0.0, 1.45]
+      arthur:
+        position: [0.10, 0.0, 2.00]
+        rotation: 180
+      void_anomaly:
+        position: [0.0, 0.0, 3.8]
+
+  - id: "ruby-falls-prone"
+    start: 48.65
+    end: 49.55
+    easing: "ease-out"
+    entities:
+      ruby:
+        position: [0.05, 0.0, 1.35]
+        rotation: 180
+        pitch: 84
+        pivot: "base"
+        height: 1.50
+        note: "Trips and slams face-first onto red aisle carpet"
+      oscar:
+        position: [-0.45, 0.0, 1.45]
+        height: 1.15
+        pitch: 28
+        look_at: "ruby"
+      arthur:
+        position: [0.22, 0.0, 1.60]
+        height: 1.30
+        pitch: 28
+        look_at: "ruby"
+      void_anomaly:
+        position: [0.0, 0.0, 3.1]
+
+  - id: "lift-ruby-toward-door"
+    start: 49.55
+    end: 51.250
+    easing: "smooth"
+    entities:
+      ruby:
+        position: [0.22, 0.0, 0.90]
+        pitch: 42
+        height: 1.05
+        rotation: 180
+      arthur:
+        position: [-0.15, 0.0, 1.05]
+        height: 1.45
+        pitch: 22
+        rotation: 180
+      oscar:
+        position: [-0.32, 0.0, 1.15]
+        height: 1.45
+        pitch: 12
+        rotation: 180
+      void_anomaly:
+        position: [0.0, 0.0, 2.4]
+
+  - id: "doorway-crossing-oscar-stays"
+    start: 51.250
+    end: 52.708
+    easing: "ease-out"
+    entities:
+      ruby:
+        position: [0.48, 0.0, -0.78]
+        height: 1.48
+        pitch: 10
+        rotation: 180
+        note: "Hauled through z = 0.0 doorway into Forward Car (+X side)"
+      arthur:
+        position: [-0.42, 0.0, -0.85]
+        height: 1.68
+        pitch: 14
+        rotation: 15
+        note: "Steps into Forward Car (-X side) and pivots back reaching for Oscar"
+      oscar:
+        position: [0.0, 0.0, 0.85]
+        height: 1.76
+        pitch: 0
+        rotation: 180
+        note: "Deliberately steps back into dark Lounge Car threshold"
+      oscar_cane:
+        position: [0.28, 0.0, 0.85]
+      void_anomaly:
+        position: [0.0, 0.0, 1.7]
+
+  - id: "oscar-engulfed-and-disc-toss"
+    start: 53.70
+    end: 54.90
+    easing: "ease-out"
+    entities:
+      coord_disc:
+        cut: true
+        visible: true
+        from: [0.0, 1.15, 0.45]
+        position: [0.0, 0.0, -2.35]
+        note: "Oscar tosses Coordinate Disc forward onto Forward Car carpet"
+      mark_disc_drop:
+        cut: true
+        visible: true
+      void_anomaly:
+        position: [0.0, 0.0, 0.95]
+
+  - id: "bulkhead-door-slams-shut"
+    start: 54.70
+    end: 55.25
+    easing: "pop"
+    entities:
+      bulkhead_door:
+        position: [0.0, 0.0, 0.0]
+        note: "Sliding bulkhead door slams shut sealing Oscar inside the void"
+
+  - id: "oscar-erased-arthur-lunges"
+    start: 55.20
+    end: 56.000
+    easing: "ease-out"
+    entities:
+      oscar:
+        visible: false
+      oscar_cane:
+        visible: false
+      arthur:
+        position: [-0.14, 0.0, -0.35]
+        rotation: 0
+        pitch: 20
+        height: 1.75
+        note: "Slams against closed wood bulkhead shouting 'OSCAR!'"
+      ruby:
+        position: [0.62, 0.0, -0.78]
+        height: 0.92
+        pitch: 0
+        rotation: 180
+        note: "Sinks onto floor beside closed bulkhead door"
+
+  # --- ACT IV: AFTERMATH, RACK FOCUS & THE THIRD PASSENGER TWIST (56.000s - 82.958s) ---
+  - id: "arthur-slumps-against-door"
+    entity: "arthur"
+    start: 56.000
+    end: 57.20
+    position: [-0.12, 0.0, -0.78]
+    height: 1.05
+    pitch: 0
+    rotation: 180
+    easing: "smooth"
+    note: "Slumps heavily onto floor against bulkhead door clutching chest"
+
+  - id: "ruby-looks-to-arthur"
+    entity: "ruby"
+    start: 58.80
+    end: 60.00
+    position: [0.62, 0.0, -0.78]
+    height: 0.92
+    look_at: "arthur"
+    easing: "smooth"
+    note: "'Arthur... is he really gone?'"
+
+  - id: "both-snap-to-igniting-disc"
+    start: 62.00
+    end: 63.00
+    easing: "smooth"
+    entities:
+      ruby:
+        look_at: "coord_disc"
+        note: "Points forward as golden runes flare on Coordinate Disc"
+      arthur:
+        look_at: "coord_disc"
+      coord_disc:
+        highlighted: true
+        note: "Coordinate Disc ignites — calibrating jump for THREE passengers"
+
+  - id: "reveal-third-passenger-beacon"
+    start: 66.583
+    end: 66.75
+    entities:
+      third_passenger_mark:
+        cut: true
+        visible: true
+        highlighted: true
+        note: "Unseen 3rd Passenger presence implied in dark forward end of carriage"
+      arthur:
+        height: 1.08
+        rotation: 180
+        note: "Realization dawns: 'It needs three to calibrate...'"
+
+  - id: "arthur-lunges-onto-disc"
+    start: 70.125
+    end: 72.10
+    easing: "ease-out"
+    entities:
+      arthur:
+        position: [0.0, 0.0, -1.65]
+        height: 1.15
+        pitch: 56
+        pivot: "base"
+        rotation: 180
+        note: "Lunges on hands and knees slamming palm onto glowing Coordinate Disc"
+      ruby:
+        look_at: "arthur"
+
+  - id: "arthur-glares-down-aisle"
+    entity: "arthur"
+    start: 72.10
+    end: 74.250
+    position: [0.0, 0.0, -1.65]
+    height: 1.15
+    pitch: 50
+    pivot: "base"
+    rotation: 180
+    easing: "smooth"
+    note: "Hand locked on glowing disc, glaring down dark aisle at unseen third passenger"
+
+# ==============================================================================
+# FILM COVERAGE SHOTS — EXACT CSV TIMECODES + CONTINUOUS SUB-BEATS
+# ==============================================================================
+shots:
+  # --- SCENE 1 (00:00.000 - 00:07.125) ---
+  - id: "shot-01-exterior-train"
+    shot: 1
+    label: "Exterior: Interstellar Express"
+    description: "Relative-velocity trackside pass: in the train's comoving reference frame, the 24mm low-angle camera translates at -v_train from locomotive (-Z) to rear coach (+Z) while panning from upstream (+Z) through perpendicular to downstream (-Z)."
+    start: 0.000
+    end: 7.125
+    stage_camera:
+      rig:
+        type: "track"
+        from: [4.8, 0.35, -9.2]
+        to: [5.0, 0.45, 9.8]
+      from: [0.0, 1.85, -4.5]
+      target: [0.0, 1.85, 5.2]
+      easing: "linear"
+      lens: 24mm
+      dof: "medium"
+      frustum_color: "#38bdf8"
+
+  # --- SCENE 2 (00:07.125 - 00:15.500) — Split 2a/2b for continuous pan follow ---
+  - id: "shot-02a-interior-arrival"
+    shot: 2
+    label: "Lounge Car Arrival (3-Shot)"
+    description: "35mm medium-wide positioned at the forward doorway (z=+0.15) looking rear (+Z): starboard (+X) hero wall reads screen-left (Green Chair foreground, Arthur on Red Sofa), Ruby bent center, Oscar composed screen-right."
+    start: 7.125
+    end: 9.600
+    stage_camera:
+      rig:
+        type: "tripod"
+        position: [-0.25, 1.38, 0.15]
+      target: [0.18, 1.25, 3.10]
+      lens: 35mm
+      focus: "ruby"
+      dof: "medium"
+      frustum_color: "#f59e0b"
+    entities:
+      ruby: { highlighted: true, note: "Catches breath center-aisle" }
+
+  - id: "shot-02b-pan-to-chair"
+    shot: 2
+    continuous: true
+    label: "Pan-Track: Ruby Chair Flop"
+    description: "Continuous tracking pan from doorway toward port aisle (-X) following Ruby crossing to the Green Armchair and flopping upside down (screen-left) while Arthur walks aft to sit by the Tea Table (screen-right)."
+    start: 9.600
+    end: 15.500
+    stage_camera:
+      rig:
+        type: "track"
+        to: [-1.05, 1.32, 1.30]
+      from: [0.18, 1.25, 3.10]
+      target: [0.95, 0.90, 3.15]
+      easing: "smooth"
+      lens: 35mm
+      focus: ["ruby", "arthur"]
+      dof: "medium"
+      frustum_color: "#f59e0b"
+    entities:
+      ruby: { highlighted: true, note: "Flops inverted into Green Chair" }
+      arthur: { highlighted: true, note: "Sits heavily on Starboard Sofa" }
+
+  # --- SCENE 3 (00:15.500 - 00:20.958) ---
+  - id: "shot-03-ruby-pov"
+    shot: 3
+    label: "Ruby Upside-Down POV"
+    description: "28mm wide 1st-person POV anchored just off Ruby's hanging head looking sharply upward (-30 deg pitch, level 0 deg roll) past her raised jeans and hands toward the starboard (+X) window and brass wall sconce."
+    start: 15.500
+    end: 20.958
+    stage_camera:
+      rig:
+        type: "tripod"
+        position: [0.02, 0.52, 2.25]
+      target: [1.18, 1.22, 2.25]
+      lens: 28mm
+      focus: "ruby"
+      dof: "shallow"
+      aperture: "f/2.8"
+      frustum_color: "#f97316"
+    entities:
+      ruby: { highlighted: true, note: "Inspects 3D volume of fingers" }
+
+  # --- SCENE 4 (00:20.958 - 00:27.708) ---
+  - id: "shot-04-tea-pour"
+    shot: 4
+    label: "Tea Table Three-Shot"
+    description: "40mm medium three-shot from port-aft aisle (-X/+Z) angled across Tea Table toward starboard-forward (+X/-Z): Ruby upside down screen-left background, Oscar sitting center to pour tea, Arthur screen-right foreground."
+    start: 20.958
+    end: 27.708
+    stage_camera:
+      rig:
+        type: "tripod"
+        position: [-1.18, 1.22, 4.95]
+      target: [0.88, 1.02, 3.25]
+      lens: 40mm
+      focus: "oscar"
+      dof: "medium"
+      frustum_color: "#a78bfa"
+    entities:
+      oscar: { highlighted: true, note: "Pours tea from brass teapot" }
+      arthur: { highlighted: true, note: "Examines widened 3D torso" }
+
+  # --- SCENE 5 (00:27.708 - 00:32.208) — MASTER ESTABLISHING WIDE + IMPACT JOLT ---
+  - id: "shot-05a-master-establishing"
+    shot: 5
+    label: "MASTER: Symmetrical Lounge Wide"
+    description: "24mm establishing master shot locked near rear centerline (z=+7.15) looking straight forward (-Z) to the z=0.0 Bulkhead Door. Reverses Shot 2 by 180 deg: +X wall now sits screen-right (Arthur -> Tea Table -> Oscar -> Ruby), port booths & duffel bag screen-left."
+    start: 27.708
+    end: 30.800
+    stage_camera:
+      rig:
+        type: "tripod"
+        position: [-0.08, 1.32, 7.15]
+      target: [0.0, 1.25, 0.0]
+      lens: 24mm
+      focus: "oscar"
+      dof: "deep"
+      frustum_color: "#fbbf24"
+
+  - id: "shot-05b-master-impact-jolt"
+    shot: 5
+    continuous: true
+    label: "MASTER: Collision Deceleration Jolt"
+    description: "Continuous shockwave recoil on the master lens (breathe 1.06, +3 deg roll) as sudden negative train acceleration flings the brass teapot and teacup off the table onto the red carpet."
+    start: 30.800
+    end: 32.208
+    stage_camera:
+      target: [0.0, 1.25, 0.0]
+      maneuver: "recoil"
+      easing: "pop"
+      distance: 7.15
+      pitch: 0.6
+      yaw: -0.6
+      roll_start: 0
+      roll_end: 3.0
+      breathe: 1.06
+      lens: 24mm
+      dof: "deep"
+      frustum_color: "#ef4444"
+    entities:
+      brass_teapot: { highlighted: true, note: "Launches off table under inertial force" }
+
+  # --- SCENE 6 (00:32.208 - 00:34.042) ---
+  - id: "shot-06-ruby-window-scramble"
+    shot: 6
+    label: "Ruby Scrambles to Window"
+    description: "45mm handheld track across the aisle following Ruby tumbling upright from the Green Armchair and whipping around to press her hand against the starboard (+X) window."
+    start: 32.208
+    end: 34.042
+    stage_camera:
+      rig:
+        type: "track"
+        from: [-0.95, 1.05, 2.65]
+        to: [-0.55, 1.38, 2.95]
+      target: "ruby.chest"
+      easing: "ease-out"
+      lens: 45mm
+      focus: "ruby.eyes"
+      dof: "medium"
+      frustum_color: "#f97316"
+    entities:
+      ruby: { highlighted: true }
+
+  # --- SCENE 7 (00:34.042 - 00:37.042) ---
+  - id: "shot-07-ots-debris-window"
+    shot: 7
+    label: "OTS Ruby: Floating Debris"
+    description: "50mm shallow-DoF OTS past Ruby's starboard-right silhouette looking out the +X window as shattered blue crystal debris and a broken rail segment drift slowly aft relative to the decelerated train."
+    start: 34.042
+    end: 37.042
+    stage_camera:
+      rig:
+        type: "tripod"
+        position: [0.05, 1.48, 2.70]
+      target: [4.50, 1.42, 1.80]
+      lens: 50mm
+      focus: "crystal_debris"
+      dof: "shallow"
+      aperture: "f/2.4"
+      frustum_color: "#22d3ee"
+    entities:
+      crystal_debris: { highlighted: true, note: "Shattered crystalline track outside" }
+
+  # --- SCENE 8 (00:37.042 - 00:39.333) ---
+  - id: "shot-08-oscar-aisle-turn"
+    shot: 8
+    label: "Oscar Turns: 'Something Hit Us'"
+    description: "40mm slightly low-angle push-in down center aisle looking rear (+Z) at Oscar as he turns 170 degrees from the darkened back of the car to warn the group."
+    start: 37.042
+    end: 39.333
+    stage_camera:
+      rig:
+        type: "track"
+        from: [0.0, 1.18, 1.95]
+        to: [0.05, 1.24, 2.20]
+      target: "oscar.chest"
+      easing: "smooth"
+      lens: 40mm
+      focus: "oscar.eyes"
+      dof: "medium"
+      frustum_color: "#a78bfa"
+    entities:
+      oscar: { highlighted: true }
+
+  # --- SCENE 9 (00:39.333 - 00:41.417) ---
+  - id: "shot-09-void-erasing-rear"
+    shot: 9
+    label: "POV: Erasure Void Consumes Car"
+    description: "24mm wide symmetrical aisle shot looking rear (+Z) down the red carpet as the black Erasure Void rolls forward and dissolves the rear red booths into nothingness."
+    start: 39.333
+    end: 41.417
+    stage_camera:
+      rig:
+        type: "tripod"
+        position: [0.0, 1.28, 2.55]
+      target: [0.0, 1.15, 7.50]
+      lens: 24mm
+      dof: "deep"
+      frustum_color: "#7e22ce"
+    entities:
+      void_anomaly: { highlighted: true, note: "Actively deleting rear carriage" }
+
+  # --- SCENE 10 (00:41.417 - 00:47.083) ---
+  - id: "shot-10-trio-horror-turn"
+    shot: 10
+    label: "Void POV: Trio Faces Erasure"
+    description: "28mm reverse angle from the Void's side (+Z) creeping slowly forward (-Z) on all three characters—Arthur port-left, Oscar center, Ruby starboard-right—before they pivot 180 deg to sprint toward the z=0.0 bulkhead door behind them."
+    start: 41.417
+    end: 47.083
+    stage_camera:
+      rig:
+        type: "track"
+        from: [0.0, 1.30, 6.15]
+        to: [0.0, 1.32, 5.75]
+      target: [0.0, 1.28, 3.25]
+      easing: "smooth"
+      lens: 28mm
+      focus: "oscar"
+      dof: "medium"
+      frustum_color: "#ef4444"
+
+  # --- SCENE 11 (00:47.083 - 00:51.250) ---
+  - id: "shot-11-aisle-sprint-and-fall"
+    shot: 11
+    label: "Low Tracking Sprint & Ruby's Fall"
+    description: "28mm dynamic reverse-dolly dropping from waist height (1.05m) down to carpet level (0.38m) through the open z=0.0 doorway looking rear (+Z) as Ruby (screen-left, +X) trips prone while Oscar (screen-right, -X) and Arthur drop to haul her up ahead of the Void."
+    start: 47.083
+    end: 51.250
+    stage_camera:
+      rig:
+        type: "track"
+        from: [0.0, 1.05, 0.45]
+        to: [0.0, 0.38, -0.75]
+      from: [0.0, 1.15, 3.00]
+      target: [0.0, 0.65, 1.30]
+      easing: "cruise"
+      lens: 28mm
+      focus: "ruby"
+      dof: "medium"
+      frustum_color: "#f97316"
+    entities:
+      ruby: { highlighted: true, note: "Trips face-down at Trip Spike" }
+
+  # --- SCENE 12 (00:51.250 - 00:52.708) ---
+  - id: "shot-12-floor-doorway-escape"
+    shot: 12
+    label: "Worm's-Eye Doorway Crossing"
+    description: "35mm floor-level tripod inside the Forward Car (z=-2.25, y=0.34) looking rear (+Z) past Ruby's boots (screen-left) and Arthur's giant boots (screen-right) through the open threshold at Oscar stepping back into the darkness."
+    start: 51.250
+    end: 52.708
+    stage_camera:
+      rig:
+        type: "tripod"
+        position: [0.05, 0.34, -2.25]
+      target: [0.0, 0.68, 0.40]
+      lens: 35mm
+      focus: "oscar"
+      dof: "medium"
+      frustum_color: "#fbbf24"
+
+  # --- SCENE 13 (00:52.708 - 00:56.000) ---
+  - id: "shot-13-ots-oscar-sacrifice"
+    shot: 13
+    label: "OTS Arthur: Oscar's Sacrifice"
+    description: "50mm shallow-DoF OTS past Arthur's shoulder on screen-right (-X) looking rear (+Z) through the open bulkhead doorframe as Oscar is engulfed, tosses the Coordinate Disc forward, and the sliding door slams shut."
+    start: 52.708
+    end: 56.000
+    stage_camera:
+      rig:
+        type: "tripod"
+        position: [0.12, 1.42, -2.15]
+      target: [-0.08, 1.35, 0.85]
+      lens: 50mm
+      focus: "oscar.eyes"
+      dof: "shallow"
+      aperture: "f/2.8"
+      frustum_color: "#a78bfa"
+    entities:
+      oscar: { highlighted: true, note: "'Keep the coordinates steady.'" }
+      coord_disc: { highlighted: true }
+
+  # --- SCENE 14 (00:56.000 - 01:04.333) — Split 14a/14b for EXACT Rack Focus at 61.80s ---
+  - id: "shot-14a-carpet-deep-hold"
+    shot: 14
+    label: "Carpet Deep Composition (Background Sharp)"
+    description: "40mm floor-level tripod (y=0.24, z=-3.55) looking rear (+Z) directly across the blurred foreground Coordinate Disc onto Ruby (screen-left, +X) and Arthur (center-right, -X) slumped against the closed bulkhead door."
+    start: 56.000
+    end: 61.800
+    stage_camera:
+      rig:
+        type: "tripod"
+        position: [0.0, 0.24, -3.55]
+      target: [0.12, 0.56, -0.78]
+      lens: 40mm
+      focus: ["ruby", "arthur"]
+      dof: "shallow"
+      aperture: "f/2.0"
+      frustum_color: "#f59e0b"
+
+  - id: "shot-14b-rack-focus-disc"
+    shot: 14
+    continuous: true
+    label: "Rack Focus: Disc Ignites"
+    description: "Locked floor camera executes a crisp exponential rack focus (f/2.0) from Ruby and Arthur in the background directly onto the foreground Coordinate Disc (z=-2.35) as its golden calibration rings ignite."
+    start: 61.800
+    end: 64.333
+    stage_camera:
+      rig:
+        type: "tripod"
+      target: [0.12, 0.56, -0.78]
+      easing: "expo"
+      lens: 40mm
+      focus_start: ["ruby", "arthur"]
+      focus_end: "coord_disc"
+      dof: "shallow"
+      aperture: "f/2.0"
+      frustum_color: "#f59e0b"
+    entities:
+      coord_disc: { highlighted: true, note: "Golden runes ignite — locking on!" }
+
+  # --- SCENE 15 (01:04.333 - 01:06.583) ---
+  - id: "shot-15-reverse-ruby-points"
+    shot: 15
+    label: "Reverse OTS: Ruby Points Forward"
+    description: "28mm wide reverse angle tucked just inside the closed bulkhead door (z=-0.12) looking forward (-Z): Ruby fills screen-right (+X) foreground pointing down the carpet at the glowing disc while darkness looms at the front of the car."
+    start: 64.333
+    end: 66.583
+    stage_camera:
+      rig:
+        type: "tripod"
+        position: [0.20, 0.78, -0.12]
+      target: [-0.15, 0.45, -3.50]
+      lens: 28mm
+      focus: "coord_disc"
+      dof: "medium"
+      frustum_color: "#f97316"
+    entities:
+      ruby: { highlighted: true, note: "'It's locking in! We're jumping again!'" }
+
+  # --- SCENE 16 (01:06.583 - 01:10.125) ---
+  - id: "shot-16-arthur-realization-cu"
+    shot: 16
+    label: "CU Arthur: The Mathematical Twist"
+    description: "85mm telephoto close-up (d = 2.05m -> 1.75m push-in, shallow f/2.4) square onto Arthur's eyes as horror hits him: the disc requires THREE passengers to calibrate—triggering the Third Passenger beacon down the dark aisle."
+    start: 66.583
+    end: 70.125
+    stage_camera:
+      target: "arthur.eyes"
+      maneuver: "dolly"
+      easing: "smooth"
+      distance_start: 2.05
+      distance_end: 1.75
+      pitch: 0
+      yaw: 180
+      lens: 85mm
+      focus: "arthur.eyes"
+      dof: "shallow"
+      aperture: "f/2.4"
+      frustum_color: "#38bdf8"
+    entities:
+      arthur: { highlighted: true, note: "'Wait... it needs THREE to calibrate!'" }
+
+  # --- SCENE 17 (01:10.125 - 01:12.250) ---
+  - id: "shot-17-arthur-lunge-behind"
+    shot: 17
+    label: "Floor-Level Lunge Past Arthur"
+    description: "35mm carpet-level tracking shot gliding forward (-Z) beside Arthur's right flank as his broad knee and arm surge past screen-left to slam onto the glowing Coordinate Disc dead center."
+    start: 70.125
+    end: 72.250
+    stage_camera:
+      rig:
+        type: "track"
+        from: [0.28, 0.24, -0.55]
+        to: [0.25, 0.22, -1.15]
+      target: [0.0, 0.14, -2.35]
+      easing: "ease-out"
+      lens: 35mm
+      focus: "coord_disc"
+      dof: "shallow"
+      aperture: "f/2.8"
+      frustum_color: "#ef4444"
+    entities:
+      arthur: { highlighted: true, note: "'WHO ELSE IS IN HERE?!'" }
+
+  # --- SCENE 18 (01:12.250 - 01:14.250) ---
+  - id: "shot-18-hand-on-disc-front"
+    shot: 18
+    label: "Low Front CU: Hand Slams Disc"
+    description: "35mm reverse floor-level push-in from ahead of the disc (z=-3.55 -> -3.30) looking rear (+Z): Arthur's glowing palm anchors foreground-center, his furious stare aimed directly into the lens/dark aisle, Ruby terrified screen-left background."
+    start: 72.250
+    end: 74.250
+    stage_camera:
+      rig:
+        type: "track"
+        from: [0.0, 0.24, -3.55]
+        to: [0.0, 0.26, -3.30]
+      target: [0.0, 0.42, -1.85]
+      easing: "ease-in"
+      lens: 35mm
+      focus: "coord_disc"
+      dof: "medium"
+      frustum_color: "#e11d48"
+    entities:
+      coord_disc: { highlighted: true }
+
+  # --- SCENE 19 (01:14.250 - 01:22.958) ---
+  - id: "shot-19-title-coda-third-pov"
+    shot: 19
+    continuous: true
+    label: "Title Coda: Third Passenger POV Reveal"
+    description: "White flash into title card ('The Third Passenger'). In the 3D diorama, the camera rises seamlessly from Shot 18's floor position backward to standing eye-level (y=1.55m) directly atop the Third Passenger beacon at [0, 0, -5.8]."
+    start: 74.250
+    end: 82.958
+    stage_camera:
+      rig:
+        type: "track"
+        to: [0.0, 1.55, -5.80]
+      from: [0.0, 0.42, -1.85]
+      target: ["arthur", "ruby"]
+      easing: "ease-out"
+      lens: 35mm
+      focus: "coord_disc"
+      dof: "shallow"
+      aperture: "f/2.8"
+      frustum_color: "#e11d48"
+    entities:
+      third_passenger_mark: { highlighted: true, note: "Unseen 3rd Passenger standing at z = -5.8m" }
+
+# ==============================================================================
+# DECOUPLED OBSERVER CAMERA — SINGLE UNBROKEN CONTINUOUS SWEEP (ZERO CUTS/SNAPS)
+# ==============================================================================
+observer_shots:
+  # 0.000 - 7.125 (Shot 1): Wide starboard pass (+68° -> +42° @ 20.0m -> 19.5m) keeping
+  # the full train consist AND the trackside Stage Cam (z=-9.2 -> +9.8) inside frame.
+  - id: "obs-01-exterior-consist"
+    label: "Diorama: Exterior Relative Pass"
+    start: 0.000
+    end: 7.125
+    from: [1.5, 1.4, -4.5]
+    target: [1.5, 1.0, 5.0]
+    maneuver: "dolly"
+    easing: "cruise"
+    distance_start: 20.0
+    distance_end: 19.5
+    pitch_start: 26
+    pitch_end: 28
+    yaw_start: 68
+    yaw_end: 42
+    lens: 32mm
+
+  # 7.125 - 27.708 (Shots 2–4): Glides smoothly clockwise around downstage (+42° -> -64°)
+  # into the port cutaway while settling in to 12.2m (all Lounge Cams & actors in view).
+  - id: "obs-02-lounge-sweep"
+    label: "Diorama: Continuous Sweep to Lounge Cutaway"
+    continuous: true
+    end: 27.708
+    from: [1.5, 1.0, 5.0]
+    target: [0.2, 1.0, 2.8]
+    maneuver: "orbit"
+    direction: "cw"
+    easing: "smooth"
+    distance: 12.2
+    pitch: 32
+    yaw: -64
+    lens: 32mm
+
+  # 27.708 - 39.333 (Shots 5–8): Gently pulls back to 14.5m (-64° -> -68°), framing BOTH
+  # Shot 5's z=+7.15 master camera -> z=0.0 door AND Shot 7's x=+4.6 window debris without whipping.
+  - id: "obs-03-master-and-debris"
+    label: "Diorama: Master Pullback & Exterior Debris"
+    continuous: true
+    end: 39.333
+    from: [0.2, 1.0, 2.8]
+    target: [0.8, 1.1, 3.4]
+    maneuver: "dolly"
+    easing: "smooth"
+    distance: 14.5
+    pitch: 31
+    yaw: -68
+    lens: 32mm
+
+  # 39.333 - 47.083 (Shots 9–10): Eases back to 15.2m (-68° -> -76°) to hold the rear Void
+  # (z=+8.8), Shot 9/10 cameras (z=+2.55/+6.15), and the standoff trio simultaneously.
+  - id: "obs-04-void-and-standoff"
+    label: "Diorama: Rear Void & Trio Standoff"
+    continuous: true
+    end: 47.083
+    from: [0.8, 1.1, 3.4]
+    target: [0.0, 1.1, 4.6]
+    maneuver: "dolly"
+    easing: "smooth"
+    distance: 15.2
+    pitch: 31
+    yaw: -76
+    lens: 32mm
+
+  # 47.083 - 56.000 (Shots 11–13): Tracks smoothly forward alongside the sprint to z=0.6
+  # (13.6m @ -84°), holding chasing Void (+5.0m), doorway (0.0m), and Shots 12–13 (-2.25m).
+  - id: "obs-05-threshold-sprint"
+    label: "Diorama: Bulkhead Chase, Toss & Door Slam"
+    continuous: true
+    end: 56.000
+    from: [0.0, 1.1, 4.6]
+    target: [0.0, 1.0, 0.6]
+    maneuver: "dolly"
+    easing: "smooth"
+    distance: 13.6
+    pitch: 32
+    yaw: -84
+    lens: 32mm
+
+  # 56.000 - 82.958 (Shots 14–19): Continues clockwise glide into Forward Car midpoint (z=-2.9,
+  # 14.2m @ -102°), framing Shot 15 (-0.12m) all the way to Shot 19 atop the -5.8m twist beacon.
+  - id: "obs-06-forward-car-twist"
+    label: "Diorama: Forward Car & Third Passenger Reveal"
+    continuous: true
+    end: 82.958
+    from: [0.0, 1.0, 0.6]
+    target: [0.0, 0.9, -2.9]
+    maneuver: "dolly"
+    easing: "smooth"
+    distance: 14.2
+    pitch: 32
+    yaw: -102
+    lens: 32mm

@@ -1,0 +1,861 @@
+version: "1.0"
+id: "observation-only"
+title: "Observation Only"
+subtitle: "Late-Night Diner Booth Confrontation"
+description: "18-shot diner booth confrontation between Robert, Sarah, and John, culminating in John's aisle walkout."
+video: "https://www.youtube.com/watch?v=eR9TBCTyRvw"
+aspect_ratio: "16:9"
+duration: 68.0
+offset: 0.0
+
+optics:
+  dof_blur: true
+  dof: "shallow"
+  aperture: "f/2.8"
+
+metadata:
+  director: "Taruma Sakti"
+  location: "Late-Night Roadside Diner (Window Booth & Center Aisle)"
+  lens_package:
+    ots: "45mm–55mm Prime (f/2.8)"
+    profile_master: "50mm Prime (f/5.6)"
+    closeups: "85mm–110mm Prime (f/2.0–f/2.2)"
+    reverse_exit: "35mm Prime (f/2.8)"
+
+stage:
+  width: 12
+  depth: 14
+  grid_step: 1
+  show_rigs: true
+  observer_camera:
+    target: [0.0, 0.95, 0.85]
+    distance: 8.8
+    pitch: 30
+    yaw: -52
+    lens: 30mm
+  stage_camera:
+    target: [0.51, 1.06, -0.50]
+    distance: 2.85
+    pitch: 4
+    yaw: -60
+    lens: 50mm
+
+# ==============================================================================
+# ENTITIES: CHARACTERS, DINER ARCHITECTURE, TABLE PROPS & FLOOR MARKS
+# ==============================================================================
+entities:
+  # --- Characters (Seated at t=0.0s) ---
+  - id: "robert"
+    label: "Robert"
+    kind: "character"
+    style: "mannequin"
+    position: [0.76, 0, -0.35]
+    rotation: -90
+    pitch: 12
+    size: [0.58, 1.36, 0.48]
+    color: "#3b82f6"
+
+  - id: "sarah"
+    label: "Sarah"
+    kind: "character"
+    style: "mannequin"
+    position: [-0.80, 0, -0.22]
+    rotation: 90
+    pitch: 0
+    size: [0.46, 1.30, 0.42]
+    color: "#f59e0b"
+
+  - id: "john"
+    label: "John"
+    kind: "character"
+    style: "mannequin"
+    position: [-0.80, 0, -0.92]
+    rotation: 105
+    pitch: 14
+    size: [0.50, 1.12, 0.44]
+    color: "#a78bfa"
+
+  # --- Hero Booth & Tabletop Props ---
+  - id: "booth_table"
+    label: "Booth Table"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [0.0, 0, -0.60]
+    size: [0.82, 0.76, 1.24]
+    color: "#64748b"
+
+  - id: "booth_bench_left"
+    label: "Left Booth Back"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [-1.14, 0, -0.60]
+    size: [0.20, 1.08, 1.26]
+    color: "#991b1b"
+
+  - id: "booth_bench_right"
+    label: "Right Booth Back"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [1.14, 0, -0.60]
+    size: [0.20, 1.08, 1.26]
+    color: "#991b1b"
+
+  - id: "pie_plate"
+    label: "Pie Plate"
+    kind: "prop"
+    shape: "cylinder"
+    style: "solid"
+    position: [0.22, 0.76, -0.40]
+    size: [0.24, 0.06, 0.24]
+    color: "#fbbf24"
+
+  - id: "toast_plate"
+    label: "Toast Plate"
+    kind: "prop"
+    shape: "cylinder"
+    style: "solid"
+    position: [-0.22, 0.76, -0.82]
+    size: [0.20, 0.05, 0.20]
+    color: "#d97706"
+
+  - id: "water_glass"
+    label: "Ice Water"
+    kind: "prop"
+    shape: "cylinder"
+    style: "glass"
+    position: [-0.18, 0.76, -1.04]
+    size: [0.09, 0.16, 0.09]
+    color: "#93c5fd"
+
+  - id: "coffee_mug"
+    label: "Coffee Mug"
+    kind: "prop"
+    shape: "cylinder"
+    style: "solid"
+    position: [0.18, 0.76, -0.96]
+    size: [0.09, 0.11, 0.09]
+    color: "#e2e8f0"
+
+  - id: "napkin_dispenser_front"
+    label: "Front Napkin Holder"
+    kind: "prop"
+    shape: "box"
+    style: "solid"
+    position: [-0.14, 0.76, -0.14]
+    size: [0.11, 0.15, 0.10]
+    color: "#cbd5e1"
+
+  - id: "napkin_dispenser_back"
+    label: "Window Napkins & Sugar"
+    kind: "prop"
+    shape: "box"
+    style: "solid"
+    position: [0.02, 0.76, -0.98]
+    size: [0.14, 0.15, 0.14]
+    color: "#cbd5e1"
+
+  # --- Surrounding Diner Set Architecture ---
+  - id: "window_sill"
+    label: "Rainy Window Sill"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [0.0, 0, -1.48]
+    size: [10.0, 0.78, 0.16]
+    color: "#1e3a8a"
+
+  - id: "window_mullion_l"
+    label: "Window Mullion L"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [-1.45, 0, -1.48]
+    size: [0.16, 2.30, 0.16]
+    color: "#475569"
+
+  - id: "window_mullion_r"
+    label: "Window Mullion R"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [1.45, 0, -1.48]
+    size: [0.16, 2.30, 0.16]
+    color: "#475569"
+
+  - id: "booth_adj_left"
+    label: "Adjacent Booth L"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [-2.65, 0, -0.60]
+    size: [1.75, 1.05, 1.24]
+    color: "#7f1d1d"
+
+  - id: "booth_adj_right"
+    label: "Adjacent Booth R"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [2.65, 0, -0.60]
+    size: [1.75, 1.05, 1.24]
+    color: "#7f1d1d"
+
+  - id: "diner_counter"
+    label: "Lunch Counter"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [2.15, 0, 3.15]
+    size: [0.85, 1.05, 3.20]
+    color: "#64748b"
+
+  - id: "barstool_1"
+    label: "Stool 1"
+    kind: "prop"
+    shape: "cylinder"
+    style: "solid"
+    position: [1.45, 0, 1.95]
+    size: [0.42, 0.72, 0.42]
+    color: "#b91c1c"
+
+  - id: "barstool_2"
+    label: "Stool 2"
+    kind: "prop"
+    shape: "cylinder"
+    style: "solid"
+    position: [1.45, 0, 2.75]
+    size: [0.42, 0.72, 0.42]
+    color: "#b91c1c"
+
+  - id: "barstool_3"
+    label: "Stool 3"
+    kind: "prop"
+    shape: "cylinder"
+    style: "solid"
+    position: [1.45, 0, 3.55]
+    size: [0.42, 0.72, 0.42]
+    color: "#b91c1c"
+
+  - id: "service_counter"
+    label: "Service Station"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [-2.10, 0, 3.05]
+    size: [0.90, 1.15, 2.80]
+    color: "#92400e"
+
+  - id: "exit_door_left"
+    label: "Exit Door L"
+    kind: "prop"
+    shape: "box"
+    style: "glass"
+    position: [0.48, 0, 5.20]
+    size: [0.92, 2.25, 0.08]
+    color: "#38bdf8"
+
+  - id: "exit_door_right"
+    label: "Exit Door R"
+    kind: "prop"
+    shape: "box"
+    style: "glass"
+    position: [-0.48, 0, 5.20]
+    size: [0.92, 2.25, 0.08]
+    color: "#38bdf8"
+
+  # --- Floor Staging Markers ---
+  - id: "mark_booth_axis"
+    label: "Booth Axis"
+    kind: "marker"
+    shape: "t"
+    style: "tape"
+    position: [0.0, 0, 0.25]
+    color: "#f59e0b"
+
+  - id: "mark_john_stand"
+    label: "John Aisle Mark"
+    kind: "marker"
+    shape: "x"
+    style: "glow"
+    position: [-0.15, 0, 1.35]
+    color: "#a78bfa"
+
+  - id: "mark_exit_threshold"
+    label: "Exit Threshold"
+    kind: "marker"
+    shape: "circle"
+    style: "glow"
+    position: [0.0, 0, 5.15]
+    color: "#f43f5e"
+
+# ==============================================================================
+# DECOUPLED BLOCKING TIMELINE (POSTURES, PROP SHIFTS & JOHN'S WALKOUT)
+# ==============================================================================
+blocking:
+  # Shot 3: Robert drops fork and slumps back against vinyl backrest
+  - id: "blk-robert-slump"
+    entity: "robert"
+    start: 8.800
+    end: 10.600
+    position: [0.88, 0, -0.35]
+    rotation: -90
+    pitch: -8
+    height: 1.32
+    easing: "smooth"
+    note: "Drops fork, leans back sighing"
+
+  # Shot 4: Sarah leans forward to slide the napkin dispenser across table
+  - id: "blk-sarah-napkin-reach"
+    start: 14.500
+    end: 15.700
+    easing: "smooth"
+    entities:
+      sarah:
+        position: [-0.72, 0, -0.22]
+        rotation: 90
+        pitch: 6
+      napkin_dispenser_front:
+        position: [0.06, 0.76, -0.16]
+        rotation: 0
+
+  - id: "blk-sarah-settle-1"
+    entity: "sarah"
+    start: 15.700
+    end: 16.600
+    position: [-0.80, 0, -0.22]
+    rotation: 90
+    pitch: 0
+    easing: "smooth"
+
+  # Shot 6: Robert leans forward countering Sarah
+  - id: "blk-robert-counter"
+    entity: "robert"
+    start: 18.667
+    end: 19.800
+    position: [0.74, 0, -0.35]
+    rotation: -90
+    pitch: 8
+    height: 1.36
+    easing: "smooth"
+
+  # Shot 7: Robert leans back resting chin on hand
+  - id: "blk-robert-chin"
+    entity: "robert"
+    start: 21.500
+    end: 22.400
+    position: [0.84, 0, -0.35]
+    rotation: -90
+    pitch: -4
+    height: 1.34
+    easing: "smooth"
+
+  # Shot 10: Robert leans sharply across table toward John
+  - id: "blk-robert-press-john"
+    entity: "robert"
+    start: 27.167
+    end: 28.400
+    position: [0.68, 0, -0.46]
+    pitch: 14
+    look_at: "john"
+    easing: "smooth"
+
+  # Shot 12: Sarah turns gently toward John by the window
+  - id: "blk-sarah-turn-john"
+    entity: "sarah"
+    start: 32.800
+    end: 34.000
+    rotation: 145
+    pitch: 4
+    easing: "smooth"
+
+  # Shot 13: Robert presses diagnosis; Sarah snaps gaze back to Robert
+  - id: "blk-beat-diagnosis"
+    start: 37.458
+    end: 39.200
+    easing: "smooth"
+    entities:
+      robert:
+        position: [0.66, 0, -0.44]
+        pitch: 12
+        look_at: "john"
+      sarah:
+        rotation: 90
+        pitch: 0
+
+  # Shot 14: Sarah leans in sharply defending John
+  - id: "blk-sarah-snap"
+    entity: "sarah"
+    start: 47.000
+    end: 48.200
+    position: [-0.75, 0, -0.22]
+    rotation: 90
+    pitch: 6
+    easing: "ease-out"
+
+  # Shot 15: Robert slams table shouting at Sarah
+  - id: "blk-robert-slam"
+    entity: "robert"
+    start: 48.917
+    end: 49.600
+    position: [0.68, 0, -0.35]
+    rotation: -90
+    pitch: 10
+    easing: "pop"
+
+  # Shot 16: Robert sits tall gesturing with open palms
+  - id: "blk-robert-observe"
+    entity: "robert"
+    start: 49.875
+    end: 51.500
+    position: [0.76, 0, -0.35]
+    rotation: -90
+    pitch: 4
+    height: 1.38
+    easing: "smooth"
+
+  # Shot 17: John bolts out of booth past Sarah's knees
+  - id: "blk-john-breakout"
+    start: 53.208
+    end: 54.083
+    easing: "ease-out"
+    entities:
+      john:
+        position: [-0.35, 0, 0.35]
+        height: 1.38
+        pitch: 8
+        rotation: 20
+        note: "Slides out of booth past Sarah"
+      sarah:
+        position: [-0.88, 0, -0.22]
+        rotation: 55
+        pitch: -6
+
+  # Shot 18a: John rises to full standing height in center aisle and faces booth
+  - id: "blk-john-stand"
+    start: 54.083
+    end: 54.900
+    easing: "smooth"
+    entities:
+      john:
+        position: [-0.15, 0, 1.35]
+        height: 1.78
+        pitch: 0
+        look_at: ["robert", "sarah"]
+        note: "Stands at aisle mark: 'I'm waiting in the car.'"
+      robert:
+        position: [0.80, 0, -0.35]
+        pitch: 0
+        height: 1.36
+        look_at: "john"
+      sarah:
+        position: [-0.80, 0, -0.22]
+        pitch: 0
+        look_at: "john"
+
+  # Shot 18b: John turns and walks down the center aisle to the exit doors
+  - id: "blk-john-walkout"
+    start: 56.000
+    end: 58.100
+    easing: "cruise"
+    entities:
+      john:
+        position: [0.0, 0, 5.15]
+        rotation: 0
+        note: "Walks down center aisle toward exit"
+      robert:
+        look_at: "john"
+      sarah:
+        look_at: "john"
+
+  # Shot 18c: Double glass exit doors push outward as John steps into the rain
+  - id: "blk-exit-doors"
+    start: 58.100
+    end: 59.000
+    easing: "ease-out"
+    entities:
+      exit_door_left:
+        position: [0.82, 0, 5.56]
+        rotation: -68
+      exit_door_right:
+        position: [-0.82, 0, 5.56]
+        rotation: 68
+      john:
+        position: [0.0, 0, 6.20]
+        rotation: 0
+      robert:
+        look_at: "john"
+      sarah:
+        look_at: "john"
+
+# ==============================================================================
+# DECOUPLED OBSERVER TIMELINE (DIORAMA PRESENTATION)
+# ==============================================================================
+observer_shots:
+  - id: "obs-01-orbit-in"
+    label: "Booth & Rigs Inward Orbit"
+    start: 0.000
+    end: 48.917
+    target: [0.0, 0.95, 0.85]
+    maneuver: "orbit"
+    direction: "ccw"
+    easing: "smooth"
+    distance_start: 12
+    distance_end: 6.5
+    pitch_start: 30
+    pitch_end: 23
+    yaw_start: -52
+    yaw_end: 48
+    lens: 30mm
+
+  - id: "obs-02-pullback-exit"
+    label: "Aisle & Walkout Pullback"
+    continuous: true
+    end: 61.500
+    from: [0.0, 0.95, 0.85]
+    target: [0.0, 1.05, 1.85]
+    maneuver: "orbit"
+    direction: "ccw"
+    easing: "smooth"
+    distance: 13
+    pitch: 29
+    yaw: 68
+    lens: 30mm
+
+# ==============================================================================
+# FILM COVERAGE SHOTS (18 EXACT CSV CUTS)
+# ==============================================================================
+shots:
+  - id: "shot-01"
+    shot: 1
+    label: "OTS Robert: Pie Crust"
+    description: "50mm OTS past Sarah on Robert sawing at tough diner pie crust."
+    start: 0.000
+    end: 6.417
+    stage_camera:
+      maneuver: "cut"
+      show_path: false
+      rig: { type: "tripod", position: [-1.95, 1.26, 0.92] }
+      target: [0.51, 1.06, -0.50]
+      lens: 50mm
+      focus: "robert"
+      dof: "shallow"
+      aperture: "f/2.8"
+    entities:
+      robert: { highlighted: true, note: "Saws at pie crust" }
+
+  - id: "shot-02"
+    shot: 2
+    label: "OTS Sarah & John"
+    description: "50mm reverse OTS past Robert; Sarah stares stoically while John stays slumped."
+    start: 6.417
+    end: 8.167
+    stage_camera:
+      maneuver: "cut"
+      show_path: false
+      rig: { type: "tripod", position: [1.86, 1.24, 0.76] }
+      target: [-0.65, 1.04, -0.57]
+      lens: 50mm
+      focus: ["sarah", "john"]
+      dof: "shallow"
+      aperture: "f/2.8"
+    entities:
+      sarah: { highlighted: true }
+      john: { highlighted: true }
+
+  - id: "shot-03"
+    shot: 3
+    label: "OTS Robert: Slump & Sigh"
+    description: "Robert drops his fork, slumps back rubbing his eyes, and taps beside his plate."
+    start: 8.167
+    end: 14.333
+    stage_camera:
+      maneuver: "cut"
+      show_path: false
+      rig: { type: "tripod", position: [-1.95, 1.26, 0.92] }
+      target: [0.51, 1.06, -0.50]
+      lens: 50mm
+      focus: "robert"
+      dof: "shallow"
+      aperture: "f/2.8"
+    entities:
+      robert: { highlighted: true, note: "Complains about OR shift and pie" }
+
+  - id: "shot-04"
+    shot: 4
+    label: "OTS Sarah: Napkin Slide"
+    description: "45mm reverse OTS; Sarah slides napkin dispenser forward telling Robert to lower his voice."
+    start: 14.333
+    end: 16.625
+    stage_camera:
+      maneuver: "cut"
+      show_path: false
+      rig: { type: "tripod", position: [1.80, 1.25, 0.92] }
+      target: [-0.65, 1.02, -0.56]
+      lens: 45mm
+      focus: "sarah"
+      dof: "shallow"
+      aperture: "f/2.8"
+    entities:
+      sarah: { highlighted: true, note: "'Lower your voice, Robert.'" }
+
+  - id: "shot-05"
+    shot: 5
+    label: "MCU John: Window Isolation"
+    description: "85mm MCU past Sarah's foreground arm onto silent John by the rainy glass."
+    start: 16.625
+    end: 18.667
+    stage_camera:
+      maneuver: "cut"
+      show_path: false
+      rig: { type: "tripod", position: [0.83, 1.14, 1.01] }
+      target: [-0.68, 0.97, -0.92]
+      lens: 85mm
+      focus: "john"
+      dof: "shallow"
+      aperture: "f/2.2"
+    entities:
+      john: { highlighted: true, note: "'He's exhausted.'" }
+
+  - id: "shot-06"
+    shot: 6
+    label: "Profile Master: Baseline"
+    description: "50mm aisle side-profile wide framing the full family booth against the rainy window."
+    start: 18.667
+    end: 21.500
+    stage_camera:
+      maneuver: "cut"
+      show_path: false
+      rig: { type: "tripod", position: [0.0, 1.14, 2.90] }
+      target: [0.0, 1.02, -0.55]
+      lens: 50mm
+      focus: [0.0, 1.02, -0.55]
+      dof: "medium"
+      aperture: "f/5.6"
+    entities:
+      robert: { highlighted: true, note: "'We're all exhausted, Sarah.'" }
+
+  - id: "shot-07"
+    shot: 7
+    label: "OTS Robert: Chin Rest"
+    description: "Robert leans back, hand on chin: 'That's the baseline.'"
+    start: 21.500
+    end: 22.917
+    stage_camera:
+      maneuver: "cut"
+      show_path: false
+      rig: { type: "tripod", position: [-1.95, 1.26, 0.92] }
+      target: [0.51, 1.06, -0.50]
+      lens: 50mm
+      focus: "robert"
+      dof: "shallow"
+      aperture: "f/2.8"
+    entities:
+      robert: { highlighted: true }
+
+  - id: "shot-08"
+    shot: 8
+    label: "OTS Sarah & John: Tapping"
+    description: "Reverse OTS as Robert taps the tabletop calling out to John."
+    start: 22.917
+    end: 24.500
+    stage_camera:
+      maneuver: "cut"
+      show_path: false
+      rig: { type: "tripod", position: [1.86, 1.24, 0.76] }
+      target: [-0.65, 1.04, -0.57]
+      lens: 50mm
+      focus: ["sarah", "john"]
+      dof: "shallow"
+      aperture: "f/2.8"
+    entities:
+      john: { highlighted: true }
+
+  - id: "shot-09"
+    shot: 9
+    label: "MCU John: Untouched Toast"
+    description: "85mm clean MCU on John staring past untouched toast and ice water."
+    start: 24.500
+    end: 27.167
+    stage_camera:
+      maneuver: "cut"
+      show_path: false
+      rig: { type: "tripod", position: [0.64, 1.12, 0.98] }
+      target: [-0.68, 0.97, -0.92]
+      lens: 85mm
+      focus: "john"
+      dof: "shallow"
+      aperture: "f/2.2"
+    entities:
+      john: { highlighted: true }
+
+  - id: "shot-10"
+    shot: 10
+    label: "Profile Master: Lean In"
+    description: "50mm side profile; Robert leans sharply across the table demanding answers."
+    start: 27.167
+    end: 29.583
+    stage_camera:
+      maneuver: "cut"
+      show_path: false
+      rig: { type: "tripod", position: [0.0, 1.14, 2.90] }
+      target: [0.0, 1.02, -0.55]
+      lens: 50mm
+      focus: [0.0, 1.02, -0.55]
+      dof: "medium"
+      aperture: "f/5.6"
+    entities:
+      robert: { highlighted: true }
+
+  - id: "shot-11"
+    shot: 11
+    label: "CU John: I'm Fine"
+    description: "110mm tight close-up isolating John's face and rim of water glass."
+    start: 29.583
+    end: 32.500
+    stage_camera:
+      maneuver: "cut"
+      show_path: false
+      rig: { type: "tripod", position: [0.60, 1.10, 0.92] }
+      target: [-0.72, 1.00, -0.92]
+      lens: 110mm
+      focus: "john"
+      dof: "shallow"
+      aperture: "f/2.0"
+    entities:
+      john: { highlighted: true, note: "'I'm fine.'" }
+
+  - id: "shot-12"
+    shot: 12
+    label: "OTS Sarah: Drink the Water"
+    description: "Reverse OTS; Sarah turns to John softly urging three sips of water."
+    start: 32.500
+    end: 37.458
+    stage_camera:
+      maneuver: "cut"
+      show_path: false
+      rig: { type: "tripod", position: [1.86, 1.24, 0.76] }
+      target: [-0.65, 1.04, -0.57]
+      lens: 50mm
+      focus: ["sarah", "john"]
+      dof: "shallow"
+      aperture: "f/2.8"
+    entities:
+      sarah: { highlighted: true, note: "'Drink the water, John.'" }
+
+  - id: "shot-13"
+    shot: 13
+    label: "Tighter OTS Robert: Diagnosis"
+    description: "55mm tighter OTS past Sarah's bun; Robert cites John's sleeplessness and pupils."
+    start: 37.458
+    end: 44.917
+    stage_camera:
+      maneuver: "cut"
+      show_path: false
+      rig: { type: "tripod", position: [-1.88, 1.28, 0.78] }
+      target: [0.46, 1.07, -0.46]
+      lens: 55mm
+      focus: "robert"
+      dof: "shallow"
+      aperture: "f/2.8"
+    entities:
+      robert: { highlighted: true, note: "'Your pupils are pinpricks.'" }
+
+  - id: "shot-14"
+    shot: 14
+    label: "OTS Sarah: Stop Diagnosing"
+    description: "Reverse OTS; Sarah erupts at Robert across the table."
+    start: 44.917
+    end: 48.917
+    stage_camera:
+      maneuver: "cut"
+      show_path: false
+      rig: { type: "tripod", position: [1.86, 1.24, 0.76] }
+      target: [-0.65, 1.04, -0.57]
+      lens: 50mm
+      focus: "sarah"
+      dof: "shallow"
+      aperture: "f/2.8"
+    entities:
+      sarah: { highlighted: true, note: "'Stop diagnosing him!'" }
+
+  - id: "shot-15"
+    shot: 15
+    label: "Tighter OTS Robert: Table Slam"
+    description: "55mm tight OTS; Robert slams his palm onto the booth table shouting back."
+    start: 48.917
+    end: 49.875
+    stage_camera:
+      maneuver: "cut"
+      show_path: false
+      rig: { type: "tripod", position: [-1.88, 1.28, 0.78] }
+      target: [0.46, 1.07, -0.46]
+      lens: 55mm
+      focus: "robert"
+      dof: "shallow"
+      aperture: "f/2.8"
+    entities:
+      robert: { highlighted: true, note: "Slams table yelling" }
+
+  - id: "shot-16"
+    shot: 16
+    label: "Profile Master: Observing"
+    description: "50mm side profile; Robert argues he is only observing his own son."
+    start: 49.875
+    end: 53.208
+    stage_camera:
+      maneuver: "cut"
+      show_path: false
+      rig: { type: "tripod", position: [0.0, 1.14, 2.90] }
+      target: [0.0, 1.02, -0.55]
+      lens: 50mm
+      focus: [0.0, 1.02, -0.55]
+      dof: "medium"
+      aperture: "f/5.6"
+    entities:
+      robert: { highlighted: true, note: "'I'm observing!'" }
+
+  - id: "shot-17"
+    shot: 17
+    label: "Breakout Push: John Bolts"
+    description: "50mm kinetic aisle track catching John abruptly sliding past Sarah out of the booth."
+    start: 53.208
+    end: 54.083
+    stage_camera:
+      maneuver: "dolly"
+      easing: "ease-out"
+      show_path: true
+      rig:
+        type: "track"
+        from: [0.0, 1.14, 2.40]
+        to: [-0.30, 1.18, 2.30]
+      from: [0.0, 1.02, -0.55]
+      target: "john"
+      lens: 50mm
+      focus: "john"
+      dof: "medium"
+      aperture: "f/4.0"
+    entities:
+      john: { highlighted: true, note: "Bolts out of booth" }
+
+  - id: "shot-18"
+    shot: 18
+    label: "Window Reverse: Walkout & Title"
+    description: "35mm reverse from window framing Robert (L) and Sarah (R) as John walks out the exit doors (cut to black & title at 59.0s)."
+    start: 54.083
+    end: 68.000
+    stage_camera:
+      maneuver: "dolly"
+      easing: "ease-out"
+      show_path: false
+      rig: { type: "tripod", position: [0.0, 1.30, -2.25] }
+      from: [-0.20, 1.38, 1.35]
+      target: [0.0, 1.32, 3.20]
+      lens: 35mm
+      focus: "john"
+      dof: "shallow"
+      aperture: "f/2.8"
+    entities:
+      john: { highlighted: true, note: "'I'm waiting in the car.' Exits at 59.0s" }

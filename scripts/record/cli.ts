@@ -5,14 +5,20 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { INITIAL_CATALOG_ITEMS, findCatalogItem } from '../../src/core/scoreCatalog';
+import {
+  INITIAL_CATALOG_ITEMS,
+  findCatalogItem,
+  loadBundledScore,
+} from '../../src/core/scoreCatalog';
 import { parseStageScore } from '../../src/core/scoreParser';
 import { parseArgs } from './cliArgs';
 import { runRecordSession } from './playwrightDriver';
 import { ensureViteServer } from './serverManager';
 import { resolveRecorderSkins } from './skinResolver';
 
-function resolveScoreYaml(input: string): { yaml: string; id: string } {
+async function resolveScoreYaml(
+  input: string
+): Promise<{ yaml: string; id: string }> {
   // Check if file exists on disk
   if (fs.existsSync(input)) {
     const yaml = fs.readFileSync(input, 'utf-8');
@@ -23,7 +29,8 @@ function resolveScoreYaml(input: string): { yaml: string; id: string } {
   // Check direct canonical ID or alias match
   const directMatch = findCatalogItem(input);
   if (directMatch) {
-    return { yaml: directMatch.rawYaml, id: directMatch.id };
+    const loaded = await loadBundledScore(directMatch.id);
+    return { yaml: loaded.rawYaml, id: loaded.id };
   }
 
   // Check aliases for study scenes: vf, vector_field, vector-field
@@ -35,7 +42,8 @@ function resolveScoreYaml(input: string): { yaml: string; id: string } {
   ) {
     const vfItem = findCatalogItem('vector-field');
     if (vfItem) {
-      return { yaml: vfItem.rawYaml, id: vfItem.id };
+      const loaded = await loadBundledScore(vfItem.id);
+      return { yaml: loaded.rawYaml, id: loaded.id };
     }
   }
 
@@ -46,7 +54,8 @@ function resolveScoreYaml(input: string): { yaml: string; id: string } {
     const targetBpId = num === 1 ? 'demo' : `blueprint-0${num}`;
     const bpItem = findCatalogItem(targetBpId);
     if (bpItem) {
-      return { yaml: bpItem.rawYaml, id: bpItem.id };
+      const loaded = await loadBundledScore(bpItem.id);
+      return { yaml: loaded.rawYaml, id: loaded.id };
     }
   }
 
@@ -59,7 +68,8 @@ function resolveScoreYaml(input: string): { yaml: string; id: string } {
       item.aliases?.some((a) => a.toLowerCase().includes(normalized))
   );
   if (catalogItem) {
-    return { yaml: catalogItem.rawYaml, id: catalogItem.id };
+    const loaded = await loadBundledScore(catalogItem.id);
+    return { yaml: loaded.rawYaml, id: loaded.id };
   }
 
   throw new Error(
@@ -69,7 +79,7 @@ function resolveScoreYaml(input: string): { yaml: string; id: string } {
 
 async function main(): Promise<void> {
   const options = parseArgs(process.argv.slice(2));
-  const { yaml, id: sceneId } = resolveScoreYaml(options.sceneInput);
+  const { yaml, id: sceneId } = await resolveScoreYaml(options.sceneInput);
   const needsParsedScore = Boolean(
     options.shotId || options.skinsDir || options.stageSkinPath || options.entitySkinPaths
   );
@@ -100,7 +110,7 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((err) => {
+await main().catch((err) => {
   console.error('\n❌ Recording failed:', err.message);
   process.exit(1);
 });

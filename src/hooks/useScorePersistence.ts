@@ -9,7 +9,12 @@ import {
   INITIAL_CATALOG_ITEMS,
   findCatalogItem,
   generateBlankScoreYaml,
+  getCachedBundledScore,
+  getDefaultCatalogItem,
+  getDefaultSceneId,
   isBundledSceneId,
+  loadBundledScore,
+  type LoadedScoreCatalogItem,
   type ScoreCatalogItem,
 } from '../core/scoreCatalog';
 import { parseStageScore } from '../core/scoreParser';
@@ -49,6 +54,12 @@ export interface UseScorePersistenceOptions {
   onOpenedExistingScore?: (title: string) => void;
 }
 
+function buildBundledCatalogSnapshot(): ScoreCatalogItem[] {
+  return INITIAL_CATALOG_ITEMS.map(
+    (item) => getCachedBundledScore(item.id) ?? item
+  );
+}
+
 export function useScorePersistence({
   catalog,
   activeSceneId,
@@ -86,13 +97,15 @@ export function useScorePersistence({
       const stored = await listAllStoredScores();
       if (isCancelled) return;
 
-      const storedCustomItems: ScoreCatalogItem[] = [];
+      const storedCustomItems: LoadedScoreCatalogItem[] = [];
 
       for (const record of stored) {
         // Auto-migration for legacy drafts modifying bundled IDs
         if (isBundledSceneId(record.id)) {
-          const baseline = findCatalogItem(record.id, INITIAL_CATALOG_ITEMS);
-          if (baseline && record.rawYaml.trim() !== baseline.rawYaml.trim()) {
+          const baseline = await loadBundledScore(record.id);
+          if (isCancelled) return;
+
+          if (record.rawYaml.trim() !== baseline.rawYaml.trim()) {
             const migratedId = generateCustomScoreId(record.title || record.id);
             const updatedYaml = updateScoreYamlId(record.rawYaml, migratedId);
 
@@ -113,11 +126,17 @@ export function useScorePersistence({
               };
               await saveStoredScore(migratedRecord);
               await deleteStoredScore(record.id); // Remove draft from bundled ID so preset is pristine!
+              if (isCancelled) return;
+
               storedCustomItems.push({
                 id: migratedRecord.id,
                 title: migratedRecord.title,
                 subtitle: migratedRecord.subtitle,
                 category: 'custom',
+                durationSec: parsedMigrated.score.durationSec,
+                shotCount: parsedMigrated.score.shots.length,
+                aspectRatio: parsedMigrated.score.aspectRatio,
+                videoUrl: parsedMigrated.score.videoUrl,
                 rawYaml: migratedRecord.rawYaml,
                 score: parsedMigrated.score,
                 isCustom: true,
@@ -131,18 +150,24 @@ export function useScorePersistence({
           } else {
             // Unmodified copy of bundled baseline: clean up redundant record from IndexedDB
             await deleteStoredScore(record.id);
+            if (isCancelled) return;
             continue;
           }
         }
 
         const parsed = parseStageScore(record.rawYaml, record.id);
         if (!parsed.score) continue;
-        const itemHash = record.contentHash ?? computeYamlContentHash(record.rawYaml);
+        const itemHash =
+          record.contentHash ?? computeYamlContentHash(record.rawYaml);
         storedCustomItems.push({
           id: record.id,
           title: record.title,
           subtitle: record.subtitle,
           category: 'custom',
+          durationSec: parsed.score.durationSec,
+          shotCount: parsed.score.shots.length,
+          aspectRatio: parsed.score.aspectRatio,
+          videoUrl: parsed.score.videoUrl,
           rawYaml: record.rawYaml,
           score: parsed.score,
           isCustom: true,
@@ -154,8 +179,11 @@ export function useScorePersistence({
       }
 
       // Merge bundled items (always pristine) with custom projects
-      const mergedCatalog = [...INITIAL_CATALOG_ITEMS, ...storedCustomItems];
-      setCatalog(mergedCatalog);
+      const initialMergedCatalog: ScoreCatalogItem[] = [
+        ...buildBundledCatalogSnapshot(),
+        ...storedCustomItems,
+      ];
+      setCatalog(initialMergedCatalog);
 
       // Reconcile active scene: prioritize initial URL parameters, then localStorage pointer
       const initialSearch = initialSearchRef.current;
@@ -167,37 +195,60 @@ export function useScorePersistence({
         window.history.replaceState({}, '', cleanUrl);
       }
 
-      if (scoreId) {
-        const targetItem = findCatalogItem(scoreId, mergedCatalog);
-        if (targetItem) {
-          setActiveSceneId(targetItem.id);
-          setRawYaml(targetItem.rawYaml);
-          setActiveScore(targetItem.score);
-          setStorageStatus(targetItem.isCustom ? 'custom' : 'bundled');
-          if (targetItem.isCustom || targetItem.id !== initialMountedIdRef.current) {
+      const activateCatalogItem = async (
+        candidate: ScoreCatalogItem
+      ): Promise<boolean> => {
+        if (candidate.isCustom && candidate.rawYaml && candidate.score) {
+          setActiveSceneId(candidate.id);
+          setRawYaml(candidate.rawYaml);
+          setActiveScore(candidate.score);
+          setStorageStatus('custom');
+          if (candidate.id !== initialMountedIdRef.current) {
             onScoreResetRef.current?.();
           }
+          return true;
+        }
+
+        const loaded = await loadBundledScore(candidate.id);
+        if (isCancelled) return false;
+
+        setCatalog([...buildBundledCatalogSnapshot(), ...storedCustomItems]);
+        setActiveSceneId(loaded.id);
+        setRawYaml(loaded.rawYaml);
+        setActiveScore(loaded.score);
+        setStorageStatus('bundled');
+        if (loaded.id !== initialMountedIdRef.current) {
+          onScoreResetRef.current?.();
+        }
+        return true;
+      };
+
+      if (scoreId) {
+        const targetItem = findCatalogItem(scoreId, initialMergedCatalog);
+        if (targetItem) {
+          await activateCatalogItem(targetItem);
         } else {
           // Unknown ?score= slug -> fallback to default scene and trigger notification
-          const fallbackItem = mergedCatalog[0];
-          setActiveSceneId(fallbackItem.id);
-          setRawYaml(fallbackItem.rawYaml);
-          setActiveScore(fallbackItem.score);
-          setStorageStatus('bundled');
-          if (fallbackItem.id !== initialMountedIdRef.current) {
-            onScoreResetRef.current?.();
+          const fallbackItem = getDefaultCatalogItem(initialMergedCatalog);
+          const activated = await activateCatalogItem(fallbackItem);
+          if (activated) {
+            onScoreNotFound?.(scoreId);
           }
-          onScoreNotFound?.(scoreId);
         }
       } else if (remoteUrl) {
         // Check if an existing custom project in IndexedDB already has this sourceUrl
         const existingCustom = storedCustomItems.find(
-          (c) => c.sourceUrl && c.sourceUrl.trim().toLowerCase() === remoteUrl.trim().toLowerCase()
+          (c) =>
+            c.sourceUrl &&
+            c.sourceUrl.trim().toLowerCase() === remoteUrl.trim().toLowerCase()
         );
 
         if (existingCustom) {
-          const currentHash = existingCustom.contentHash ?? computeYamlContentHash(existingCustom.rawYaml);
-          const baselineHash = existingCustom.originalContentHash ?? currentHash;
+          const currentHash =
+            existingCustom.contentHash ??
+            computeYamlContentHash(existingCustom.rawYaml);
+          const baselineHash =
+            existingCustom.originalContentHash ?? currentHash;
           const isUnmodified = currentHash === baselineHash;
 
           if (isUnmodified) {
@@ -208,10 +259,16 @@ export function useScorePersistence({
             setStorageStatus('custom');
             onScoreResetRef.current?.();
             onOpenedExistingScore?.(existingCustom.title);
-            onPendingRemoteUrl?.(remoteUrl, { kind: 'identical', existingItem: existingCustom });
+            onPendingRemoteUrl?.(remoteUrl, {
+              kind: 'identical',
+              existingItem: existingCustom,
+            });
           } else {
             // Local modifications exist: prompt conflict modal
-            onPendingRemoteUrl?.(remoteUrl, { kind: 'conflict', existingItem: existingCustom });
+            onPendingRemoteUrl?.(remoteUrl, {
+              kind: 'conflict',
+              existingItem: existingCustom,
+            });
           }
         } else {
           // First time seeing this remote URL: prompt confirmation modal
@@ -221,17 +278,12 @@ export function useScorePersistence({
         // Standard cold load without query parameters
         const storedId = loadStoredActiveSceneId();
         const targetItem =
-          (storedId ? findCatalogItem(storedId, mergedCatalog) : undefined) ??
-          mergedCatalog[0];
+          (storedId
+            ? findCatalogItem(storedId, initialMergedCatalog)
+            : undefined) ?? getDefaultCatalogItem(initialMergedCatalog);
 
         if (targetItem) {
-          setActiveSceneId(targetItem.id);
-          setRawYaml(targetItem.rawYaml);
-          setActiveScore(targetItem.score);
-          setStorageStatus(targetItem.isCustom ? 'custom' : 'bundled');
-          if (targetItem.isCustom || targetItem.id !== initialMountedIdRef.current) {
-            onScoreResetRef.current?.();
-          }
+          await activateCatalogItem(targetItem);
         }
       }
     }
@@ -253,12 +305,16 @@ export function useScorePersistence({
       return;
     }
 
-    const bundledBaseline = INITIAL_CATALOG_ITEMS.find(
-      (b) => b.id === activeSceneId
-    );
-    if (!bundledBaseline) {
+    if (!isBundledSceneId(activeSceneId)) {
       setStorageStatus('custom');
-    } else if (rawYaml.trim() !== bundledBaseline.rawYaml.trim()) {
+      return;
+    }
+
+    const bundledBaseline = getCachedBundledScore(activeSceneId);
+    if (
+      bundledBaseline &&
+      rawYaml.trim() !== bundledBaseline.rawYaml.trim()
+    ) {
       setStorageStatus('draft-saved');
     } else {
       setStorageStatus('bundled');
@@ -304,6 +360,10 @@ export function useScorePersistence({
                   ...item,
                   title: parsedScore.title,
                   subtitle: parsedScore.subtitle,
+                  durationSec: parsedScore.durationSec,
+                  shotCount: parsedScore.shots.length,
+                  aspectRatio: parsedScore.aspectRatio,
+                  videoUrl: parsedScore.videoUrl,
                   rawYaml: nextYaml,
                   score: parsedScore,
                   isCustom: true,
@@ -326,30 +386,41 @@ export function useScorePersistence({
       sourceId: string,
       customTitle?: string
     ): Promise<ScoreCatalogItem | null> => {
-      const sourceItem = catalog.find((c) => c.id === sourceId);
-      if (!sourceItem) return null;
+      const catalogItem = catalog.find((c) => c.id === sourceId);
+      if (!catalogItem) return null;
 
-      const newId = generateCustomScoreId(sourceItem.id || 'custom');
-      const newTitle = customTitle?.trim() || `${sourceItem.title} (Copy)`;
+      let sourceYaml = catalogItem.rawYaml;
+      if (!sourceYaml && !catalogItem.isCustom && isBundledSceneId(catalogItem.id)) {
+        const loaded = await loadBundledScore(catalogItem.id);
+        sourceYaml = loaded.rawYaml;
+      }
+      if (!sourceYaml) return null;
 
-      let updatedYaml = updateScoreYamlId(sourceItem.rawYaml, newId);
+      const newId = generateCustomScoreId(catalogItem.id || 'custom');
+      const newTitle = customTitle?.trim() || `${catalogItem.title} (Copy)`;
+
+      let updatedYaml = updateScoreYamlId(sourceYaml, newId);
       updatedYaml = updateScoreYamlTitle(updatedYaml, newTitle);
 
       const parsed = parseStageScore(updatedYaml, newId);
       if (!parsed.score) return null;
 
       const hash = computeYamlContentHash(updatedYaml);
-      const newItem: ScoreCatalogItem = {
+      const newItem: LoadedScoreCatalogItem = {
         id: newId,
         title: newTitle,
-        subtitle: sourceItem.subtitle,
+        subtitle: catalogItem.subtitle,
         category: 'custom',
+        durationSec: parsed.score.durationSec,
+        shotCount: parsed.score.shots.length,
+        aspectRatio: parsed.score.aspectRatio,
+        videoUrl: parsed.score.videoUrl,
         rawYaml: updatedYaml,
         score: parsed.score,
         isCustom: true,
         contentHash: hash,
         originalContentHash: hash,
-        sourceFileName: sourceItem.sourceFileName,
+        sourceFileName: catalogItem.sourceFileName,
       };
 
       await saveStoredScore({
@@ -361,7 +432,7 @@ export function useScorePersistence({
         updatedAt: Date.now(),
         contentHash: hash,
         originalContentHash: hash,
-        sourceFileName: sourceItem.sourceFileName,
+        sourceFileName: catalogItem.sourceFileName,
       });
 
       setCatalog((prev) => [...prev, newItem]);
@@ -385,9 +456,14 @@ export function useScorePersistence({
 
       setCatalog((prev) => prev.filter((c) => c.id !== sceneId));
 
-      // If the deleted scene was active, fallback smoothly to the first bundled preset
+      // If the deleted scene was active, fallback smoothly to the default bundled preset
       if (activeSceneId === sceneId) {
-        const fallbackItem = INITIAL_CATALOG_ITEMS[0];
+        const fallbackItem = await loadBundledScore(getDefaultSceneId());
+        setCatalog((prev) =>
+          prev.map((item) =>
+            item.id === fallbackItem.id ? fallbackItem : item
+          )
+        );
         setActiveSceneId(fallbackItem.id);
         setRawYaml(fallbackItem.rawYaml);
         setActiveScore(fallbackItem.score);
@@ -415,7 +491,7 @@ export function useScorePersistence({
       if (isBundledSceneId(sceneId) || !newTitle.trim()) return false;
 
       const targetItem = catalog.find((c) => c.id === sceneId);
-      if (!targetItem) return false;
+      if (!targetItem || !targetItem.rawYaml) return false;
 
       const trimmedTitle = newTitle.trim();
       const updatedYaml = updateScoreYamlTitle(targetItem.rawYaml, trimmedTitle);
@@ -438,6 +514,10 @@ export function useScorePersistence({
             ? {
                 ...item,
                 title: trimmedTitle,
+                durationSec: parsed.score!.durationSec,
+                shotCount: parsed.score!.shots.length,
+                aspectRatio: parsed.score!.aspectRatio,
+                videoUrl: parsed.score!.videoUrl,
                 rawYaml: updatedYaml,
                 score: parsed.score!,
               }
@@ -466,11 +546,15 @@ export function useScorePersistence({
       if (!parsed.score) return null;
 
       const hash = computeYamlContentHash(blankYaml);
-      const newItem: ScoreCatalogItem = {
+      const newItem: LoadedScoreCatalogItem = {
         id: newId,
         title: newTitle,
         subtitle: parsed.score.subtitle,
         category: 'custom',
+        durationSec: parsed.score.durationSec,
+        shotCount: parsed.score.shots.length,
+        aspectRatio: parsed.score.aspectRatio,
+        videoUrl: parsed.score.videoUrl,
         rawYaml: blankYaml,
         score: parsed.score,
         isCustom: true,
@@ -514,9 +598,10 @@ export function useScorePersistence({
     setIsResetModalOpen(false);
     await deleteStoredScore(activeSceneId);
 
-    const bundledItem =
-      INITIAL_CATALOG_ITEMS.find((c) => c.id === activeSceneId) ??
-      INITIAL_CATALOG_ITEMS[0];
+    const targetId = isBundledSceneId(activeSceneId)
+      ? activeSceneId
+      : getDefaultSceneId();
+    const bundledItem = await loadBundledScore(targetId);
 
     setCatalog((prev) =>
       prev.map((item) =>

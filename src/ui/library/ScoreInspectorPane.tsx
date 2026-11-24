@@ -25,6 +25,7 @@ import {
   Camera,
   AlertTriangle,
   X,
+  Loader2,
 } from 'lucide-react';
 import type { ScoreCatalogItem } from '../../core/scoreCatalog';
 import { ScoreStageMinimap } from './ScoreStageMinimap';
@@ -98,12 +99,13 @@ export const ScoreInspectorPane: React.FC<ScoreInspectorPaneProps> = ({
   const [editTitle, setEditTitle] = useState(item.title);
   const [isDeletingConfirm, setIsDeletingConfirm] = useState(false);
 
-  const durationSec = item.score?.durationSec ?? 0;
-  const shotCount = item.score?.shots?.length ?? 0;
+  const durationSec = item.durationSec;
+  const shotCount = item.shotCount;
   const entityCount = item.score?.entities?.length ?? 0;
-  const aspectRatio = item.score?.aspectRatio ?? '16:9';
-  const mediaInfo = getMediaSourceInfo(item.score?.videoUrl);
+  const aspectRatio = item.aspectRatio;
+  const mediaInfo = getMediaSourceInfo(item.videoUrl);
   const MediaIcon = mediaInfo.icon;
+  const isScoreLoaded = Boolean(item.score);
 
   // Extract unique lenses and maneuvers across shots
   const { lenses, maneuvers } = useMemo(() => {
@@ -149,6 +151,10 @@ export const ScoreInspectorPane: React.FC<ScoreInspectorPaneProps> = ({
             {item.isCustom ? (
               <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-300 border border-amber-400/30 uppercase tracking-wider font-bold">
                 Custom Project
+              </span>
+            ) : item.category === 'study' ? (
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-600 dark:text-violet-300 border border-violet-400/30 uppercase tracking-wider font-bold">
+                Scene Study
               </span>
             ) : (
               <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-600 dark:text-sky-300 border border-sky-400/30 uppercase tracking-wider font-bold">
@@ -228,7 +234,16 @@ export const ScoreInspectorPane: React.FC<ScoreInspectorPaneProps> = ({
       <div className="flex-1 overflow-y-auto p-5 space-y-4 custom-scrollbar">
         {/* 2D Top-Down Spatial Minimap & Telemetry Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
-          <ScoreStageMinimap score={item.score} />
+          {item.score ? (
+            <ScoreStageMinimap score={item.score} />
+          ) : (
+            <div className="w-full aspect-square bg-surface-muted/50 rounded-xl border border-border-subtle flex flex-col items-center justify-center gap-2 text-text-faint p-4 text-center">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span className="text-[11px] font-mono">
+                Loading stage preview...
+              </span>
+            </div>
+          )}
 
           <div className="space-y-3">
             <div className="space-y-1.5">
@@ -258,7 +273,9 @@ export const ScoreInspectorPane: React.FC<ScoreInspectorPaneProps> = ({
                   <span className="text-[10px] text-text-faint flex items-center gap-1">
                     <Users className="w-2.5 h-2.5" /> Entities
                   </span>
-                  <span className="font-bold text-text-main">{entityCount}</span>
+                  <span className="font-bold text-text-main">
+                    {isScoreLoaded ? entityCount : '—'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -268,27 +285,43 @@ export const ScoreInspectorPane: React.FC<ScoreInspectorPaneProps> = ({
               <span className="text-[9px] font-mono uppercase tracking-widest text-text-faint">
                 Lenses & Maneuvers
               </span>
-              <div className="flex flex-wrap gap-1.5 text-[10.5px] font-mono">
-                {lenses.map((lens) => (
-                  <span
-                    key={lens}
-                    className="px-2 py-0.5 rounded-lg bg-surface-subtle border border-border-main text-text-body font-semibold"
-                  >
-                    {lens}
-                  </span>
-                ))}
-                {maneuvers.map((m) => (
-                  <span
-                    key={m}
-                    className="px-2 py-0.5 rounded-lg bg-surface-subtle border border-border-main text-text-muted"
-                  >
-                    {m}
-                  </span>
-                ))}
-              </div>
+              {isScoreLoaded ? (
+                <div className="flex flex-wrap gap-1.5 text-[10.5px] font-mono">
+                  {lenses.map((lens) => (
+                    <span
+                      key={lens}
+                      className="px-2 py-0.5 rounded-lg bg-surface-subtle border border-border-main text-text-body font-semibold"
+                    >
+                      {lens}
+                    </span>
+                  ))}
+                  {maneuvers.map((m) => (
+                    <span
+                      key={m}
+                      className="px-2 py-0.5 rounded-lg bg-surface-subtle border border-border-main text-text-muted"
+                    >
+                      {m}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-[10.5px] font-mono text-text-faint">
+                  Loading optics...
+                </div>
+              )}
             </div>
           </div>
         </div>
+
+        {/* Loading state for Cast & Shot Sequence while lazy YAML chunk loads */}
+        {!isScoreLoaded && (
+          <div className="pt-2 border-t border-border-subtle">
+            <div className="p-3 rounded-xl bg-surface-muted/40 border border-border-subtle flex items-center gap-2 text-xs font-mono text-text-faint">
+              <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+              <span>Loading cast &amp; shot coverage...</span>
+            </div>
+          </div>
+        )}
 
         {/* Character / Prop Lineup */}
         {entityCount > 0 && (

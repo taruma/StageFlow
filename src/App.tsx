@@ -10,12 +10,20 @@ import React from 'react';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 import { BookOpen } from 'lucide-react';
+import { preloadInitialBundledScore } from './core/scoreCatalog';
+import { loadStoredActiveSceneId } from './core/storage/localStorageUi';
 
-const InteractiveStudioApp = React.lazy(() =>
-  import('./ui/InteractiveStudioApp').then((m) => ({
-    default: m.InteractiveStudioApp,
-  }))
-);
+const InteractiveStudioApp = React.lazy(async () => {
+  const search = typeof window !== 'undefined' ? window.location.search : '';
+  const storedId = loadStoredActiveSceneId();
+  const [studioModule] = await Promise.all([
+    import('./ui/InteractiveStudioApp'),
+    preloadInitialBundledScore(search, storedId),
+  ]);
+  return {
+    default: studioModule.InteractiveStudioApp,
+  };
+});
 
 const ScoreAuthoringGuideView = React.lazy(() =>
   import('./ui/guide').then((m) => ({ default: m.ScoreAuthoringGuideView }))

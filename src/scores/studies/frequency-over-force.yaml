@@ -1,0 +1,760 @@
+version: "1.0"
+id: "frequency-over-force"
+title: "Frequency Over Force"
+subtitle: "Lecture Hall Debate — 16-Shot Coverage & Metronome Blocking"
+description: "Mark and Robert debate synchronization across an elevated lecture stage as a wooden metronome shifts the argument from force to resonance."
+video: "https://www.youtube.com/watch?v=9yeuOPMfxPY"
+aspect_ratio: "16:9"
+duration: 68.5
+
+optics:
+  dof_blur: true
+  dof: "medium"
+
+metadata:
+  director: "Taruma Sakti"
+  location: "University Lecture Hall (Elevated Stage)"
+  camera_package:
+    wide_master: "35mm Prime (Locked Tripod, Audience Floor)"
+    coverage: "50mm / 65mm / 85mm / 100mm / 105mm Primes"
+
+# ==============================================================================
+# STAGE GEOMETRY & BASELINE CAMERAS
+# ==============================================================================
+stage:
+  width: 14
+  depth: 16
+  grid_step: 1
+  show_rigs: true
+
+  observer_camera:
+    target: [0.3, 1.1, 2.2]
+    distance: 17.5
+    pitch: 36
+    yaw: 46
+    lens: 35mm
+
+  stage_camera:
+    target: [0, 1.65, 0]
+    distance: 7.2
+    pitch: -6
+    yaw: 15
+    lens: 35mm
+
+# ==============================================================================
+# ENTITIES (ACTORS, ELEVATED STAGE, PROPS & FLOOR MARKS)
+# ==============================================================================
+entities:
+  # --- Characters (standing on Y=0.30m elevated stage) ---
+  - id: "mark"
+    label: "Mark"
+    kind: "character"
+    style: "mannequin"
+    position: [-2.30, 0.30, -0.05]
+    rotation: -90
+    size: [0.52, 1.76, 0.44]
+    color: "#38bdf8"
+
+  - id: "robert"
+    label: "Robert"
+    kind: "character"
+    style: "mannequin"
+    position: [1.95, 0.30, -0.22]
+    rotation: -90
+    size: [0.58, 1.80, 0.48]
+    color: "#f43f5e"
+
+  # --- Architectural Stage & Furniture ---
+  - id: "stage_riser"
+    label: "Elevated Stage"
+    kind: "prop"
+    shape: "box"
+    style: "solid"
+    position: [0, 0, -0.35]
+    size: [9.2, 0.30, 3.5]
+    color: "#475569"
+
+  - id: "chalkboard"
+    label: "Chalkboard Wall"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [0, 1.35, -2.05]
+    size: [8.6, 2.2, 0.12]
+    color: "#1e3a3a"
+
+  - id: "desk"
+    label: "Lecture Desk"
+    kind: "prop"
+    shape: "box"
+    style: "solid"
+    position: [0, 0.30, 0]
+    size: [1.85, 0.92, 0.88]
+    color: "#78350f"
+
+  # --- Desktop Props (desktop surface Y = 0.30 + 0.92 = 1.22m) ---
+  - id: "papers"
+    label: "Books & Notes"
+    kind: "prop"
+    shape: "box"
+    style: "solid"
+    position: [-0.42, 1.22, -0.08]
+    size: [0.48, 0.16, 0.36]
+    color: "#e2d5b5"
+
+  - id: "lamp"
+    label: "Banker's Lamp"
+    kind: "prop"
+    shape: "cylinder"
+    style: "solid"
+    position: [0.38, 1.22, -0.22]
+    size: [0.24, 0.38, 0.24]
+    color: "#22c55e"
+
+  - id: "metronome"
+    label: "Metronome"
+    kind: "prop"
+    shape: "box"
+    style: "solid"
+    position: [1.65, 1.48, -0.20]
+    rotation: -90
+    size: [0.14, 0.28, 0.14]
+    color: "#f59e0b"
+
+  # --- Floor Spike Marks (on elevated stage Y=0.30m) ---
+  - id: "spike_mark_pace"
+    label: "Mark Pace Mark"
+    kind: "marker"
+    shape: "t"
+    style: "tape"
+    position: [-2.10, 0.30, -0.05]
+    color: "#38bdf8"
+
+  - id: "spike_mark_desk"
+    label: "Mark Desk Mark"
+    kind: "marker"
+    shape: "x"
+    style: "tape"
+    position: [-1.35, 0.30, -0.05]
+    color: "#38bdf8"
+
+  - id: "spike_robert_start"
+    label: "Robert Start Mark"
+    kind: "marker"
+    shape: "t"
+    style: "tape"
+    position: [1.95, 0.30, -0.22]
+    color: "#f43f5e"
+
+  - id: "spike_robert_desk"
+    label: "Robert Desk Mark"
+    kind: "marker"
+    shape: "x"
+    style: "tape"
+    position: [1.28, 0.30, -0.20]
+    color: "#f43f5e"
+
+# ==============================================================================
+# DECOUPLED BLOCKING TIMELINE (ACTORS & METRONOME)
+# ==============================================================================
+blocking:
+  # --- Mark Blocking ---
+  - id: "mark-01-pace-left"
+    label: "Mark finishes pace left"
+    entity: "mark"
+    start: 0.000
+    end: 0.450
+    position: [-2.35, 0.30, -0.05]
+    rotation: -90
+    easing: "ease-out"
+
+  - id: "mark-02-pivot-turn"
+    label: "Mark whips toward Robert"
+    entity: "mark"
+    start: 0.450
+    end: 1.600
+    position: [-2.10, 0.30, -0.05]
+    look_at: "robert"
+    easing: "smooth"
+
+  - id: "mark-03-step-in-shot2"
+    label: "Mark pushes forward arguing"
+    entity: "mark"
+    start: 2.417
+    end: 4.800
+    position: [-1.75, 0.30, -0.05]
+    look_at: "robert"
+    easing: "cruise"
+
+  - id: "mark-04-reset-offscreen"
+    label: "Mark steps back offscreen"
+    entity: "mark"
+    start: 5.500
+    end: 8.500
+    position: [-2.08, 0.30, -0.05]
+    look_at: "robert"
+    easing: "smooth"
+
+  - id: "mark-05-advance-shot4"
+    label: "Mark steps toward desk"
+    entity: "mark"
+    start: 13.600
+    end: 16.200
+    position: [-1.68, 0.30, -0.05]
+    look_at: "robert"
+    easing: "smooth"
+
+  - id: "mark-06-close-to-desk"
+    label: "Mark closes in on desk corner"
+    entity: "mark"
+    start: 20.000
+    end: 22.875
+    position: [-1.35, 0.30, -0.05]
+    look_at: "robert"
+    easing: "cruise"
+
+  - id: "mark-07-lean-on-desk"
+    label: "Mark plants hand & leans in"
+    entity: "mark"
+    start: 22.875
+    end: 23.600
+    position: [-1.35, 0.30, -0.05]
+    pitch: 8
+    look_at: "robert"
+    easing: "smooth"
+
+  - id: "mark-08-pull-back-watch"
+    label: "Mark straightens & watches metronome"
+    entity: "mark"
+    start: 27.800
+    end: 30.000
+    position: [-1.55, 0.30, -0.05]
+    pitch: 0
+    look_at: "metronome"
+    easing: "smooth"
+
+  - id: "mark-09-settle-shot11"
+    label: "Mark settles into listening stance"
+    entity: "mark"
+    start: 39.375
+    end: 41.500
+    position: [-1.72, 0.30, -0.05]
+    look_at: "robert"
+    easing: "smooth"
+
+  - id: "mark-10-glance-metronome"
+    label: "Mark checks metronome pulse"
+    entity: "mark"
+    start: 42.417
+    end: 44.800
+    position: [-1.72, 0.30, -0.05]
+    look_at: "metronome"
+    easing: "smooth"
+
+  - id: "mark-11-realization"
+    label: "Mark shifts subtly toward Robert"
+    entity: "mark"
+    start: 44.800
+    end: 47.167
+    position: [-1.66, 0.30, -0.05]
+    look_at: "robert"
+    easing: "smooth"
+
+  - id: "mark-12-final-hold"
+    label: "Mark holds calm stance"
+    entity: "mark"
+    start: 51.292
+    end: 52.800
+    position: [-1.72, 0.30, -0.05]
+    look_at: "robert"
+    easing: "smooth"
+
+  # --- Robert Blocking ---
+  - id: "robert-01-hold-start"
+    label: "Robert listens calmly"
+    entity: "robert"
+    start: 0.000
+    end: 10.958
+    position: [1.95, 0.30, -0.22]
+    look_at: "mark"
+    easing: "smooth"
+
+  - id: "robert-02-cross-to-desk"
+    label: "Robert walks to desk edge"
+    entity: "robert"
+    start: 10.958
+    end: 13.600
+    position: [1.28, 0.30, -0.20]
+    look_at: "mark"
+    easing: "cruise"
+
+  - id: "robert-03-place-metronome"
+    label: "Robert leans to set metronome"
+    entity: "robert"
+    start: 17.400
+    end: 19.125
+    position: [1.24, 0.30, -0.18]
+    pitch: 6
+    look_at: "metronome"
+    easing: "smooth"
+
+  - id: "robert-04-adjust-pendulum"
+    label: "Robert adjusts pendulum weight"
+    entity: "robert"
+    start: 19.125
+    end: 22.875
+    position: [1.25, 0.30, -0.18]
+    pitch: 4
+    look_at: "metronome"
+    easing: "smooth"
+
+  - id: "robert-05-release-beat"
+    label: "Robert looks up & starts pendulum"
+    entity: "robert"
+    start: 22.875
+    end: 24.000
+    position: [1.25, 0.30, -0.18]
+    pitch: 2
+    look_at: "mark"
+    easing: "smooth"
+
+  - id: "robert-06-step-back"
+    label: "Robert steps back to observe"
+    entity: "robert"
+    start: 27.625
+    end: 30.200
+    position: [1.48, 0.30, -0.20]
+    pitch: 0
+    look_at: "mark"
+    easing: "smooth"
+
+  - id: "robert-07-touch-desk"
+    label: "Robert steps in to touch wood"
+    entity: "robert"
+    start: 34.833
+    end: 37.000
+    position: [1.28, 0.30, -0.18]
+    look_at: "metronome"
+    easing: "smooth"
+
+  - id: "robert-08-address-mark"
+    label: "Robert addresses Mark across desk"
+    entity: "robert"
+    start: 37.800
+    end: 39.375
+    position: [1.28, 0.30, -0.18]
+    look_at: "mark"
+    easing: "smooth"
+
+  - id: "robert-09-ease-back-final"
+    label: "Robert eases back smiling"
+    entity: "robert"
+    start: 47.167
+    end: 51.292
+    position: [1.45, 0.30, -0.20]
+    look_at: "mark"
+    easing: "smooth"
+
+  # --- Metronome Prop Blocking ---
+  - id: "metronome-01-carried"
+    label: "Carried to desk by Robert"
+    entity: "metronome"
+    start: 10.958
+    end: 13.600
+    position: [0.98, 1.48, -0.18]
+    rotation: -90
+    easing: "cruise"
+
+  - id: "metronome-02-placed-on-desk"
+    label: "Set down on desk surface"
+    entity: "metronome"
+    start: 17.400
+    end: 19.125
+    position: [0.25, 1.22, 0.18]
+    rotation: -35
+    easing: "smooth"
+
+# ==============================================================================
+# DECOUPLED OBSERVER VIEWPORT (SINGLE CONTINUOUS WIDE SPLINE — NO CUTS)
+# ==============================================================================
+observer_shots:
+  - id: "obs-continuous-master"
+    label: "Continuous Wide Diorama Sweep (Staging + Cameras)"
+    start: 0.000
+    end: 68.500
+    maneuver: "spline"
+    easing: "smooth"
+    from: [0.3, 1.1, 2.2]
+    target: [0.3, 1.1, 2.2]
+    distance_start: 17.5
+    pitch_start: 36
+    yaw_start: 46
+    lens_start: 35mm
+    waypoints:
+      - { target: [0.4, 1.1, 2.3], distance: 18.0, pitch: 33, yaw: 14, lens: 35mm }
+      - { target: [0.2, 1.1, 2.0], distance: 16.8, pitch: 35, yaw: -22, lens: 35mm }
+      - { target: [0.1, 1.1, 2.1], distance: 17.5, pitch: 39, yaw: -46, lens: 35mm }
+      - { target: [0.3, 1.1, 2.2], distance: 18.5, pitch: 42, yaw: 12, lens: 35mm }
+
+# ==============================================================================
+# FILM COVERAGE SHOTS (16-SHOT CSV TIMELINE)
+# ==============================================================================
+shots:
+  - id: "shot-01"
+    shot: 1
+    label: "Wide Master — Opening"
+    description: "Low-angle wide master; Mark paces stage-left while Robert holds the metronome."
+    start: 0.000
+    end: 2.417
+    stage_camera:
+      target: [0, 1.65, 0]
+      maneuver: "cut"
+      distance: 7.2
+      pitch: -6
+      yaw: 15
+      lens: 35mm
+      dof: "deep"
+      focus: "desk"
+      rig: { type: "tripod" }
+      show_path: false
+      frustum_color: "#f59e0b"
+    entities:
+      mark: { highlighted: true, note: "Paces & waves paper" }
+
+  - id: "shot-02"
+    shot: 2
+    label: "OTS Mark — Spikes"
+    description: "Telephoto OTS past Robert onto Mark stepping in with his notes."
+    start: 2.417
+    end: 5.208
+    stage_camera:
+      target: "mark.chest"
+      target_offset: [0.35, -0.02, -0.28]
+      maneuver: "cut"
+      distance: 5.4
+      pitch: -2
+      yaw: 82
+      lens: 85mm
+      dof: "shallow"
+      aperture: "f/2.8"
+      focus: "mark.eyes"
+      rig: { type: "tripod" }
+      show_path: false
+      frustum_color: "#38bdf8"
+    entities:
+      mark: { highlighted: true, note: "Challenges variance spikes" }
+
+  - id: "shot-03"
+    shot: 3
+    label: "CU Robert — Metronome"
+    description: "Tight 105mm portrait past the green lamp onto Robert smiling calmly."
+    start: 5.208
+    end: 10.958
+    stage_camera:
+      target: "robert.eyes"
+      target_offset: [-0.14, -0.12, 0]
+      maneuver: "cut"
+      distance: 3.8
+      pitch: -4
+      yaw: -62
+      lens: 105mm
+      dof: "shallow"
+      aperture: "f/2.8"
+      focus: "robert.eyes"
+      rig: { type: "tripod" }
+      show_path: false
+      frustum_color: "#f43f5e"
+    entities:
+      robert: { highlighted: true, note: "Replies calmly" }
+
+  - id: "shot-04"
+    shot: 4
+    label: "Wide Master — Approach"
+    description: "Wide master as Robert walks to the desk and lowers the metronome."
+    start: 10.958
+    end: 19.125
+    stage_camera:
+      target: [0, 1.65, 0]
+      maneuver: "cut"
+      distance: 7.2
+      pitch: -6
+      yaw: 15
+      lens: 35mm
+      dof: "deep"
+      focus: "desk"
+      rig: { type: "tripod" }
+      show_path: false
+      frustum_color: "#f59e0b"
+    entities:
+      robert: { highlighted: true, note: "Crosses & places metronome" }
+      metronome: { highlighted: true }
+
+  - id: "shot-05"
+    shot: 5
+    label: "MCU Robert — Shared Floor"
+    description: "Medium close-up across desk props as Robert sets the metronome weight."
+    start: 19.125
+    end: 22.875
+    stage_camera:
+      target: ["lamp", "robert.chest"]
+      target_offset: [-0.15, 0.12, 0.05]
+      maneuver: "cut"
+      distance: 4.4
+      pitch: 2
+      yaw: -34
+      lens: 65mm
+      dof: "medium"
+      aperture: "f/5.6"
+      focus: "robert.eyes"
+      rig: { type: "tripod" }
+      show_path: false
+      frustum_color: "#f43f5e"
+    entities:
+      robert: { highlighted: true, note: "Sets metronome weight" }
+      metronome: { highlighted: true }
+
+  - id: "shot-06"
+    shot: 6
+    label: "OTS Mark — Vibration"
+    description: "OTS past Robert onto Mark leaning on the desk as the pendulum starts."
+    start: 22.875
+    end: 27.625
+    stage_camera:
+      target: "mark.chest"
+      target_offset: [0.35, -0.02, -0.22]
+      maneuver: "cut"
+      distance: 4.8
+      pitch: -1
+      yaw: 70
+      lens: 85mm
+      dof: "shallow"
+      aperture: "f/2.8"
+      focus: "mark.eyes"
+      rig: { type: "tripod" }
+      show_path: false
+      frustum_color: "#38bdf8"
+    entities:
+      mark: { highlighted: true, note: "Leans skeptically on desk" }
+
+  - id: "shot-07"
+    shot: 7
+    label: "Med-Wide Two-Shot — Ticking"
+    description: "Tighter 50mm two-shot as both step back and listen to the beat."
+    start: 27.625
+    end: 32.375
+    stage_camera:
+      target: [0, 1.55, 0]
+      maneuver: "cut"
+      distance: 6.6
+      pitch: -3
+      yaw: 8
+      lens: 50mm
+      dof: "deep"
+      focus: "metronome"
+      rig: { type: "tripod" }
+      show_path: false
+      frustum_color: "#f59e0b"
+    entities:
+      metronome: { highlighted: true, note: "Ticks steadily" }
+
+  - id: "shot-08"
+    shot: 8
+    label: "MCU Mark — Weak Interaction"
+    description: "85mm single on Mark studying the ticking metronome in foreground right."
+    start: 32.375
+    end: 34.833
+    stage_camera:
+      target: "mark.chest"
+      target_offset: [0.35, -0.02, -0.22]
+      maneuver: "cut"
+      distance: 4.7
+      pitch: -1
+      yaw: 65
+      lens: 85mm
+      dof: "shallow"
+      aperture: "f/2.8"
+      focus: "mark.eyes"
+      rig: { type: "tripod" }
+      show_path: false
+      frustum_color: "#38bdf8"
+    entities:
+      mark: { highlighted: true, note: "A weak interaction" }
+
+  - id: "shot-09"
+    shot: 9
+    label: "Insert — Metronome & Lamp"
+    description: "100mm close-up insert on the oscillating metronome as Robert touches the wood."
+    start: 34.833
+    end: 36.958
+    stage_camera:
+      target: "metronome"
+      target_offset: [0.04, 0.06, 0]
+      maneuver: "cut"
+      distance: 2.4
+      pitch: 4
+      yaw: 4
+      lens: 100mm
+      dof: "shallow"
+      aperture: "f/2.8"
+      focus: "metronome"
+      rig: { type: "tripod" }
+      show_path: false
+      frustum_color: "#10b981"
+    entities:
+      metronome: { highlighted: true, note: "Environment as medium" }
+
+  - id: "shot-10"
+    shot: 10
+    label: "MCU Robert — The Medium"
+    description: "Return to 65mm desk MCU as Robert explains the wooden board analogy."
+    start: 36.958
+    end: 39.375
+    stage_camera:
+      target: ["lamp", "robert.chest"]
+      target_offset: [-0.15, 0.12, 0.05]
+      maneuver: "cut"
+      distance: 4.4
+      pitch: 2
+      yaw: -34
+      lens: 65mm
+      dof: "medium"
+      aperture: "f/5.6"
+      focus: "robert.eyes"
+      rig: { type: "tripod" }
+      show_path: false
+      frustum_color: "#f43f5e"
+    entities:
+      robert: { highlighted: true }
+
+  - id: "shot-11"
+    shot: 11
+    label: "Wide Master — Wooden Board"
+    description: "Wide master; Robert gestures to the wooden desk while Mark listens."
+    start: 39.375
+    end: 42.417
+    stage_camera:
+      target: [0, 1.65, 0]
+      maneuver: "cut"
+      distance: 7.2
+      pitch: -6
+      yaw: 15
+      lens: 35mm
+      dof: "deep"
+      focus: "desk"
+      rig: { type: "tripod" }
+      show_path: false
+      frustum_color: "#f59e0b"
+    entities:
+      robert: { highlighted: true, note: "Gestures at desk surface" }
+
+  - id: "shot-12"
+    shot: 12
+    label: "OTS Mark — Resonance"
+    description: "OTS past Robert as Mark realizes it is resonance, not control."
+    start: 42.417
+    end: 47.167
+    stage_camera:
+      target: "mark.chest"
+      target_offset: [0.35, -0.02, -0.22]
+      maneuver: "cut"
+      distance: 4.8
+      pitch: -1
+      yaw: 70
+      lens: 85mm
+      dof: "shallow"
+      aperture: "f/2.8"
+      focus: "mark.eyes"
+      rig: { type: "tripod" }
+      show_path: false
+      frustum_color: "#38bdf8"
+    entities:
+      mark: { highlighted: true, note: "It's resonance" }
+
+  - id: "shot-13"
+    shot: 13
+    label: "MCU Robert — Phase-Locking"
+    description: "65mm desk MCU as Robert smiles warmly and eases back."
+    start: 47.167
+    end: 51.292
+    stage_camera:
+      target: ["lamp", "robert.chest"]
+      target_offset: [-0.15, 0.12, 0.05]
+      maneuver: "cut"
+      distance: 4.4
+      pitch: 2
+      yaw: -34
+      lens: 65mm
+      dof: "medium"
+      aperture: "f/5.6"
+      focus: "robert.eyes"
+      rig: { type: "tripod" }
+      show_path: false
+      frustum_color: "#f43f5e"
+    entities:
+      robert: { highlighted: true, note: "Call it phase-locking" }
+
+  - id: "shot-14"
+    shot: 14
+    label: "Wide Master — Agreement"
+    description: "Balanced wide master across the desk: you don't force agreement."
+    start: 51.292
+    end: 54.708
+    stage_camera:
+      target: [0, 1.65, 0]
+      maneuver: "cut"
+      distance: 7.2
+      pitch: -6
+      yaw: 15
+      lens: 35mm
+      dof: "deep"
+      focus: "desk"
+      rig: { type: "tripod" }
+      show_path: false
+      frustum_color: "#f59e0b"
+    entities:
+      mark: { highlighted: true }
+      robert: { highlighted: true }
+
+  - id: "shot-15"
+    shot: 15
+    label: "MCU Mark — Hold Frequency"
+    description: "85mm single on Mark absorbing the final line past the metronome."
+    start: 54.708
+    end: 57.250
+    stage_camera:
+      target: "mark.chest"
+      target_offset: [0.35, -0.02, -0.22]
+      maneuver: "cut"
+      distance: 4.7
+      pitch: -1
+      yaw: 65
+      lens: 85mm
+      dof: "shallow"
+      aperture: "f/2.8"
+      focus: "mark.eyes"
+      rig: { type: "tripod" }
+      show_path: false
+      frustum_color: "#38bdf8"
+    entities:
+      mark: { highlighted: true, note: "Hold the frequency" }
+
+  - id: "shot-16"
+    shot: 16
+    label: "Wide Master — Fade & Title"
+    description: "Static wide tableau holding as the scene fades to black and title card."
+    start: 57.250
+    end: 68.500
+    stage_camera:
+      target: [0, 1.65, 0]
+      maneuver: "cut"
+      distance: 7.2
+      pitch: -6
+      yaw: 15
+      lens: 35mm
+      dof: "deep"
+      focus: "desk"
+      rig: { type: "tripod" }
+      show_path: false
+      frustum_color: "#f59e0b"
+    entities:
+      metronome: { highlighted: true, note: "Fade to title card" }

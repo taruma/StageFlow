@@ -39,6 +39,7 @@ export interface ScoreLibraryModalProps {
   activeSceneId: string;
   initialTab?: FilterTab;
   onSelectScene: (sceneId: string) => void;
+  onEnsureScoreLoaded: (sceneId: string) => void | Promise<void>;
   onCreateBlankScore?: () => void;
   onForkScore?: (item: ScoreCatalogItem) => void;
   onDuplicateScore?: (id: string) => void;
@@ -54,6 +55,7 @@ export const ScoreLibraryModal: React.FC<ScoreLibraryModalProps> = ({
   activeSceneId,
   initialTab,
   onSelectScene,
+  onEnsureScoreLoaded,
   onCreateBlankScore,
   onForkScore,
   onDuplicateScore,
@@ -134,7 +136,10 @@ export const ScoreLibraryModal: React.FC<ScoreLibraryModalProps> = ({
   }, [isOpen, onClose]);
 
   const studyScores = useMemo(
-    () => catalog.filter((item) => item.category === 'study'),
+    () =>
+      catalog
+        .filter((item) => item.category === 'study')
+        .sort((a, b) => a.title.localeCompare(b.title)),
     [catalog]
   );
   const blueprintScores = useMemo(
@@ -198,6 +203,31 @@ export const ScoreLibraryModal: React.FC<ScoreLibraryModalProps> = ({
     if (found) return found;
     return visibleScores[0] || filteredScores[0] || catalog[0] || null;
   }, [catalog, selectedScoreId, visibleScores, filteredScores]);
+
+  // Lazy-load full YAML + AST for the inspected bundled score on demand
+  useEffect(() => {
+    if (
+      isOpen &&
+      selectedScore &&
+      !selectedScore.isCustom &&
+      !selectedScore.score
+    ) {
+      void onEnsureScoreLoaded(selectedScore.id);
+    }
+  }, [isOpen, selectedScore, onEnsureScoreLoaded]);
+
+  // Keep keyboard-selected card scrolled into view
+  useEffect(() => {
+    if (!isOpen || !listContainerRef.current) return;
+    const cards =
+      listContainerRef.current.querySelectorAll<HTMLElement>('[data-score-id]');
+    for (const card of cards) {
+      if (card.dataset.scoreId === selectedScoreId) {
+        card.scrollIntoView({ block: 'nearest' });
+        break;
+      }
+    }
+  }, [isOpen, selectedScoreId]);
 
   // Keyboard navigation: ArrowUp, ArrowDown, Enter
   useEffect(() => {

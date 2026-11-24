@@ -52,7 +52,7 @@ function getScoreBadgeInfo(item: ScoreCatalogItem): BlueprintBadgeInfo {
 
   // Extract BP number if matches demo or blueprint-0X pattern
   let tag = 'BLUEPRINT';
-  if (item.id === 'demo-blueprint') {
+  if (item.id === 'demo' || item.id === 'demo-blueprint') {
     tag = 'BP 01';
   } else {
     const match = item.id.match(/(?:blueprint[_-]?0?(\d+))/i);
@@ -97,17 +97,18 @@ export const ScoreLibraryCard: React.FC<ScoreLibraryCardProps> = ({
   isSelected = false,
   onSelect,
 }) => {
-  const durationSec = item.score?.durationSec ?? 0;
-  const shotCount = item.score?.shots?.length ?? 0;
-  const aspectRatio = item.score?.aspectRatio ?? '16:9';
+  const durationSec = item.durationSec;
+  const shotCount = item.shotCount;
+  const aspectRatio = item.aspectRatio;
   const badgeInfo = getScoreBadgeInfo(item);
-  const mediaBadge = getMediaSourceBadge(item.score?.videoUrl);
+  const mediaBadge = getMediaSourceBadge(item.videoUrl);
   const MediaIcon = mediaBadge.icon;
 
   return (
     <div
       role="button"
       tabIndex={0}
+      data-score-id={item.id}
       onClick={onSelect}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {

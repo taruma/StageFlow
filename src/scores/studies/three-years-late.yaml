@@ -1,0 +1,1652 @@
+# ==============================================================================
+# STAGEFLOW CHOREOGRAPHY SCORE — "THREE YEARS LATE"
+# ==============================================================================
+version: "1.0"
+id: "three-years-late"
+title: "Three Years Late"
+subtitle: "by Taruma Sakti — Cliffside Spatial Continuity & Solitude Twist"
+description: |
+  A four-character coastal overlook conversation staged within a single brutalist
+  concrete deck bounded by a retaining wall (+X) and a three-segment wooden cliff
+  guardrail (-Z / -X). Across 40 locked-off tripod setups, disciplined OTS geometry
+  and seated/leaning anchors create the illusion of an intimate group reunion—until
+  t=107.208s (Shot 37), when Rosa, Felix, and Samira instantaneously vanish, leaving
+  only the postcard on the bench, Evan at the railing, and the film's sole camera
+  movement: a slow 85mm dolly-track pull-back into solitude.
+
+metadata:
+  director: "Taruma Sakti"
+  location: "Coastal Concrete Overlook Deck (Single Stage)"
+  camera_grammar:
+    shots_01_to_40: "40 locked tripod setups (30mm master, 50–85mm coverage)"
+    shot_41_finale: "Sole physical camera move — 85mm linear dolly pull-back"
+  wardrobe_color_key:
+    evan: "Charcoal denim over white tee (#38bdf8)"
+    rosa: "Mustard blazer over black tank (#eab308)"
+    felix: "Cream cardigan & wire glasses (#f5e6c8)"
+    samira: "Terracotta linen shirt (#e07a5f)"
+  directorial_notes:
+    - "All camera distances calibrated with +0.5m optical breathing room to avoid tight framing"
+    - "Timber post at [-2.55, 0, 0.20] reconciles both Felix-to-Rosa (post left) and Evan-to-Rosa (post center-right) axes"
+    - "Twist executed at 107.208s via instantaneous cut visibility removal on Rosa, Felix, and Samira"
+
+video: "https://www.youtube.com/watch?v=b2CDM2VpsP4"
+aspect_ratio: "16:9"
+duration: 139.167
+
+optics:
+  dof_blur: true
+  dof: "shallow"
+  aperture: "f/2.8"
+
+# ==============================================================================
+# STAGE GEOMETRY & BASELINE CAMERAS
+# ==============================================================================
+stage:
+  width: 12
+  depth: 12
+  grid_step: 1
+  show_rigs: true
+
+  observer_camera:
+    target: [-0.20, 1.00, 0.20]
+    distance: 16.5
+    pitch: 36
+    yaw: -10
+    lens: 35mm
+
+  stage_camera:
+    target: [0.10, 0.85, -0.30]
+    distance: 7.2
+    pitch: 29
+    yaw: 15
+    lens: 30mm
+
+# ==============================================================================
+# SCENE ENTITIES (CHARACTERS, ARCHITECTURAL PROPS & FLOOR SPIKE MARKS)
+# ==============================================================================
+entities:
+  # --- 4 Characters ---
+  - id: "evan"
+    label: "Evan"
+    kind: "character"
+    style: "mannequin"
+    position: [-0.94, 0, -2.15]
+    rotation: 20
+    pitch: -4
+    pivot: "base"
+    size: [0.56, 1.78, 0.44]
+    color: "#38bdf8"
+
+  - id: "rosa"
+    label: "Rosa"
+    kind: "character"
+    style: "mannequin"
+    position: [-2.18, 0, 0.20]
+    rotation: 90
+    size: [0.48, 1.66, 0.40]
+    color: "#eab308"
+
+  - id: "felix"
+    label: "Felix"
+    kind: "character"
+    style: "mannequin"
+    position: [0.52, 0, 0.55]
+    rotation: -85
+    size: [0.60, 1.35, 0.50]
+    color: "#f5e6c8"
+
+  - id: "samira"
+    label: "Samira"
+    kind: "character"
+    style: "mannequin"
+    position: [3.02, 0, 1.25]
+    rotation: -95
+    pitch: -6
+    pivot: "base"
+    size: [0.48, 1.68, 0.40]
+    color: "#e07a5f"
+
+  # --- Core Architectural & Hero Props ---
+  - id: "concrete_wall"
+    label: "Concrete Retaining Wall"
+    kind: "prop"
+    shape: "box"
+    style: "solid"
+    position: [3.50, 0, 1.15]
+    size: [0.40, 4.40, 8.80]
+    color: "#787770"
+
+  - id: "bench"
+    label: "Concrete Bench"
+    kind: "prop"
+    shape: "box"
+    style: "solid"
+    position: [0.85, 0, 0.55]
+    size: [0.75, 0.48, 2.50]
+    color: "#a8a29e"
+
+  - id: "postcard"
+    label: "Coastal Postcard"
+    kind: "prop"
+    shape: "box"
+    style: "solid"
+    position: [0.82, 0.48, -0.20]
+    rotation: 12
+    size: [0.22, 0.02, 0.30]
+    color: "#f59e0b"
+
+  - id: "timber_post"
+    label: "Weathered Timber Post"
+    kind: "prop"
+    shape: "box"
+    style: "solid"
+    position: [-2.72, 0, 0.20]
+    rotation: 10
+    size: [0.30, 2.08, 0.30]
+    color: "#8c7b68"
+
+  # --- Three-Segment Wooden Coastal Guardrail ---
+  - id: "rail_main_top"
+    label: "Ocean Rail Top"
+    kind: "prop"
+    shape: "box"
+    style: "solid"
+    position: [-1.25, 0.92, -2.38]
+    rotation: 20
+    size: [4.57, 0.09, 0.10]
+    color: "#574c3f"
+
+  - id: "rail_main_mid"
+    label: "Ocean Rail Mid"
+    kind: "prop"
+    shape: "box"
+    style: "solid"
+    position: [-1.25, 0.48, -2.38]
+    rotation: 20
+    size: [4.57, 0.07, 0.08]
+    color: "#574c3f"
+
+  - id: "rail_right_top"
+    label: "Northeast Rail Top"
+    kind: "prop"
+    shape: "box"
+    style: "solid"
+    position: [2.10, 0.92, -3.16]
+    rotation: 0
+    size: [2.40, 0.09, 0.10]
+    color: "#574c3f"
+
+  - id: "rail_right_mid"
+    label: "Northeast Rail Mid"
+    kind: "prop"
+    shape: "box"
+    style: "solid"
+    position: [2.10, 0.48, -3.16]
+    rotation: 0
+    size: [2.40, 0.07, 0.08]
+    color: "#574c3f"
+
+  - id: "rail_left_top"
+    label: "West Rail Top"
+    kind: "prop"
+    shape: "box"
+    style: "solid"
+    position: [-4.00, 0.92, -0.35]
+    rotation: 64
+    size: [2.77, 0.09, 0.10]
+    color: "#574c3f"
+
+  - id: "rail_left_mid"
+    label: "West Rail Mid"
+    kind: "prop"
+    shape: "box"
+    style: "solid"
+    position: [-4.00, 0.48, -0.35]
+    rotation: 64
+    size: [2.77, 0.07, 0.08]
+    color: "#574c3f"
+
+  - id: "rail_post_sw"
+    label: "Rail Post SW"
+    kind: "prop"
+    shape: "cylinder"
+    style: "solid"
+    position: [-4.60, 0, 0.90]
+    size: [0.11, 0.98, 0.11]
+    color: "#4a4035"
+
+  - id: "rail_post_nw"
+    label: "Rail Post NW"
+    kind: "prop"
+    shape: "cylinder"
+    style: "solid"
+    position: [-3.40, 0, -1.60]
+    size: [0.11, 0.98, 0.11]
+    color: "#4a4035"
+
+  - id: "rail_post_evan_l"
+    label: "Rail Post Center-L"
+    kind: "prop"
+    shape: "cylinder"
+    style: "solid"
+    position: [-1.95, 0, -2.13]
+    size: [0.11, 0.98, 0.11]
+    color: "#4a4035"
+
+  - id: "rail_post_evan_r"
+    label: "Rail Post Center-R"
+    kind: "prop"
+    shape: "cylinder"
+    style: "solid"
+    position: [-0.50, 0, -2.65]
+    size: [0.11, 0.98, 0.11]
+    color: "#4a4035"
+
+  - id: "rail_post_bend"
+    label: "Rail Post NE Bend"
+    kind: "prop"
+    shape: "cylinder"
+    style: "solid"
+    position: [0.90, 0, -3.16]
+    size: [0.11, 0.98, 0.11]
+    color: "#4a4035"
+
+  # --- Floor Spike Marks ---
+  - id: "mark_rosa_post"
+    label: "Rosa Home T-Mark"
+    kind: "marker"
+    shape: "t"
+    style: "tape"
+    position: [-2.18, 0, 0.20]
+    rotation: 90
+    size: [0.36, 0.05, 0.36]
+    color: "#eab308"
+
+  - id: "mark_rosa_step"
+    label: "Rosa Gesture X-Mark"
+    kind: "marker"
+    shape: "x"
+    style: "tape"
+    position: [-1.65, 0, -0.05]
+    size: [0.34, 0.05, 0.34]
+    color: "#facc15"
+
+  - id: "mark_evan_rail"
+    label: "Evan Railing T-Mark"
+    kind: "marker"
+    shape: "t"
+    style: "tape"
+    position: [-0.94, 0, -2.15]
+    rotation: 20
+    size: [0.38, 0.05, 0.38]
+    color: "#38bdf8"
+
+  - id: "mark_samira_pebbles"
+    label: "Samira Pebbles Mark"
+    kind: "marker"
+    shape: "circle"
+    style: "tape"
+    position: [3.02, 0, 1.25]
+    size: [0.42, 0.05, 0.42]
+    color: "#e07a5f"
+
+# ==============================================================================
+# DECOUPLED ACTOR BLOCKING TIMELINE (CONTINUITY & TWIST DISAPPEARANCE)
+# ==============================================================================
+blocking:
+  # ------------------------- ROSA BLOCKING -------------------------
+  - id: "blk-rosa-01-open-step"
+    label: "Rosa Steps Off Post"
+    entity: "rosa"
+    start: 0.000
+    end: 1.125
+    from: [-2.18, 0, 0.20]
+    position: [-1.82, 0, 0.36]
+    look_at: "felix"
+    easing: "ease-out"
+    note: "Animated forward step breaks static triangle in Shot 1 master and builds kinetic momentum."
+
+  - id: "blk-rosa-02-settle-post"
+    label: "Rosa Settles Near Post"
+    entity: "rosa"
+    start: 1.125
+    end: 17.583
+    position: [-2.05, 0, 0.24]
+    look_at: "felix"
+    easing: "smooth"
+    note: "Holds near timber post so Felix-to-Rosa angle keeps post screen-left and ocean screen-right."
+
+  - id: "blk-rosa-03-ditch-gesture"
+    label: "Rosa Steps to Center Mark"
+    entity: "rosa"
+    start: 17.583
+    end: 20.292
+    position: [-1.65, 0, -0.05]
+    look_at: "evan"
+    easing: "ease-out"
+    note: "Crosses 0.5m off post onto center X-mark in Shot 8 master, visibly closing the gap toward Evan."
+
+  - id: "blk-rosa-04-retreat-post"
+    label: "Rosa Retreats to Timber Post"
+    entity: "rosa"
+    start: 20.292
+    end: 22.500
+    position: [-2.18, 0, 0.20]
+    pitch: -4
+    pivot: "base"
+    look_at: "evan"
+    easing: "smooth"
+    note: "Returns to home T-mark and anchors against timber post for the remainder of the scene."
+
+  - id: "blk-rosa-05-anchored-stillness"
+    label: "Rosa Anchored Watching Evan"
+    entity: "rosa"
+    start: 22.500
+    end: 107.208
+    position: [-2.18, 0, 0.20]
+    pitch: -4
+    pivot: "base"
+    look_at: "evan"
+    easing: "smooth"
+    note: "Stationary lean against post fixes Evan-to-Rosa OTS geometry and builds uncanny stillness by Shot 32."
+
+  # ------------------------- EVAN BLOCKING -------------------------
+  - id: "blk-evan-01-rail-lean"
+    label: "Evan Leans Back on Rail"
+    entity: "evan"
+    start: 0.000
+    end: 2.958
+    position: [-0.94, 0, -2.15]
+    pitch: -4
+    pivot: "base"
+    look_at: "rosa"
+    easing: "smooth"
+    note: "Pinned casually against north-west ocean rail, anchoring the apex of the deck triangle."
+
+  - id: "blk-evan-02-laugh-back"
+    label: "Evan Laughs Leaning Back"
+    entity: "evan"
+    start: 2.958
+    end: 4.875
+    position: [-0.94, 0, -2.15]
+    rotation: 24
+    pitch: -9
+    pivot: "base"
+    easing: "smooth"
+    note: "Throws torso slightly backward (-9 deg pitch) over top rail during carefree laughter."
+
+  - id: "blk-evan-03-listen-felix"
+    label: "Evan Watches Felix & Samira"
+    entity: "evan"
+    start: 4.875
+    end: 12.917
+    position: [-0.94, 0, -2.15]
+    pitch: -4
+    pivot: "base"
+    look_at: "felix"
+    easing: "smooth"
+    note: "Holds relaxed rail posture while dialogue ping-pongs across the bench-to-wall axis."
+
+  - id: "blk-evan-04-lean-samira"
+    label: "Evan Leans Forward to Samira"
+    entity: "evan"
+    start: 12.917
+    end: 16.708
+    position: [-0.92, 0, -2.02]
+    pitch: 3
+    pivot: "base"
+    look_at: "samira"
+    easing: "smooth"
+    note: "Shifts weight forward off rail, orienting gaze toward Samira against the concrete wall."
+
+  - id: "blk-evan-05-back-to-rail"
+    label: "Evan Resets to Rail"
+    entity: "evan"
+    start: 16.708
+    end: 30.042
+    position: [-0.94, 0, -2.15]
+    pitch: -4
+    pivot: "base"
+    look_at: "rosa"
+    easing: "smooth"
+    note: "Re-anchors on rail T-mark while absorbing Rosa's criticism in Shots 8–11."
+
+  - id: "blk-evan-06-push-off-deck"
+    label: "Evan Pushes Off Rail Onto Deck"
+    entity: "evan"
+    start: 30.042
+    end: 36.875
+    position: [-0.92, 0, -1.78]
+    rotation: 26
+    pitch: 0
+    pivot: "base"
+    easing: "ease-out"
+    note: "Steps 0.37m inboard off rail into open deck space to physically claim the floor in Shots 12–13."
+
+  - id: "blk-evan-07-engage-rosa"
+    label: "Evan Angles to Rosa OTS"
+    entity: "evan"
+    start: 36.875
+    end: 46.042
+    position: [-1.00, 0, -1.75]
+    pitch: 0
+    look_at: "rosa"
+    easing: "smooth"
+    note: "Positions cleanly in right foreground for Shot 14 OTS without occluding the central timber post."
+
+  - id: "blk-evan-08-knees-step"
+    label: "Evan Steps In Protesting"
+    entity: "evan"
+    start: 46.042
+    end: 47.792
+    position: [-1.10, 0, -1.58]
+    pitch: 4
+    look_at: "rosa"
+    easing: "ease-out"
+    note: "Short energized step toward Rosa motivates Shot 16's tighter 3/4 OTS past Rosa's shoulder."
+
+  - id: "blk-evan-09-settle-ots"
+    label: "Evan Settles for Rosa Tease"
+    entity: "evan"
+    start: 47.792
+    end: 52.958
+    position: [-1.00, 0, -1.75]
+    pitch: 0
+    look_at: "rosa"
+    easing: "smooth"
+    note: "Re-establishes OTS foreground position for Shot 17 as banter shifts toward aging."
+
+  - id: "blk-evan-10-retreat-sober"
+    label: "Evan Steps Back as Tone Shifts"
+    entity: "evan"
+    start: 52.958
+    end: 59.083
+    position: [-0.98, 0, -1.92]
+    pitch: 0
+    look_at: "felix"
+    easing: "smooth"
+    note: "Pulls back toward railing as humor gives way to reflective quiet."
+
+  - id: "blk-evan-11-turn-to-ocean"
+    label: "Evan 180-Deg Turn to Ocean"
+    entity: "evan"
+    start: 59.083
+    end: 62.000
+    position: [-1.06, 0, -2.08]
+    rotation: -160
+    pitch: 4
+    pivot: "base"
+    easing: "smooth"
+    note: "Pivotal 180-degree blocking reversal: turns his back on all three friends to grip the ocean rail."
+
+  - id: "blk-evan-12-confession-lean"
+    label: "Evan Leans Over Ocean Rail"
+    entity: "evan"
+    start: 62.000
+    end: 79.750
+    position: [-1.06, 0, -2.08]
+    rotation: -160
+    pitch: 7
+    pivot: "base"
+    easing: "smooth"
+    note: "Leans forward (+7 deg pitch) over the cliff rail during emotional confession while friends stay silent."
+
+  - id: "blk-evan-13-turn-back-group"
+    label: "Evan 180-Deg Return Pivot"
+    entity: "evan"
+    start: 79.750
+    end: 82.333
+    position: [-1.02, 0, -2.00]
+    pitch: 0
+    look_at: "rosa"
+    easing: "smooth"
+    note: "Completes full 180-degree turn inside Shot 27's locked frame, reconnecting eyeline with Rosa."
+
+  - id: "blk-evan-14-warm-rosa"
+    label: "Evan Faces Rosa Warmly"
+    entity: "evan"
+    start: 82.333
+    end: 86.667
+    position: [-1.02, 0, -2.00]
+    look_at: "rosa"
+    easing: "smooth"
+    note: "Holds open 3/4 stance toward Rosa while thanking her."
+
+  - id: "blk-evan-15-open-arms"
+    label: "Evan Steps In With Open Arms"
+    entity: "evan"
+    start: 86.667
+    end: 93.917
+    position: [-0.96, 0, -1.85]
+    rotation: 22
+    easing: "smooth"
+    note: "Steps slightly forward in Shot 30 master addressing all three friends—who do not move an inch."
+
+  - id: "blk-evan-16-scan-rosa"
+    label: "Evan Searches Rosa's Silence"
+    entity: "evan"
+    start: 93.917
+    end: 100.833
+    position: [-1.00, 0, -1.94]
+    look_at: "rosa"
+    easing: "smooth"
+    note: "Eyeline locks onto Rosa across Shot 32–33 as realization begins to creep in."
+
+  - id: "blk-evan-17-scan-felix"
+    label: "Evan Looks to Felix"
+    entity: "evan"
+    start: 100.833
+    end: 102.875
+    position: [-1.00, 0, -1.94]
+    look_at: "felix"
+    easing: "smooth"
+    note: "Rotates gaze to Felix on the concrete bench; Felix answers only with a frozen smile."
+
+  - id: "blk-evan-18-scan-samira"
+    label: "Evan Looks to Samira"
+    entity: "evan"
+    start: 102.875
+    end: 105.000
+    position: [-1.00, 0, -1.94]
+    look_at: "samira"
+    easing: "smooth"
+    note: "Rotates gaze to Samira on the retaining wall before closing his eyes in acceptance."
+
+  - id: "blk-evan-19-solitude-watch"
+    label: "Evan Alone — Exhale & Watch Check"
+    entity: "evan"
+    start: 105.000
+    end: 114.800
+    position: [-1.04, 0, -2.00]
+    rotation: 20
+    pitch: 3
+    pivot: "base"
+    easing: "smooth"
+    note: "Stands solitary at rail after the trio vanishes, glancing down toward the empty bench and watch."
+
+  - id: "blk-evan-20-final-ocean-turn"
+    label: "Evan Final 180-Deg Turn to Pacific"
+    entity: "evan"
+    start: 114.800
+    end: 118.200
+    position: [-1.08, 0, -2.08]
+    rotation: -160
+    pitch: 4
+    pivot: "base"
+    easing: "smooth"
+    note: "Slowly turns away from the empty deck to grip the rail as the 85mm dolly track begins pulling back."
+
+  - id: "blk-evan-21-final-hold"
+    label: "Evan Solitary Horizon Hold"
+    entity: "evan"
+    start: 118.200
+    end: 139.167
+    position: [-1.08, 0, -2.08]
+    rotation: -160
+    pitch: 4
+    pivot: "base"
+    easing: "linear"
+    note: "Holds solitary ocean silhouette against the railing through fade-out and end titles."
+
+  # ------------------------- FELIX BLOCKING -------------------------
+  - id: "blk-felix-01-watch-rosa"
+    label: "Felix Seated Watching Rosa"
+    entity: "felix"
+    start: 0.000
+    end: 2.958
+    position: [0.52, 0, 0.55]
+    height: 1.35
+    look_at: "rosa"
+    easing: "smooth"
+    note: "Seated at 1.35m height on bench edge next to postcard; anchors center-stage weight."
+
+  - id: "blk-felix-02-glance-evan"
+    label: "Felix Glances at Evan Laughing"
+    entity: "felix"
+    start: 2.958
+    end: 4.875
+    position: [0.52, 0, 0.55]
+    height: 1.35
+    look_at: "evan"
+    easing: "smooth"
+    note: "Tracks Evan's outburst without shifting hips off his bench mark."
+
+  - id: "blk-felix-03-address-rosa"
+    label: "Felix Defends Evan to Rosa"
+    entity: "felix"
+    start: 4.875
+    end: 27.667
+    position: [0.52, 0, 0.55]
+    height: 1.35
+    look_at: "rosa"
+    easing: "smooth"
+    note: "Maintains West-facing orientation toward Rosa across Shots 4 and 10 dirty OTS setups."
+
+  - id: "blk-felix-04-watch-evan-defense"
+    label: "Felix Turns Gaze to Evan"
+    entity: "felix"
+    start: 27.667
+    end: 41.708
+    position: [0.52, 0, 0.55]
+    height: 1.35
+    look_at: "evan"
+    easing: "smooth"
+    note: "Angles shoulders slightly upstage-left toward Evan while remaining planted on the concrete bench."
+
+  - id: "blk-felix-05-coffee-quip"
+    label: "Felix Coffee Quip"
+    entity: "felix"
+    start: 41.708
+    end: 46.042
+    position: [0.52, 0, 0.55]
+    height: 1.35
+    look_at: "rosa"
+    easing: "smooth"
+    note: "Delivers burned-gravel coffee line facing Rosa while Samira subtly shifts in deep bokeh behind."
+
+  - id: "blk-felix-06-silent-empathy"
+    label: "Felix Locked Warm Gaze on Evan"
+    entity: "felix"
+    start: 46.042
+    end: 107.208
+    position: [0.52, 0, 0.55]
+    height: 1.35
+    look_at: "evan"
+    easing: "smooth"
+    note: "Unmoving seated stillness across Shots 20, 22, and 34 quietly foreshadows his spectral nature."
+
+  # ------------------------- SAMIRA BLOCKING -------------------------
+  - id: "blk-samira-01-wall-lean"
+    label: "Samira Reclined on Retaining Wall"
+    entity: "samira"
+    start: 0.000
+    end: 12.917
+    position: [3.02, 0, 1.25]
+    pitch: -6
+    pivot: "base"
+    look_at: "felix"
+    easing: "smooth"
+    note: "Pinned -6 deg back against concrete wall on east perimeter, forming deep Z-axis plane behind Felix."
+
+  - id: "blk-samira-02-watch-banter"
+    label: "Samira Observes Evan & Rosa"
+    entity: "samira"
+    start: 12.917
+    end: 42.500
+    position: [3.02, 0, 1.25]
+    pitch: -6
+    pivot: "base"
+    look_at: "evan"
+    easing: "smooth"
+    note: "Holds wall anchor so Shots 4, 10, 15 consistently place her in the right background plane."
+
+  - id: "blk-samira-03-uncross-shift"
+    label: "Samira Subtle Posture Relaxation"
+    entity: "samira"
+    start: 42.500
+    end: 45.500
+    position: [2.96, 0, 1.22]
+    pitch: -3
+    pivot: "base"
+    look_at: "evan"
+    easing: "smooth"
+    note: "Micro posture shift in deep background of Shot 15 as she uncrosses her arms."
+
+  - id: "blk-samira-04-quiet-vigil"
+    label: "Samira Quiet Wall Stillness"
+    entity: "samira"
+    start: 45.500
+    end: 107.208
+    position: [3.00, 0, 1.24]
+    pitch: -5
+    pivot: "base"
+    look_at: "evan"
+    easing: "smooth"
+    note: "Remains anchored to wall mark in serene silence across Shots 18, 26, and 35."
+
+  # ------------------------- THE TWIST (t = 107.208s) -------------------------
+  - id: "blk-twist-vanish"
+    label: "Twist Reveal — Imaginary Trio Vanishes"
+    start: 107.208
+    end: 139.167
+    entities:
+      rosa:
+        cut: true
+        visible: false
+        note: "Instant cut-removal at 107.208s reveals Rosa was never standing by the timber post."
+      felix:
+        cut: true
+        visible: false
+        note: "Instant cut-removal vacates the concrete bench, leaving only the coastal postcard."
+      samira:
+        cut: true
+        visible: false
+        note: "Instant cut-removal clears the retaining wall, collapsing the four-point ensemble to solo isolation."
+
+# ==============================================================================
+# DECOUPLED DIORAMA OBSERVER CAMERA (WIDE FULL-STAGE OVERVIEW)
+# ==============================================================================
+observer_shots:
+  - id: "obs-01-establishing-sweep"
+    label: "Act I: Wide Overlook Master Overview"
+    start: 0.000
+    end: 20.292
+    target: [-0.20, 1.00, 0.20]
+    maneuver: "orbit"
+    easing: "cruise"
+    distance: 16.5
+    pitch: 36
+    yaw_start: -10
+    yaw_end: -42
+    lens: 35mm
+
+  - id: "obs-02-dialogue-cross-section"
+    label: "Act II: Wide Open-Cliff OTS Diagram"
+    continuous: true
+    end: 59.083
+    from: [-0.20, 1.00, 0.20]
+    target: [-0.20, 1.00, 0.10]
+    maneuver: "dolly"
+    easing: "cruise"
+    distance: 14.8
+    pitch: 30
+    yaw: -68
+    lens: 35mm
+
+  - id: "obs-03-ocean-turn-arc"
+    label: "Act III: Elevated Wide Arc — Ocean Turn"
+    continuous: true
+    end: 91.167
+    from: [-0.20, 1.00, 0.10]
+    target: [-0.20, 1.00, -0.20]
+    maneuver: "arc"
+    easing: "smooth"
+    distance: 15.5
+    pitch: 38
+    yaw: -26
+    lens: 35mm
+
+  - id: "obs-04-silence-and-twist"
+    label: "Act IV: Full-Stage Vantage for Vanishing Twist"
+    continuous: true
+    end: 112.667
+    from: [-0.20, 1.00, -0.20]
+    target: [0.00, 0.90, 0.20]
+    maneuver: "dolly"
+    easing: "smooth"
+    distance: 16.0
+    pitch: 36
+    yaw: -6
+    lens: 35mm
+
+  - id: "obs-05-solitude-crane"
+    label: "Epilogue: High Solitude Crane Pull-Back"
+    continuous: true
+    end: 139.167
+    from: [0.00, 0.90, 0.20]
+    target: [-0.20, 0.90, -0.30]
+    maneuver: "dolly"
+    easing: "ease-out"
+    distance: 19.5
+    pitch: 42
+    yaw: -22
+    lens: 35mm
+
+# ==============================================================================
+# FILM COVERAGE SHOTS (ALL 41 SHOTS — EXACT CSV TIMECODE SYNC)
+# ==============================================================================
+shots:
+  - id: "shot-01"
+    shot: 1
+    label: "High-Angle Establishing Master"
+    description: "30mm locked high-angle master inside the east retaining wall (+15 deg yaw, +29 deg pitch) maps all four character anchors and key props in deep focus."
+    start: 0.000
+    end: 1.125
+    stage_camera:
+      target: [0.10, 0.85, -0.30]
+      maneuver: "cut"
+      distance: 7.2
+      pitch: 29
+      yaw: 15
+      lens: 30mm
+      dof: "deep"
+    entities:
+      rosa:
+        highlighted: true
+        note: "Rosa's opening step breaks the static quadrilateral and establishes the conversational focal point."
+
+  - id: "shot-02"
+    shot: 2
+    label: "Rosa MCU by Timber Post"
+    description: "50mm eye-level MCU positioned near Felix's bench (+68 deg yaw) frames the weathered timber post screen-left and open ocean rail screen-right."
+    start: 1.125
+    end: 2.958
+    stage_camera:
+      target: "rosa.chest"
+      target_offset: [0, 0.06, 0]
+      maneuver: "cut"
+      distance: 2.6
+      pitch: 2
+      yaw: 68
+      lens: 50mm
+      focus: "rosa.eyes"
+      dof: "shallow"
+    entities:
+      rosa:
+        highlighted: true
+        note: "2.6m distance at 50mm preserves mid-torso-to-headroom framing while keeping timber post behind right shoulder."
+
+  - id: "shot-03"
+    shot: 3
+    label: "Evan Frontal MS Laughing at Rail"
+    description: "50mm slightly low-angle frontal MS (-5 deg pitch, +20 deg yaw perpendicular to ocean rail) matches seated Felix's eyeline against open sea."
+    start: 2.958
+    end: 4.875
+    stage_camera:
+      target: "evan.chest"
+      target_offset: [0, 0.06, 0]
+      maneuver: "cut"
+      distance: 2.65
+      pitch: -5
+      yaw: 20
+      lens: 50mm
+      focus: "evan.eyes"
+      dof: "shallow"
+    entities:
+      evan:
+        highlighted: true
+        note: "Horizon drops below shoulder line due to -5 deg low pitch, isolating Evan cleanly against bright ocean sky."
+
+  - id: "shot-04"
+    shot: 4
+    label: "Dirty OTS Past Rosa onto Felix (+ Samira BG)"
+    description: "65mm dirty OTS positioned cleanly south of the timber post (-90 deg yaw, 3.30m, +5 deg pitch) stacks three unobstructed depth planes: Rosa FG left, Felix + postcard center, Samira wall BG right."
+    start: 4.875
+    end: 10.083
+    stage_camera:
+      target: "felix.chest"
+      target_offset: [0, 0.04, 0]
+      maneuver: "cut"
+      distance: 3.30
+      pitch: 5
+      yaw: -90
+      lens: 65mm
+      focus: "felix.eyes"
+      dof: "shallow"
+    entities:
+      felix:
+        highlighted: true
+        note: "Shallow f/2.8 focus on seated Felix softly separates Rosa's foreground blazer and Samira's concrete-wall plane while clearing the timber post."
+
+  - id: "shot-05"
+    shot: 5
+    label: "Samira MCU Against Concrete Wall"
+    description: "85mm telephoto MCU (-82 deg yaw) compresses Samira against board-formed concrete with negative look-room shifted screen-left."
+    start: 10.083
+    end: 12.917
+    stage_camera:
+      target: "samira.chest"
+      target_offset: [0, 0.08, -0.18]
+      maneuver: "cut"
+      distance: 3.8
+      pitch: 2
+      yaw: -82
+      lens: 85mm
+      focus: "samira.eyes"
+      dof: "shallow"
+    entities:
+      samira:
+        highlighted: true
+        note: "Camera clears seated Felix by >1.1m downstage while 85mm lens flattens wall texture behind her."
+
+  - id: "shot-06"
+    shot: 6
+    label: "Evan Frontal MS Reacting to Samira"
+    description: "Returns to Evan's +20 deg perpendicular railing setup (50mm, 2.65m) as he leans forward off the top rail toward Samira."
+    start: 12.917
+    end: 16.708
+    stage_camera:
+      target: "evan.chest"
+      target_offset: [0, 0.06, 0]
+      maneuver: "cut"
+      distance: 2.65
+      pitch: -4
+      yaw: 20
+      lens: 50mm
+      focus: "evan.eyes"
+      dof: "shallow"
+    entities:
+      evan:
+        highlighted: true
+        note: "Consistent railing axis preserves screen direction as Evan shifts gaze stage-left toward Samira."
+
+  - id: "shot-07"
+    shot: 7
+    label: "Rosa Tight Reaction MCU"
+    description: "Slightly tighter (+74 deg yaw, 2.45m) punch-in on Rosa's timber-post axis accentuates her sharp vocal interruption before cutting wide."
+    start: 16.708
+    end: 17.583
+    stage_camera:
+      target: "rosa.chest"
+      target_offset: [0, 0.08, -0.05]
+      maneuver: "cut"
+      distance: 2.45
+      pitch: 1
+      yaw: 74
+      lens: 50mm
+      focus: "rosa.eyes"
+      dof: "shallow"
+    entities:
+      rosa:
+        highlighted: true
+        note: "Short 0.875s rhythmic cut accelerates energy into Shot 8's spatial blocking beat."
+
+  - id: "shot-08"
+    shot: 8
+    label: "High-Angle Master — Rosa Steps Out"
+    description: "Returns to locked 30mm high master (7.2m) to reveal Rosa breaking off her timber post onto the center X-mark to confront Evan."
+    start: 17.583
+    end: 20.292
+    stage_camera:
+      target: [0.10, 0.85, -0.30]
+      maneuver: "cut"
+      distance: 7.2
+      pitch: 29
+      yaw: 15
+      lens: 30mm
+      dof: "deep"
+    entities:
+      rosa:
+        highlighted: true
+        note: "Master cuts are strictly motivated by physical floor displacement—here Rosa claiming center deck."
+
+  - id: "shot-09"
+    shot: 9
+    label: "Rosa MCU Retreating to Post"
+    description: "Back on Rosa's 50mm bench-side MCU (+68 deg yaw, 2.6m) as she retreats onto her timber post T-mark and points right toward Evan."
+    start: 20.292
+    end: 25.083
+    stage_camera:
+      target: "rosa.chest"
+      target_offset: [0, 0.06, 0]
+      maneuver: "cut"
+      distance: 2.6
+      pitch: 2
+      yaw: 68
+      lens: 50mm
+      focus: "rosa.eyes"
+      dof: "shallow"
+    entities:
+      rosa:
+        highlighted: true
+        note: "Retreating back to the timber post locks her spatial mark for all remaining OTS shots."
+
+  - id: "shot-10"
+    shot: 10
+    label: "Dirty OTS Past Rosa onto Felix"
+    description: "Exact reprise of Shot 4's unobstructed 65mm three-plane OTS (-90 deg yaw, 3.30m) pairing Rosa's foreground blazer, Felix, postcard, and Samira."
+    start: 25.083
+    end: 27.667
+    stage_camera:
+      target: "felix.chest"
+      target_offset: [0, 0.04, 0]
+      maneuver: "cut"
+      distance: 3.30
+      pitch: 5
+      yaw: -90
+      lens: 65mm
+      focus: "felix.eyes"
+      dof: "shallow"
+    entities:
+      felix:
+        highlighted: true
+        note: "Locked OTS repeatability reinforces Felix's physical immobility on the concrete bench."
+  
+  - id: "shot-11"
+    shot: 11
+    label: "Low Insert — Samira's Boots & Pebbles"
+    description: "85mm low downward insert (+18 deg pitch, -90 deg yaw, 2.0m) aimed at Samira's feet and scattered pebbles along the concrete expansion joint."
+    start: 27.667
+    end: 30.042
+    stage_camera:
+      target: "samira.feet"
+      target_offset: [0, 0.12, -0.25]
+      maneuver: "cut"
+      distance: 2.0
+      pitch: 18
+      yaw: -90
+      lens: 85mm
+      focus: "samira.feet"
+      dof: "shallow"
+    entities:
+      samira:
+        highlighted: true
+        note: "Offsetting aim -0.25m upstage places boots on screen-right third while pebbles and floor seam anchor left."
+
+  - id: "shot-12"
+    shot: 12
+    label: "Evan Frontal MS — Pushes Off Rail"
+    description: "50mm frontal rail setup (+20 deg yaw, 2.65m) tracks Evan as he pushes 0.37m forward off the wooden rail with defensive open hands."
+    start: 30.042
+    end: 33.125
+    stage_camera:
+      target: "evan.chest"
+      target_offset: [0, 0.06, 0]
+      maneuver: "cut"
+      distance: 2.65
+      pitch: -4
+      yaw: 20
+      lens: 50mm
+      focus: "evan.eyes"
+      dof: "shallow"
+    entities:
+      evan:
+        highlighted: true
+        note: "Pushing forward off the rail increases separation between Evan and the wooden rail behind his waist."
+
+  - id: "shot-13"
+    shot: 13
+    label: "High-Angle Master — Evan Claims Deck"
+    description: "30mm locked high master (7.2m) shows Evan standing inboard of the railing gesturing wide while Rosa, Felix, and Samira stay anchored."
+    start: 33.125
+    end: 36.875
+    stage_camera:
+      target: [0.10, 0.85, -0.30]
+      maneuver: "cut"
+      distance: 7.2
+      pitch: 29
+      yaw: 15
+      lens: 30mm
+      dof: "deep"
+    entities:
+      evan:
+        highlighted: true
+        note: "Notice the spatial clue: Evan is now the only character freely moving inside the central floor zone."
+
+  - id: "shot-14"
+    shot: 14
+    label: "OTS Past Evan onto Rosa by Timber Post"
+    description: "New 65mm reverse OTS (+136 deg yaw, 3.25m) tucked just inside the north rail behind Evan's left shoulder; timber post bisects Rosa (left) and Evan (right)."
+    start: 36.875
+    end: 41.708
+    stage_camera:
+      target: "rosa.chest"
+      target_offset: [-0.22, 0.10, -0.14]
+      maneuver: "cut"
+      distance: 3.25
+      pitch: 2
+      yaw: 136
+      lens: 65mm
+      focus: "rosa.eyes"
+      dof: "shallow"
+    entities:
+      rosa:
+        highlighted: true
+        note: "Camera eye at [+0.06, 1.48, -2.39] stays 0.47m inboard of guardrail while placing timber post dead-center."
+
+  - id: "shot-15"
+    shot: 15
+    label: "Dirty OTS Past Rosa onto Felix (Samira Shifts BG)"
+    description: "65mm dirty OTS (-90 deg yaw, 3.30m) on Felix; in deep background bokeh, Samira subtly relaxes posture against the concrete wall."
+    start: 41.708
+    end: 46.042
+    stage_camera:
+      target: "felix.chest"
+      target_offset: [0, 0.04, 0]
+      maneuver: "cut"
+      distance: 3.30
+      pitch: 5
+      yaw: -90
+      lens: 65mm
+      focus: "felix.eyes"
+      dof: "shallow"
+    entities:
+      felix:
+        highlighted: true
+        note: "Deep-plane staging allows Samira's subtle arm uncrossing to register organically behind Felix."
+  
+  - id: "shot-16"
+    shot: 16
+    label: "3/4 OTS Past Rosa onto Evan"
+    description: "50mm 3/4 reverse (-20 deg yaw, 2.80m) shifts behind Rosa's right side so her mustard shoulder enters screen-left as Evan steps toward her."
+    start: 46.042
+    end: 47.792
+    stage_camera:
+      target: "evan.chest"
+      target_offset: [-0.12, 0.06, 0]
+      maneuver: "cut"
+      distance: 2.80
+      pitch: -3
+      yaw: -20
+      lens: 50mm
+      focus: "evan.eyes"
+      dof: "shallow"
+    entities:
+      evan:
+        highlighted: true
+        note: "Complementary reverse to Shot 14's Evan-to-Rosa OTS, maintaining strict 180-degree screen-direction continuity."
+
+  - id: "shot-17"
+    shot: 17
+    label: "Tighter OTS Past Evan onto Rosa"
+    description: "Steps up to a 75mm telephoto (+136 deg yaw, 3.05m) on the Evan-to-Rosa OTS axis, tightening facial intimacy as Rosa teases him about gray hair."
+    start: 47.792
+    end: 51.125
+    stage_camera:
+      target: "rosa.chest"
+      target_offset: [-0.20, 0.12, -0.12]
+      maneuver: "cut"
+      distance: 3.05
+      pitch: 2
+      yaw: 136
+      lens: 75mm
+      focus: "rosa.eyes"
+      dof: "shallow"
+    entities:
+      rosa:
+        highlighted: true
+        note: "Lens progression 65mm -> 75mm narrows the coastal background and intensifies eye contact."
+
+  - id: "shot-18"
+    shot: 18
+    label: "Samira MCU Against Concrete Wall"
+    description: "Reprises Samira's 85mm concrete-wall MCU (-82 deg yaw, 3.8m) as she gently chimes in from the east perimeter."
+    start: 51.125
+    end: 52.958
+    stage_camera:
+      target: "samira.chest"
+      target_offset: [0, 0.08, -0.18]
+      maneuver: "cut"
+      distance: 3.8
+      pitch: 2
+      yaw: -82
+      lens: 85mm
+      focus: "samira.eyes"
+      dof: "shallow"
+    entities:
+      samira:
+        highlighted: true
+        note: "Architectural vertical board-form lines frame Samira rigidly against the shadow side of the deck."
+
+  - id: "shot-19"
+    shot: 19
+    label: "Evan MS — Tonal Shift (Rosa Edge Left)"
+    description: "50mm slightly angled MS (-14 deg yaw, 2.75m) retains only a sliver of Rosa's yellow sleeve far screen-left as Evan sobers and steps back toward rail."
+    start: 52.958
+    end: 57.083
+    stage_camera:
+      target: "evan.chest"
+      target_offset: [-0.08, 0.06, 0]
+      maneuver: "cut"
+      distance: 2.75
+      pitch: -4
+      yaw: -14
+      lens: 50mm
+      focus: "evan.eyes"
+      dof: "shallow"
+    entities:
+      evan:
+        highlighted: true
+        note: "Camera begins visually detaching Evan from Rosa's foreground frame—marking the Act II-to-Act III emotional pivot."
+
+  - id: "shot-20"
+    shot: 20
+    label: "Clean Two-Plane Shot — Felix & Samira"
+    description: "50mm clean setup (-90 deg yaw, 2.55m) steps just past Rosa's shoulder, removing her foreground presence while keeping postcard, Felix, and Samira aligned."
+    start: 57.083
+    end: 59.083
+    stage_camera:
+      target: "felix.chest"
+      target_offset: [0, 0.05, 0]
+      maneuver: "cut"
+      distance: 2.55
+      pitch: 5
+      yaw: -90
+      lens: 50mm
+      focus: "felix.eyes"
+      dof: "shallow"
+    entities:
+      felix:
+        highlighted: true
+        note: "Stepping camera past Rosa cleans the left edge, shifting from playful OTS banter to quiet stillness."
+
+  - id: "shot-21"
+    shot: 21
+    label: "Evan Turns 180° to Ocean Rail"
+    description: "50mm perpendicular rail setup (+20 deg yaw, 2.65m) stays locked while Evan turns his back completely to the group and grips the rail."
+    start: 59.083
+    end: 62.000
+    stage_camera:
+      target: "evan.chest"
+      target_offset: [0, 0.06, 0]
+      maneuver: "cut"
+      distance: 2.65
+      pitch: -4
+      yaw: 20
+      lens: 50mm
+      focus: "evan.chest"
+      dof: "shallow"
+    entities:
+      evan:
+        highlighted: true
+        note: "Camera refuses to orbit around to Evan's face—honoring his emotional withdrawal into the horizon."
+
+  - id: "shot-22"
+    shot: 22
+    label: "Clean Two-Plane Shot — Felix Listens"
+    description: "Matches Shot 20's clean 50mm framing (-90 deg yaw, 2.55m) on Felix's soft nod with motionless Samira on the wall behind."
+    start: 62.000
+    end: 64.583
+    stage_camera:
+      target: "felix.chest"
+      target_offset: [0, 0.05, 0]
+      maneuver: "cut"
+      distance: 2.55
+      pitch: 5
+      yaw: -90
+      lens: 50mm
+      focus: "felix.eyes"
+      dof: "shallow"
+    entities:
+      felix:
+        highlighted: true
+        note: "Clean composition subtly increases visual quietude around the bench and postcard."
+
+  - id: "shot-23"
+    shot: 23
+    label: "Evan Back MS — Confession Over Sea"
+    description: "Slightly tighter 55mm locked back shot (+20 deg yaw, 2.50m, -3 deg pitch) frames Evan's shoulders and gripped hands against open Pacific."
+    start: 64.583
+    end: 71.167
+    stage_camera:
+      target: "evan.chest"
+      target_offset: [0, 0.08, 0]
+      maneuver: "cut"
+      distance: 2.50
+      pitch: -3
+      yaw: 20
+      lens: 55mm
+      focus: "evan.chest"
+      dof: "shallow"
+    entities:
+      evan:
+        highlighted: true
+        note: "6.58s unbroken hold on Evan's back forces audience attention onto the vulnerability in his posture."
+
+  - id: "shot-24"
+    shot: 24
+    label: "High-Angle Master — Back Turned to Trio"
+    description: "30mm locked high master (7.2m) widens to show the striking asymmetry: Evan hunched outward over the ocean while all three friends silently face his back."
+    start: 71.167
+    end: 74.667
+    stage_camera:
+      target: [0.10, 0.85, -0.30]
+      maneuver: "cut"
+      distance: 7.2
+      pitch: 29
+      yaw: 15
+      lens: 30mm
+      dof: "deep"
+    entities:
+      evan:
+        highlighted: true
+        note: "Spatial blocking visually isolates Evan at the cliff perimeter while the trio forms a silent semi-circle."
+
+  - id: "shot-25"
+    shot: 25
+    label: "Evan Back MS — Storm Confession"
+    description: "Returns to 55mm locked back shot (+20 deg yaw, 2.50m) holding Evan centered on the ocean horizon as he speaks of refusing to quit."
+    start: 74.667
+    end: 77.958
+    stage_camera:
+      target: "evan.chest"
+      target_offset: [0, 0.08, 0]
+      maneuver: "cut"
+      distance: 2.50
+      pitch: -3
+      yaw: 20
+      lens: 55mm
+      focus: "evan.chest"
+      dof: "shallow"
+    entities:
+      evan:
+        highlighted: true
+        note: "Symmetrical framing between wooden rail and sky turns the cliff edge into an emotional threshold."
+
+  - id: "shot-26"
+    shot: 26
+    label: "Samira Tight MCU — Silent Compassion"
+    description: "Steps tighter on Samira's 85mm wall setup (-82 deg yaw, 3.35m), cropping below the chest to isolate her silent, empathetic expression."
+    start: 77.958
+    end: 79.750
+    stage_camera:
+      target: "samira.chest"
+      target_offset: [0, 0.14, -0.16]
+      maneuver: "cut"
+      distance: 3.35
+      pitch: 2
+      yaw: -82
+      lens: 85mm
+      focus: "samira.eyes"
+      dof: "shallow"
+    entities:
+      samira:
+        highlighted: true
+        note: "0.45m tighter than Shots 5 & 18—matching the deepening emotional stakes without changing axis."
+
+  - id: "shot-27"
+    shot: 27
+    label: "Evan Turns Back Around to Friends"
+    description: "55mm locked railing setup (+20 deg yaw, 2.55m) opens on Evan's back and lets him pivot 180 degrees back into frontal light within the same frame."
+    start: 79.750
+    end: 82.333
+    stage_camera:
+      target: "evan.chest"
+      target_offset: [0, 0.08, 0]
+      maneuver: "cut"
+      distance: 2.55
+      pitch: -3
+      yaw: 20
+      lens: 55mm
+      focus: "evan.eyes"
+      dof: "shallow"
+    entities:
+      evan:
+        highlighted: true
+        note: "Mirrors Shot 21's turn inside an identical camera position, closing the confession bracket."
+
+  - id: "shot-28"
+    shot: 28
+    label: "OTS Past Evan onto Rosa (Soft Smile)"
+    description: "Returns to 65mm Evan-to-Rosa OTS (+136 deg yaw, 3.25m); Rosa's uncrossed arms and gentle stillness contrast sharply with her earlier guarded stance."
+    start: 82.333
+    end: 83.958
+    stage_camera:
+      target: "rosa.chest"
+      target_offset: [-0.22, 0.10, -0.14]
+      maneuver: "cut"
+      distance: 3.25
+      pitch: 2
+      yaw: 136
+      lens: 65mm
+      focus: "rosa.eyes"
+      dof: "shallow"
+    entities:
+      rosa:
+        highlighted: true
+        note: "Same OTS axis as Shots 14 & 17 makes Rosa's newfound stillness immediately palpable."
+
+  - id: "shot-29"
+    shot: 29
+    label: "Evan 3/4 MS Smiling at Rosa"
+    description: "Clean 50mm 3/4 setup (-5 deg yaw, 2.65m) frames Evan angled warmly toward Rosa with one hand resting on the rail."
+    start: 83.958
+    end: 86.667
+    stage_camera:
+      target: "evan.chest"
+      target_offset: [0, 0.06, 0]
+      maneuver: "cut"
+      distance: 2.65
+      pitch: -4
+      yaw: -5
+      lens: 50mm
+      focus: "evan.eyes"
+      dof: "shallow"
+    entities:
+      evan:
+        highlighted: true
+        note: "Clean single without Rosa's shoulder foreground hints subtly that no one is occupying her mark."
+
+  - id: "shot-30"
+    shot: 30
+    label: "High-Angle Master — Evan Spreads Arms"
+    description: "30mm locked high master (7.2m); Evan steps off the rail spreading both arms to celebrate arriving three years late while the trio stays statue-still."
+    start: 86.667
+    end: 91.167
+    stage_camera:
+      target: [0.10, 0.85, -0.30]
+      maneuver: "cut"
+      distance: 7.2
+      pitch: 29
+      yaw: 15
+      lens: 30mm
+      dof: "deep"
+    entities:
+      evan:
+        highlighted: true
+        note: "The final master with all four figures visible; serves as the exact visual baseline for Shot 39's twist."
+
+  - id: "shot-31"
+    shot: 31
+    label: "Evan Frontal MS — Arms Drop in Silence"
+    description: "50mm frontal rail setup (+20 deg yaw, 2.65m) captures Evan's open-armed joy fading into puzzled stillness as no one replies."
+    start: 91.167
+    end: 93.917
+    stage_camera:
+      target: "evan.chest"
+      target_offset: [0, 0.06, 0]
+      maneuver: "cut"
+      distance: 2.65
+      pitch: -4
+      yaw: 20
+      lens: 50mm
+      focus: "evan.eyes"
+      dof: "shallow"
+    entities:
+      evan:
+        highlighted: true
+        note: "Locked tripod frame accentuates the awkward drop of Evan's arms and energy."
+
+  - id: "shot-32"
+    shot: 32
+    label: "Rosa Clean Single — Silent Stillness"
+    description: "65mm clean single (+138 deg yaw, 2.65m) steps past Evan on the Evan-to-Rosa axis, isolating Rosa beside the timber post in total silence."
+    start: 93.917
+    end: 97.375
+    stage_camera:
+      target: "rosa.chest"
+      target_offset: [-0.15, 0.12, -0.08]
+      maneuver: "cut"
+      distance: 2.65
+      pitch: 2
+      yaw: 138
+      lens: 65mm
+      focus: "rosa.eyes"
+      dof: "shallow"
+    entities:
+      rosa:
+        highlighted: true
+        note: "Removing Evan's OTS shoulder severs the physical spatial bridge between Evan and Rosa right before the reveal."
+
+  - id: "shot-33"
+    shot: 33
+    label: "Evan Frontal MS — Searching for Answers"
+    description: "50mm frontal rail setup (+20 deg yaw, 2.65m) holds as Evan nervously probes their silence, scanning from Rosa toward Felix."
+    start: 97.375
+    end: 100.833
+    stage_camera:
+      target: "evan.chest"
+      target_offset: [0, 0.06, 0]
+      maneuver: "cut"
+      distance: 2.65
+      pitch: -4
+      yaw: 20
+      lens: 50mm
+      focus: "evan.eyes"
+      dof: "shallow"
+    entities:
+      evan:
+        highlighted: true
+        note: "Continuous eyeline sweep prepares the sequential silent portraits of Felix (Shot 34) and Samira (Shot 35)."
+
+  - id: "shot-34"
+    shot: 34
+    label: "Clean Two-Plane Shot — Silent Felix & Samira"
+    description: "50mm clean setup (-90 deg yaw, 2.55m); Felix holds an unchanging warm smile on the bench with Samira motionless behind him."
+    start: 100.833
+    end: 102.875
+    stage_camera:
+      target: "felix.chest"
+      target_offset: [0, 0.05, 0]
+      maneuver: "cut"
+      distance: 2.55
+      pitch: 5
+      yaw: -90
+      lens: 50mm
+      focus: "felix.eyes"
+      dof: "shallow"
+    entities:
+      felix:
+        highlighted: true
+        note: "Stillness of both planes turns the composition into a living memory photograph."
+
+  - id: "shot-35"
+    shot: 35
+    label: "Samira Tight MCU — Silent Farewell"
+    description: "85mm tight concrete-wall MCU (-82 deg yaw, 3.35m) gives Samira her final quiet beat before vanishing."
+    start: 102.875
+    end: 105.000
+    stage_camera:
+      target: "samira.chest"
+      target_offset: [0, 0.14, -0.16]
+      maneuver: "cut"
+      distance: 3.35
+      pitch: 2
+      yaw: -82
+      lens: 85mm
+      focus: "samira.eyes"
+      dof: "shallow"
+    entities:
+      samira:
+        highlighted: true
+        note: "Final appearance of Samira; wind alone moves in the frame."
+
+  - id: "shot-36"
+    shot: 36
+    label: "Evan Frontal MS — Exhale of Acceptance"
+    description: "50mm frontal rail setup (+20 deg yaw, 2.65m); Evan closes his eyes and exhales, silently releasing the memory."
+    start: 105.000
+    end: 107.208
+    stage_camera:
+      target: "evan.chest"
+      target_offset: [0, 0.06, 0]
+      maneuver: "cut"
+      distance: 2.65
+      pitch: -4
+      yaw: 20
+      lens: 50mm
+      focus: "evan.eyes"
+      dof: "shallow"
+    entities:
+      evan:
+        highlighted: true
+        note: "Eye-closure acts as the psychological edit bridge triggering the trio's disappearance on Shot 37."
+
+  - id: "shot-37"
+    shot: 37
+    label: "Twist Reveal 1 — Empty Concrete Bench & Postcard"
+    description: "50mm angled downward cut (+18 deg pitch, -42 deg yaw, 3.1m) reveals Felix and Samira gone; only the coastal postcard remains on the bench."
+    start: 107.208
+    end: 108.333
+    stage_camera:
+      target: "bench"
+      target_offset: [0, 0.25, -0.35]
+      maneuver: "cut"
+      distance: 3.1
+      pitch: 18
+      yaw: -42
+      lens: 50mm
+      focus: "postcard"
+      dof: "shallow"
+    entities:
+      postcard:
+        highlighted: true
+        note: "Focal plane locks strictly onto the postcard prop—the sole physical artifact left behind."
+
+  - id: "shot-38"
+    shot: 38
+    label: "Twist Reveal 2 — Empty Ocean Railing"
+    description: "50mm medium shot (+8 deg pitch, +20 deg yaw, 2.8m) frames the vacant two-bar wooden guardrail span overlooking crashing surf."
+    start: 108.333
+    end: 109.917
+    stage_camera:
+      target: [-2.45, 0.68, -1.95]
+      maneuver: "cut"
+      distance: 2.8
+      pitch: 8
+      yaw: 20
+      lens: 50mm
+      focus: [-2.45, 0.68, -1.95]
+      dof: "medium"
+    entities:
+      rail_main_top:
+        highlighted: true
+        note: "Frames the exact empty span between posts NW and Center-L, confirming Rosa's side of the deck is deserted."
+
+  - id: "shot-39"
+    shot: 39
+    label: "Twist Reveal 3 — High-Angle Master (Alone)"
+    description: "Exact locked 30mm high master (7.2m, +29 deg pitch, +15 deg yaw) delivers the gut punch: identical geometry, now empty save for Evan and the postcard."
+    start: 109.917
+    end: 111.333
+    stage_camera:
+      target: [0.10, 0.85, -0.30]
+      maneuver: "cut"
+      distance: 7.2
+      pitch: 29
+      yaw: 15
+      lens: 30mm
+      dof: "deep"
+    entities:
+      evan:
+        highlighted: true
+        note: "Maintaining identical master coordinates across Shots 1, 8, 13, 24, 30, and 39 maximizes the shock of absence."
+
+  - id: "shot-40"
+    shot: 40
+    label: "Evan Frontal MS — Checks Watch"
+    description: "50mm frontal rail setup (+20 deg yaw, 2.65m); Evan looks down at his wristwatch, grounding himself in the solitary present."
+    start: 111.333
+    end: 112.667
+    stage_camera:
+      target: "evan.chest"
+      target_offset: [0, 0.06, 0]
+      maneuver: "cut"
+      distance: 2.65
+      pitch: -4
+      yaw: 20
+      lens: 50mm
+      focus: "evan.eyes"
+      dof: "shallow"
+    entities:
+      evan:
+        highlighted: true
+        note: "Final static medium shot before the film breaks its locked-tripod grammar for Shot 41."
+
+  - id: "shot-41"
+    shot: 41
+    label: "Finale — Tight CU Turn & Slow Dolly Pull-Back"
+    description: "85mm linear dolly track pull-back (2.24m -> 4.50m along +20 deg rail normal, ease-out) opens tight on Evan's grief, tracks his 180° turn to the ocean, and pulls back into solitude through fade-out and titles."
+    start: 112.667
+    end: 139.167
+    stage_camera:
+      target: "evan.head"
+      target_offset_start: [0, 0.00, 0]
+      target_offset_end: [0, -0.26, 0]
+      maneuver: "dolly"
+      easing: "ease-out"
+      rig:
+        type: "track"
+        from: [-0.33, 1.58, 0.03]
+        to: [0.44, 1.48, 2.15]
+      show_rig: true
+      lens: 85mm
+      focus: "evan.head"
+      aperture_start: "f/2.8"
+      aperture_end: "f/4.0"
+      show_path: true
+    entities:
+      evan:
+        highlighted: true
+        note: "Film's sole moving camera: ease-out dolly track completes ~70% of its retreat by fade-to-black (~121.5s), leaving Evan small against the sea."

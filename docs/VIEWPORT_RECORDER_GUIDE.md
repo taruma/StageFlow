@@ -108,10 +108,10 @@ npm run record [scene] [options]
 ### 3.1 Scene Argument Resolution
 The first positional argument specifies which score to render. It accepts:
 - **Blueprint Numeric Shortcuts**: `01`, `02`, `03`, `04`, `05`, `06`, `07` (or `bp01`–`bp07`).
-- **Scene Study Shortcuts**: `vf`, `vector-field`, `vector_field`.
-- **Canonical Slugs**: `demo`, `blueprint-02`, `the-expansion`, `afraid`.
+- **Scene Study Shortcuts**: `vf`, `vector-field`, `vector_field`, or any study slug/alias registered in `src/scores/catalog.yaml` (e.g. `afraid`, `coordinates-for-three`, `entropy`, `frequency-over-force`, `not-about-fish`, `observation-only`, `screaming-amber-wood`, `the-expansion`, `the-third-passenger`, `the-unresolved-variable`, `three-years-late`).
+- **Canonical Slugs**: `demo`, `blueprint-02`–`blueprint-07`, and all 12 study slugs (see [`docs/SCORE_CATALOG.md`](SCORE_CATALOG.md)).
 - **Custom Local Files**: Any local path (e.g. `path/to/my_score.yaml` or `my_score.json`).
-- **Default**: If omitted, defaults to `01` (`blueprint_01_two_shot_arc`).
+- **Default**: If omitted, defaults to `demo` (`Two-Shot Arc Blocking`, shortcut `01`).
 
 ```bash
 # Render Blueprint 01 (Observer View, 1080p 60fps)

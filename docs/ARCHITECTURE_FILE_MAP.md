@@ -27,6 +27,7 @@ stageflow/
 ├── AGENTS.md                        # Root governance, workflow rules & invariant router (< 24 KB)
 ├── CHANGELOG.md                     # Semantic version release log & unreleased change tracking
 ├── README.md                        # Quickstart overview & CLI command reference
+├── vite-plugin-score-catalog.ts     # Build-time Vite plugin emitting virtual:stageflow-catalog-index metadata
 ├── docs/                            # Detailed technical & architectural specifications (SSOT)
 │   ├── releases/                    # Versioned GitHub release notes archive
 │   │   ├── v1.0.0.md                # Release notes for StageFlow v1.0.0 initial release
@@ -102,7 +103,7 @@ stageflow/
 │   │   ├── scoreParser.ts           # Resilient YAML/JSON parser & degree/meter normalizer
 │   │   ├── scoreYamlUtils.ts        # Pure YAML header id/title modifiers, FNV-1a content hashing & duplicate matcher
 │   │   ├── scoreUrlLoader.ts        # Pure Layer 1 remote score validator, query param parser & HTTP fetcher
-│   │   ├── scoreCatalog.ts          # Bundled scene score catalog loader (driven by catalog.yaml via import.meta.glob) & alias resolver
+│   │   ├── scoreCatalog.ts          # Bundled scene score catalog loader (virtual:stageflow-catalog-index + lazy YAML chunks), default & alias resolver
 │   │   └── storage/                 # Client persistence utilities
 │   │       ├── scoreDb.ts           # IndexedDB persistence for score drafts & custom scenes (idb)
 │   │       └── localStorageUi.ts    # Synchronous localStorage helpers for UI preferences
@@ -227,8 +228,9 @@ stageflow/
 │   │   ├── StoryboardPanelCard.tsx  # Grouped shot storyboard card (1-up, Start-End 2-col, Start·Mid·End row)
 │   │   ├── StorageStatusBadge.tsx   # Visual status badge (Bundled vs. IndexedDB draft)
 │   │   └── InteractiveStudioApp.tsx # 3D choreography diorama & split workspace orchestrator
-│   ├── App.tsx                      # Code-split root mode switcher & suspense router
+│   ├── App.tsx                      # Code-split root mode switcher & suspense router (preloads single initial score)
 │   ├── main.tsx                     # Application entry point
+│   ├── vite-env.d.ts                # Vite client & virtual:stageflow-catalog-index TypeScript declarations
 │   └── index.css                    # Tailwind CSS v4 + blueprint design tokens
 └── tests/
     ├── helpers/                     # Shared typed test fixtures & YAML builders

@@ -1,0 +1,891 @@
+version: "1.0"
+id: "not-about-fish-2026"
+title: "Not About Fish"
+subtitle: "Gas Station Walk & Car Departure"
+description: "Robert and Mark exit a 24-hour store, walk past fuel pumps to a parked sedan, debate a dream over the roof, and drive off."
+video: "https://www.youtube.com/watch?v=2s_AZ4RUBNs"
+aspect_ratio: "16:9"
+duration: 47.589
+offset: 0.0
+
+optics:
+  dof_blur: true
+  dof: "medium"
+
+metadata:
+  setting: "24-hour convenience store & Exxon canopy, wet night exterior"
+  characters:
+    robert: "Grey hair, blue puffer vest, red plaid shirt"
+    mark: "Black hair, yellow raincoat, patterned sweater"
+  notes:
+    - "Unified +Z walk axis from storefront to sedan CXP-3808"
+    - "All camera distances include a +1.0m framing buffer"
+
+stage:
+  width: 28
+  depth: 34
+  grid_step: 2
+  show_rigs: true
+  observer_camera:
+    target: [0.0, 1.4, -6.0]
+    distance: 15.0
+    pitch: 10
+    yaw: 74
+    lens: 26mm
+  stage_camera:
+    target: "mark_exit"
+    target_offset: [0, 1.45, 0]
+    distance: 11.5
+    pitch: 0
+    yaw: 0
+    lens: 24mm
+
+entities:
+  # --- Characters ---
+  - id: "robert"
+    label: "Robert"
+    kind: "character"
+    style: "mannequin"
+    position: [0.15, 0, -10.4]
+    rotation: 0
+    size: [0.56, 1.82, 0.46]
+    color: "#38bdf8"
+
+  - id: "mark"
+    label: "Mark"
+    kind: "character"
+    style: "mannequin"
+    position: [0.45, 0, -11.3]
+    rotation: 0
+    size: [0.54, 1.72, 0.44]
+    color: "#facc15"
+
+  # --- Set & Props ---
+  - id: "store"
+    label: "24h Store"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [0.0, 0, -12.5]
+    size: [11.0, 3.6, 4.5]
+    color: "#ef4444"
+
+  - id: "truck_left"
+    label: "Pickup L"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [-7.6, 0, -11.5]
+    rotation: 0
+    size: [2.0, 1.8, 4.8]
+    color: "#64748b"
+
+  - id: "truck_right"
+    label: "Pickup R"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [7.6, 0, -11.5]
+    rotation: 180
+    size: [2.0, 1.8, 4.8]
+    color: "#64748b"
+
+  - id: "canopy"
+    label: "Exxon Canopy"
+    kind: "prop"
+    shape: "box"
+    style: "wireframe"
+    position: [0.6, 4.3, 2.5]
+    size: [8.5, 0.45, 9.5]
+    color: "#ef4444"
+
+  - id: "pump_west"
+    label: "Pump W"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [-2.4, 0, -0.4]
+    size: [0.9, 2.1, 1.6]
+    color: "#f97316"
+
+  - id: "pump_east"
+    label: "Pump E"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [3.4, 0, 4.4]
+    size: [0.9, 2.1, 1.6]
+    color: "#f97316"
+
+  - id: "car"
+    label: "Sedan CXP-3808"
+    kind: "prop"
+    shape: "box"
+    style: "edges"
+    position: [-0.8, 0, 4.4]
+    rotation: 0
+    size: [1.9, 1.38, 4.9]
+    color: "#0ea5e9"
+
+  - id: "pole_fg"
+    label: "Exit Pillar"
+    kind: "prop"
+    shape: "cylinder"
+    style: "solid"
+    position: [-2.4, 0, 9.4]
+    size: [0.35, 2.4, 0.35]
+    color: "#94a3b8"
+
+  - id: "bag"
+    label: "Grocery Bag"
+    kind: "prop"
+    shape: "box"
+    style: "solid"
+    position: [-0.17, 0.50, -10.3]
+    size: [0.28, 0.38, 0.22]
+    color: "#f8fafc"
+
+  # --- Blocking Marks ---
+  - id: "mark_exit"
+    label: "Store Exit"
+    kind: "marker"
+    shape: "t"
+    style: "glow"
+    position: [0.0, 0, -10.0]
+    color: "#38bdf8"
+
+  - id: "mark_pump_pass"
+    label: "Pump Pass"
+    kind: "marker"
+    shape: "x"
+    style: "tape"
+    position: [-0.3, 0, -0.4]
+    color: "#f97316"
+
+  - id: "mark_car_talk"
+    label: "Driver Door"
+    kind: "marker"
+    shape: "circle"
+    style: "glow"
+    position: [0.75, 0, 4.2]
+    color: "#facc15"
+
+  - id: "mark_front_cross"
+    label: "Front Bumper"
+    kind: "marker"
+    shape: "t"
+    style: "tape"
+    position: [-0.8, 0, 7.35]
+    color: "#a78bfa"
+
+# ==============================================================================
+# DECOUPLED BLOCKING TIMELINE
+# ==============================================================================
+blocking:
+  - id: "blk-01-exit-store"
+    label: "Exit Storefront"
+    start: 0.000
+    end: 2.169
+    easing: "linear"
+    entities:
+      robert: { position: [0.25, 0, -8.3], rotation: 0 }
+      mark: { position: [0.15, 0, -9.6], rotation: 0 }
+      bag: { position: [-0.07, 0.50, -8.2] }
+
+  - id: "blk-02-storefront-walk"
+    label: "Start Dream Story"
+    start: 2.169
+    end: 5.005
+    easing: "linear"
+    entities:
+      robert: { position: [0.35, 0, -5.6], rotation: 0 }
+      mark: { position: [-0.55, 0, -6.5], look_at: "robert" }
+      bag: { position: [0.03, 0.50, -5.5] }
+
+  - id: "blk-03-lot-walk"
+    label: "Mark Pulls Abreast"
+    start: 5.005
+    end: 6.423
+    easing: "linear"
+    entities:
+      robert: { position: [0.40, 0, -4.3], rotation: 0 }
+      mark: { position: [-0.60, 0, -4.5], rotation: 15 }
+      bag: { position: [0.08, 0.50, -4.2] }
+
+  - id: "blk-04-approach-pumps"
+    label: "Upside-Down Store Talk"
+    start: 6.423
+    end: 9.718
+    easing: "linear"
+    entities:
+      robert: { position: [0.45, 0, -1.4], rotation: 0 }
+      mark: { position: [-0.65, 0, -1.6], rotation: 20 }
+      bag: { position: [0.13, 0.50, -1.3] }
+
+  - id: "blk-05-pass-pump"
+    label: "Pass Gas Pump W"
+    start: 9.718
+    end: 11.845
+    easing: "linear"
+    entities:
+      robert: { position: [0.60, 0, 0.6], rotation: 5 }
+      mark: { position: [-0.45, 0, 0.4], rotation: 15 }
+      bag: { position: [0.28, 0.50, 0.7] }
+
+  - id: "blk-06-approach-car"
+    label: "Clear Car Rear"
+    start: 11.845
+    end: 14.223
+    easing: "linear"
+    entities:
+      robert: { position: [0.75, 0, 2.9], rotation: 5 }
+      mark: { position: [0.45, 0, 1.8], rotation: 22 }
+      bag: { position: [0.43, 0.50, 3.0] }
+
+  - id: "blk-07-reach-door"
+    label: "Step to Driver Door"
+    start: 14.223
+    end: 15.057
+    easing: "linear"
+    entities:
+      robert: { position: [0.65, 0, 4.0], rotation: 0 }
+      mark: { position: [1.85, 0, 3.8], look_at: "robert" }
+      bag: { position: [0.33, 0.50, 4.1] }
+
+  - id: "blk-08-load-bag"
+    label: "Set Bag in Car"
+    start: 15.057
+    end: 17.142
+    easing: "smooth"
+    entities:
+      robert: { position: [0.55, 0, 4.2], rotation: -90, height: 1.65 }
+      mark: { position: [1.10, 0, 5.15], look_at: "robert" }
+      bag: { position: [-0.45, 0.50, 3.8] }
+
+  - id: "blk-09-roof-listen"
+    label: "Lean on Roof"
+    start: 17.142
+    end: 24.107
+    easing: "smooth"
+    entities:
+      robert: { position: [0.55, 0, 4.2], rotation: -90, pitch: 12, height: 1.58 }
+      mark: { position: [1.10, 0, 5.15], look_at: "robert" }
+      bag: { visible: false }
+
+  - id: "blk-10-dont-dream"
+    label: "Robert Turns to Mark"
+    start: 24.107
+    end: 26.568
+    easing: "smooth"
+    entities:
+      robert: { position: [0.55, 0, 4.2], rotation: -55, pitch: 12, height: 1.58 }
+      mark: { position: [1.10, 0, 5.15], look_at: "robert" }
+
+  - id: "blk-11-not-about-fish"
+    label: "Deliver Punchline"
+    start: 26.568
+    end: 29.800
+    easing: "smooth"
+    entities:
+      robert: { position: [0.55, 0, 4.2], rotation: -60, pitch: 12, height: 1.58 }
+      mark: { position: [1.10, 0, 5.15], look_at: "robert" }
+
+  - id: "blk-12-robert-boards"
+    label: "Robert Enters Driver Seat"
+    start: 29.800
+    end: 31.698
+    easing: "smooth"
+    entities:
+      robert: { position: [-0.35, 0, 4.25], rotation: 0, pitch: 0, height: 1.25 }
+      mark: { position: [0.95, 0, 4.45], look_at: "robert" }
+
+  - id: "blk-13-door-shut"
+    label: "Door Closes"
+    start: 31.698
+    end: 32.600
+    easing: "smooth"
+    entities:
+      robert: { position: [-0.35, 0, 4.25], rotation: 0, height: 1.25 }
+      mark: { position: [0.95, 0, 4.45], look_at: "robert" }
+
+  - id: "blk-14-mark-to-front"
+    label: "Mark Heads to Front"
+    start: 32.600
+    end: 33.533
+    easing: "accel"
+    entities:
+      mark: { position: [0.35, 0, 7.25], rotation: 0 }
+
+  - id: "blk-15-cross-bumper"
+    label: "Cross Front Grille"
+    start: 33.533
+    end: 34.750
+    easing: "linear"
+    entities:
+      mark: { position: [-1.85, 0, 7.35], rotation: -90 }
+
+  - id: "blk-16-to-passenger-door"
+    label: "Walk to Passenger Door"
+    start: 34.750
+    end: 36.119
+    easing: "deccel"
+    entities:
+      mark: { position: [-2.10, 0, 4.55], rotation: 180 }
+
+  - id: "blk-17-mark-boards"
+    label: "Mark Enters Passenger Seat"
+    start: 36.119
+    end: 37.621
+    easing: "smooth"
+    entities:
+      mark: { position: [-1.25, 0, 4.25], rotation: 0, height: 1.22 }
+
+  - id: "blk-18-cabin-settle"
+    label: "Settle in Cabin"
+    start: 37.621
+    end: 39.373
+    easing: "smooth"
+    entities:
+      robert: { position: [-0.35, 0, 4.25], rotation: 0, height: 1.25 }
+      mark: { position: [-1.25, 0, 4.25], rotation: 0, height: 1.22 }
+
+  - id: "blk-19-you-coming"
+    label: "Robert Glances at Mark"
+    start: 39.373
+    end: 40.400
+    easing: "smooth"
+    entities:
+      robert: { rotation: -28 }
+      mark: { rotation: 28 }
+
+  - id: "blk-20-face-road"
+    label: "Face Forward"
+    start: 40.400
+    end: 41.041
+    easing: "smooth"
+    entities:
+      robert: { rotation: 0 }
+      mark: { rotation: 0 }
+
+  - id: "blk-21-car-pullout"
+    label: "Car Pulls Out & Turns"
+    start: 41.041
+    end: 42.334
+    easing: "accel"
+    entities:
+      car: { position: [0.60, 0, 8.20], rotation: 75 }
+      robert: { position: [0.58, 0, 7.73], rotation: 75 }
+      mark: { position: [0.34, 0, 8.59], rotation: 75 }
+
+  - id: "blk-22-car-depart"
+    label: "Accelerate Past Canopy"
+    start: 42.334
+    end: 44.711
+    easing: "cruise"
+    entities:
+      car: { position: [9.00, 0, 5.50], rotation: 112 }
+      robert: { position: [8.69, 0, 5.14], rotation: 112 }
+      mark: { position: [9.03, 0, 5.97], rotation: 112 }
+
+  - id: "blk-23-offstage-exit"
+    label: "Exit Lot"
+    start: 44.711
+    end: 47.589
+    easing: "linear"
+    entities:
+      car: { position: [12.50, 0, 4.10], rotation: 112 }
+      robert: { position: [12.19, 0, 3.74], rotation: 112 }
+      mark: { position: [12.53, 0, 4.57], rotation: 112 }
+
+# ==============================================================================
+# FILM COVERAGE SHOTS (22 SHOTS FROM CSV)
+# ==============================================================================
+shots:
+  - id: "shot-01"
+    shot: 1
+    label: "Storefront Establishing"
+    description: "Wide 24mm static; Robert and Mark exit the 24h store."
+    start: 0.000
+    end: 2.169
+    stage_camera:
+      target: "mark_exit"
+      target_offset: [0, 1.45, 0]
+      maneuver: "cut"
+      distance: 11.5
+      pitch: 0
+      yaw: 0
+      lens: 24mm
+      focus: "robert.chest"
+      dof: "deep"
+
+  - id: "shot-02"
+    shot: 2
+    label: "Side Tracking Two-Shot"
+    description: "50mm lateral track; Mark starts telling his dream behind Robert."
+    start: 2.169
+    end: 5.005
+    stage_camera:
+      target: ["robert.chest", "mark.chest"]
+      maneuver: "dolly"
+      easing: "linear"
+      distance: 4.5
+      pitch: 2
+      yaw_start: 62
+      yaw_end: 68
+      lens: 50mm
+      focus: "robert.eyes"
+      dof: "shallow"
+    entities:
+      robert: { highlighted: true }
+
+  - id: "shot-03"
+    shot: 3
+    label: "Robert Walking CU"
+    description: "85mm front-right tracking CU on Robert; neon store sign behind left."
+    start: 5.005
+    end: 6.423
+    stage_camera:
+      target: "robert.eyes"
+      target_offset: [0, -0.06, 0]
+      maneuver: "dolly"
+      easing: "linear"
+      distance: 3.9
+      pitch: 1
+      yaw: -36
+      lens: 85mm
+      focus: "robert.eyes"
+      dof: "shallow"
+    entities:
+      robert: { highlighted: true }
+
+  - id: "shot-04"
+    shot: 4
+    label: "Front Leading Two-Shot"
+    description: "50mm reverse track; Mark gestures on left, Robert walks on right."
+    start: 6.423
+    end: 9.718
+    stage_camera:
+      target: ["mark.chest", "robert.chest"]
+      target_offset: [0, 0.14, 0]
+      maneuver: "dolly"
+      easing: "linear"
+      distance: 4.0
+      pitch: 2
+      yaw_start: 14
+      yaw_end: 8
+      lens: 50mm
+      focus: "mark.eyes"
+      dof: "shallow"
+    entities:
+      mark: { highlighted: true }
+
+  - id: "shot-05"
+    shot: 5
+    label: "Rear Follow Past Pump"
+    description: "35mm full-body rear track; pair passes Pump W on screen right."
+    start: 9.718
+    end: 11.845
+    stage_camera:
+      target: ["robert.waist", "mark.waist"]
+      target_offset: [-0.25, 0.20, 0]
+      maneuver: "dolly"
+      easing: "linear"
+      distance: 5.5
+      pitch: 4
+      yaw: 176
+      lens: 35mm
+      focus: ["robert.chest", "mark.chest"]
+      dof: "medium"
+
+  - id: "shot-06"
+    shot: 6
+    label: "Mark Front Leading MCU"
+    description: "65mm lead track favoring Mark; fuel pumps recede on screen left."
+    start: 11.845
+    end: 14.223
+    stage_camera:
+      target: "mark.chest"
+      target_offset: [0.22, 0.14, 0]
+      maneuver: "dolly"
+      easing: "linear"
+      distance: 4.2
+      pitch: 2
+      yaw: 12
+      lens: 65mm
+      focus: "mark.eyes"
+      dof: "shallow"
+    entities:
+      mark: { highlighted: true }
+
+  - id: "shot-07"
+    shot: 7
+    label: "Profile Approach to Car"
+    description: "50mm side profile track as Robert leads Mark toward the sedan."
+    start: 14.223
+    end: 15.057
+    stage_camera:
+      target: ["robert.chest", "mark.chest"]
+      maneuver: "dolly"
+      easing: "linear"
+      distance: 4.5
+      pitch: 2
+      yaw: 82
+      lens: 50mm
+      focus: "robert.eyes"
+      dof: "shallow"
+
+  - id: "shot-08"
+    shot: 8
+    label: "Sedan CXP-3808 Reveal"
+    description: "35mm front-3/4 wide; Robert loads bag at driver door as Mark arrives."
+    start: 15.057
+    end: 17.142
+    stage_camera:
+      target: "car"
+      target_offset: [0.55, 0.45, 0.4]
+      maneuver: "dolly"
+      easing: "smooth"
+      distance_start: 6.6
+      distance_end: 6.2
+      pitch: 5
+      yaw: 12
+      lens: 35mm
+      focus: "mark.chest"
+      dof: "medium"
+
+  - id: "shot-09"
+    shot: 9
+    label: "Mark Over-Roof MCU"
+    description: "85mm across car roof; Mark describes the living fish."
+    start: 17.142
+    end: 19.436
+    stage_camera:
+      target: "mark.chest"
+      target_offset: [0, 0.14, 0]
+      maneuver: "cut"
+      distance: 5.0
+      pitch: 3
+      yaw: -108
+      lens: 85mm
+      focus: "mark.eyes"
+      dof: "shallow"
+    entities:
+      mark: { highlighted: true }
+
+  - id: "shot-10"
+    shot: 10
+    label: "Robert Leaning CU"
+    description: "105mm telephoto CU on Robert leaning stoically on the roof."
+    start: 19.436
+    end: 21.230
+    stage_camera:
+      target: "robert.eyes"
+      target_offset: [0, -0.08, 0]
+      maneuver: "cut"
+      distance: 4.4
+      pitch: 3
+      yaw: -62
+      lens: 105mm
+      focus: "robert.eyes"
+      dof: "shallow"
+    entities:
+      robert: { highlighted: true }
+
+  - id: "shot-11"
+    shot: 11
+    label: "Mark Humming Fish MCU"
+    description: "85mm over-roof single; Mark gestures and cups ear."
+    start: 21.230
+    end: 24.107
+    stage_camera:
+      target: "mark.chest"
+      target_offset: [0, 0.10, -0.18]
+      maneuver: "cut"
+      distance: 5.2
+      pitch: 3
+      yaw: -112
+      lens: 85mm
+      focus: "mark.eyes"
+      dof: "shallow"
+    entities:
+      mark: { highlighted: true }
+
+  - id: "shot-12"
+    shot: 12
+    label: "Over-Roof Two-Shot"
+    description: "85mm flat across roof; Robert says 'I don't dream'."
+    start: 24.107
+    end: 26.568
+    stage_camera:
+      target: ["robert.chest", "mark.chest"]
+      target_offset: [0, 0.05, 0]
+      maneuver: "cut"
+      distance: 6.2
+      pitch: 3
+      yaw: -90
+      lens: 85mm
+      focus: ["robert.eyes", "mark.eyes"]
+      dof: "shallow"
+
+  - id: "shot-13"
+    shot: 13
+    label: "Mark Pushback MCU"
+    description: "85mm over-roof single; Mark insists 'Everyone dreams, Robert'."
+    start: 26.568
+    end: 28.529
+    stage_camera:
+      target: "mark.chest"
+      target_offset: [0, 0.14, 0]
+      maneuver: "cut"
+      distance: 5.0
+      pitch: 3
+      yaw: -108
+      lens: 85mm
+      focus: "mark.eyes"
+      dof: "shallow"
+    entities:
+      mark: { highlighted: true }
+
+  - id: "shot-14"
+    shot: 14
+    label: "Robert Enters Car CU"
+    description: "105mm CU; Robert says 'Not about fish' and drops into driver seat."
+    start: 28.529
+    end: 31.698
+    stage_camera:
+      target: "robert.eyes"
+      target_offset: [0, -0.06, 0]
+      maneuver: "dolly"
+      easing: "smooth"
+      distance_start: 4.4
+      distance_end: 4.6
+      pitch_start: 3
+      pitch_end: 6
+      yaw_start: -62
+      yaw_end: -74
+      lens: 105mm
+      focus: "robert.eyes"
+      dof: "shallow"
+    entities:
+      robert: { highlighted: true }
+
+  - id: "shot-15"
+    shot: 15
+    label: "Interior Driver Window"
+    description: "35mm inside cabin looking past seated Robert out to Mark."
+    start: 31.698
+    end: 33.533
+    stage_camera:
+      target: ["robert.eyes", "mark.chest"]
+      target_offset: [0, -0.05, 0.10]
+      maneuver: "cut"
+      distance: 2.3
+      pitch: -4
+      yaw: -108
+      lens: 35mm
+      focus: "mark.chest"
+      dof: "shallow"
+
+  - id: "shot-16"
+    shot: 16
+    label: "Low Canopy Wide"
+    description: "28mm puddle-level wide; Mark walks around front headlights."
+    start: 33.533
+    end: 36.119
+    stage_camera:
+      target: "car"
+      target_offset: [0.2, 0.65, 0.2]
+      maneuver: "cut"
+      distance: 9.2
+      pitch: -6
+      yaw: -58
+      lens: 28mm
+      focus: "car"
+      dof: "deep"
+    entities:
+      mark: { highlighted: true }
+
+  - id: "shot-17"
+    shot: 17
+    label: "Symmetrical Grille Front"
+    description: "50mm head-on grille shot; Mark boards passenger seat and engine starts."
+    start: 36.119
+    end: 37.621
+    stage_camera:
+      target: "car"
+      target_offset: [0, 0.25, 2.2]
+      maneuver: "cut"
+      distance: 4.8
+      pitch: 1
+      yaw: 0
+      lens: 50mm
+      focus: ["mark.eyes", "robert.eyes"]
+      dof: "medium"
+
+  - id: "shot-18"
+    shot: 18
+    label: "Cabin Driver-Side 2-Shot"
+    description: "50mm interior profile past Robert onto Mark closing door."
+    start: 37.621
+    end: 39.373
+    stage_camera:
+      target: "mark.eyes"
+      target_offset: [0.15, -0.08, 0.05]
+      maneuver: "cut"
+      distance: 3.1
+      pitch: 2
+      yaw: 74
+      lens: 50mm
+      focus: "mark.eyes"
+      dof: "shallow"
+    entities:
+      mark: { highlighted: true }
+
+  - id: "shot-19"
+    shot: 19
+    label: "Cabin Passenger OTS"
+    description: "50mm interior OTS past Mark; Robert grips wheel and asks 'You coming?'."
+    start: 39.373
+    end: 41.041
+    stage_camera:
+      target: "robert.eyes"
+      target_offset: [-0.12, -0.06, 0.15]
+      maneuver: "cut"
+      distance: 3.1
+      pitch: 2
+      yaw: -112
+      lens: 50mm
+      focus: "robert.eyes"
+      dof: "shallow"
+    entities:
+      robert: { highlighted: true }
+
+  - id: "shot-20"
+    shot: 20
+    label: "Sedan Pull-Out"
+    description: "35mm tripod pan; headlights sweep wet asphalt as car turns left."
+    start: 41.041
+    end: 42.334
+    stage_camera:
+      target: "car"
+      target_offset: [0.5, 0.2, 0]
+      maneuver: "dolly"
+      rig:
+        type: "tripod"
+        position: [-4.8, 1.4, 13.5]
+      lens: 35mm
+      focus: "car"
+      dof: "medium"
+
+  - id: "shot-21"
+    shot: 21
+    label: "Departure Past Pillar"
+    description: "50mm tripod pan past foreground pillar; sedan exits past Exxon canopy."
+    start: 42.334
+    end: 44.711
+    stage_camera:
+      target: "car"
+      target_offset: [0, 0.3, 0]
+      maneuver: "dolly"
+      rig:
+        type: "tripod"
+        position: [-2.8, 1.35, 11.2]
+      lens: 50mm
+      focus: "car"
+      dof: "medium"
+
+  - id: "shot-22"
+    shot: 22
+    label: "Black Outro Hold"
+    description: "Cut to black; static wide hold on empty gas station."
+    start: 44.711
+    end: 47.589
+    stage_camera:
+      target: "canopy"
+      target_offset: [0, -2.5, 0]
+      maneuver: "cut"
+      distance: 15.0
+      pitch: 8
+      yaw: -25
+      lens: 28mm
+      dof: "deep"
+
+# ==============================================================================
+# DECOUPLED OBSERVER VIEWPORT MOVES (5 MOVEMENTS)
+# ==============================================================================
+observer_shots:
+  # 1. East side profile under canopy height — tracks storefront exit & early walk (Shots 1–4)
+  - id: "obs-01-east-profile-walk"
+    label: "East Profile: Store Exit"
+    start: 0.000
+    end: 9.718
+    from: [0.0, 1.4, -6.0]
+    target: [0.0, 1.3, -1.5]
+    maneuver: "dolly"
+    easing: "cruise"
+    distance_start: 15.0
+    distance_end: 14.5
+    pitch_start: 10
+    pitch_end: 9
+    yaw_start: 74
+    yaw_end: 64
+    lens: 26mm
+
+  # 2. Front-east side profile — clears Pump E and frames walk past Pump W to sedan (Shots 5–8)
+  - id: "obs-02-east-profile-car"
+    label: "East Profile: Pump to Car"
+    continuous: true
+    start: 9.718
+    end: 17.142
+    from: [0.0, 1.3, -1.5]
+    target: [0.0, 1.3, 3.8]
+    maneuver: "dolly"
+    easing: "cruise"
+    distance: 15.5
+    pitch: 9
+    yaw: 56
+
+  # 3. Low downstage sweep under canopy — exposes west-side Stage Cams shooting across roof (Shots 9–15)
+  - id: "obs-03-front-sweep-roof"
+    label: "Low Sweep: Roof Coverage"
+    continuous: true
+    start: 17.142
+    end: 33.533
+    from: [0.0, 1.3, 3.8]
+    target: [-1.5, 1.2, 4.5]
+    maneuver: "orbit"
+    direction: "cw"
+    easing: "cruise"
+    distance: 13.0
+    pitch: 8
+    yaw: -52
+
+  # 4. West side profile — frames front-bumper cross, cabin cams, and car pull-out (Shots 16–20)
+  - id: "obs-04-west-profile-boarding"
+    label: "West Profile: Boarding & Pull-Out"
+    continuous: true
+    start: 33.533
+    end: 42.334
+    from: [-1.5, 1.2, 4.5]
+    target: [-1.5, 1.1, 7.5]
+    maneuver: "dolly"
+    easing: "cruise"
+    distance: 15.5
+    pitch: 9
+    yaw: -80
+
+  # 5. Crane up to high overview revealing the entire gas station stage and departure (Shots 21–22)
+  - id: "obs-05-crane-up-master"
+    label: "Crane Up: Full Stage"
+    continuous: true
+    start: 42.334
+    end: 47.589
+    from: [-1.5, 1.1, 7.5]
+    target: [0.0, 0.5, -1.5]
+    maneuver: "dolly"
+    easing: "smooth"
+    distance: 32.0
+    pitch: 52
+    yaw: -32
+    lens_start: 26mm
+    lens_end: 24mm

@@ -5,10 +5,34 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { INITIAL_CATALOG_ITEMS } from '../../src/core/scoreCatalog';
+import {
+  getDefaultCatalogItem,
+  loadAllBundledScores,
+} from '../../src/core/scoreCatalog';
 import { computeStageFrame } from '../../src/core/frameEngine';
 import type { StageScore } from '../../src/core/types';
 import { CAMERA_LIMITS } from '../../src/core/constants';
+
+const STAGE_TARGET_PRESETS = new Set(['center', 'origin', 'stage']);
+
+function isValidTargetString(
+  target: string,
+  declaredEntityIds: Set<string>
+): boolean {
+  const clean = target.trim().toLowerCase();
+  if (STAGE_TARGET_PRESETS.has(clean)) {
+    return true;
+  }
+  if (declaredEntityIds.has(target)) {
+    return true;
+  }
+  const dotIdx = target.lastIndexOf('.');
+  if (dotIdx > 0) {
+    const baseEntityId = target.slice(0, dotIdx).trim();
+    return declaredEntityIds.has(baseEntityId);
+  }
+  return false;
+}
 
 const VALID_MANEUVERS = new Set([
   'cut',
@@ -116,10 +140,10 @@ export function validateScoreContract(score: StageScore): void {
         expect(cam.distance).toBeLessThanOrEqual(CAMERA_LIMITS.MAX_DISTANCE_M);
       }
 
-      // Target Anchor Resolution
-      if (typeof cam.target === 'string' && cam.target !== 'center') {
+      // Target Anchor Resolution (stage presets, entity IDs, or dot-notation sub-anchors)
+      if (typeof cam.target === 'string') {
         expect(
-          declaredEntityIds.has(cam.target),
+          isValidTargetString(cam.target, declaredEntityIds),
           `Shot "${shot.id}" targets undeclared entity "${cam.target}"`
         ).toBe(true);
       }
@@ -148,9 +172,9 @@ export function validateScoreContract(score: StageScore): void {
       expect(obsShot.startSec).toBeGreaterThanOrEqual(0);
       expect(obsShot.endSec).toBeGreaterThan(obsShot.startSec);
 
-      if (typeof obsShot.camera?.target === 'string' && obsShot.camera.target !== 'center') {
+      if (typeof obsShot.camera?.target === 'string') {
         expect(
-          declaredEntityIds.has(obsShot.camera.target),
+          isValidTargetString(obsShot.camera.target, declaredEntityIds),
           `Observer shot "${obsShot.id}" targets undeclared entity "${obsShot.camera.target}"`
         ).toBe(true);
       }
@@ -210,15 +234,23 @@ export function validateScoreContract(score: StageScore): void {
   expect(frameScrubbed.observerCamera.transform.position).toEqual(frameDirect.observerCamera.transform.position);
 }
 
+const ALL_LOADED_SCORES = await loadAllBundledScores();
+
 describe('Universal Choreography Score Contract Tests', () => {
-  const studyItems = INITIAL_CATALOG_ITEMS.filter((item) => item.category === 'study');
-  const blueprintItems = INITIAL_CATALOG_ITEMS.filter((item) => item.category === 'blueprint');
+  const studyItems = ALL_LOADED_SCORES.filter((item) => item.category === 'study');
+  const blueprintItems = ALL_LOADED_SCORES.filter((item) => item.category === 'blueprint');
 
   describe('Scene Studies (Authored by Taruma Sakti)', () => {
-    it('contains at least one official study score (default scene)', () => {
-      expect(studyItems.length).toBeGreaterThan(0);
-      expect(studyItems[0].id).toBe('vector-field');
-      expect(studyItems[0].aliases).toContain('vector-field-taruma-sakti');
+    it('contains all 12 official study scores ordered alphabetically with Vector Field as default', () => {
+      expect(studyItems).toHaveLength(12);
+      const studyIds = studyItems.map((item) => item.id);
+      expect(studyIds[0]).toBe('afraid');
+      expect(studyIds[studyIds.length - 1]).toBe('vector-field');
+      expect(studyIds).toEqual([...studyIds].sort((a, b) => a.localeCompare(b)));
+
+      const defaultItem = getDefaultCatalogItem(ALL_LOADED_SCORES);
+      expect(defaultItem.id).toBe('vector-field');
+      expect(defaultItem.aliases).toContain('vector-field-taruma-sakti');
     });
 
     for (const item of studyItems) {

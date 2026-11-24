@@ -7,14 +7,43 @@
 #   id: string          # Required: Canonical URL slug (e.g. ?score=vector-field)
 #   file: string        # Required: Path relative to src/scores/
 #   category: string    # Required: "study" | "blueprint"
+#   default: boolean    # Optional: Marks the default launch scene (independent of display order)
 #   aliases: string[]   # Optional: Backwards-compatible slugs or shortcuts
 # ==============================================================================
 
-- id: vector-field
-  file: studies/vector_field.yaml
+- id: afraid
+  file: studies/afraid.yaml
   category: study
   aliases:
-    - vector-field-taruma-sakti
+    - afraid-taruma-sakti
+
+- id: coordinates-for-three
+  file: studies/coordinates-for-three.yaml
+  category: study
+
+- id: entropy
+  file: studies/entropy.yaml
+  category: study
+  aliases:
+    - entropy-taruma-sakti
+
+- id: frequency-over-force
+  file: studies/frequency-over-force.yaml
+  category: study
+
+- id: not-about-fish
+  file: studies/not-about-fish.yaml
+  category: study
+  aliases:
+    - not-about-fish-2026
+
+- id: observation-only
+  file: studies/observation-only.yaml
+  category: study
+
+- id: screaming-amber-wood
+  file: studies/screaming-amber-wood.yaml
+  category: study
 
 - id: the-expansion
   file: studies/the-expansion.yaml
@@ -22,11 +51,25 @@
   aliases:
     - the-expansion-taruma-sakti
 
-- id: afraid
-  file: studies/afraid.yaml
+- id: the-third-passenger
+  file: studies/the-third-passenger.yaml
   category: study
+
+- id: the-unresolved-variable
+  file: studies/the-unresolved-variable.yaml
+  category: study
+
+- id: three-years-late
+  file: studies/three-years-late.yaml
+  category: study
+
+- id: vector-field
+  file: studies/vector_field.yaml
+  category: study
+  default: true
   aliases:
-    - afraid-taruma-sakti
+    - vector-field-taruma-sakti
+    - vf
 
 - id: demo
   file: blueprints/demo_blueprint.yaml

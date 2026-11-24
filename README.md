@@ -13,7 +13,7 @@
 <p align="center">
   <a href="https://github.com/taruma/stageflow/releases"><img src="https://img.shields.io/badge/version-1.3.0-blue.svg?style=flat-square" alt="Version 1.3.0" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-yellow.svg?style=flat-square" alt="License MIT" /></a>
-  <a href="https://github.com/taruma/stageflow"><img src="https://img.shields.io/badge/tests-354%20passed-brightgreen.svg?style=flat-square" alt="Vitest 354 Passed" /></a>
+  <a href="https://github.com/taruma/stageflow"><img src="https://img.shields.io/badge/tests-382%20passed-brightgreen.svg?style=flat-square" alt="Vitest 382 Passed" /></a>
   <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.8-blue.svg?style=flat-square" alt="TypeScript 5.8" /></a>
   <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-19-61dafb.svg?style=flat-square" alt="React 19" /></a>
   <a href="https://threejs.org/"><img src="https://img.shields.io/badge/Three.js-r175-black.svg?style=flat-square" alt="Three.js r175" /></a>
@@ -152,7 +152,7 @@ Open `http://localhost:5173` in your browser.
 | Command | Task | Description |
 | :--- | :--- | :--- |
 | `npm run dev` | **Local Studio** | Starts Vite development server at `localhost:5173` |
-| `npm test` | **Unit & Integration Suite** | Runs 354 deterministic tests across 41 suites via Vitest |
+| `npm test` | **Unit & Integration Suite** | Runs 382 deterministic tests across 42 suites via Vitest |
 | `npm run build` | **Typecheck & Bundle** | Strict TypeScript check (`tsc -b`) and Vite production build |
 | `npm run lint` | **Code Linter** | Ultra-fast static analysis via `oxlint` |
 | `npm run record` | **Viewport Recorder** | Records 60fps video via headless Playwright + FFmpeg |
@@ -197,7 +197,7 @@ graph TD
 * **Media & Audio Engine**: HTML5 Video, YouTube IFrame API (60fps extrapolation), Web Audio API
 * **State & Persistence**: [IndexedDB (`idb`)](https://github.com/jakearchibald/idb), `localStorage`
 * **Headless Video Export**: [Playwright](https://playwright.dev/) (Chromium), [FFmpeg](https://ffmpeg.org/)
-* **Quality & Tooling**: [Vitest](https://vitest.dev/) (354 deterministic tests), [oxlint](https://oxc.rs/)
+* **Quality & Tooling**: [Vitest](https://vitest.dev/) (382 deterministic tests), [oxlint](https://oxc.rs/)
 
 ---
 

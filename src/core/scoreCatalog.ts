@@ -1,21 +1,30 @@
 /**
  * Bundled scene catalog registry for StageFlow.
- * Driven declaratively by src/scores/catalog.yaml with zero TypeScript maintenance required.
+ * Metadata index is generated at build time via `virtual:stageflow-catalog-index`
+ * from `src/scores/catalog.yaml`, while full YAML payloads are lazy-loaded on demand.
+ * Pure Layer 1 module: zero React and zero DOM/Three.js dependencies.
  */
 
-import yaml from 'yaml';
-import catalogManifestRaw from '../scores/catalog.yaml?raw';
+import catalogIndex, {
+  type BundledScoreIndexEntry,
+} from 'virtual:stageflow-catalog-index';
 import type { ScoreCategory, StageScore } from './types';
 import { parseStageScore } from './scoreParser';
 import { computeYamlContentHash } from './scoreYamlUtils';
+import { parseInitialUrlQueryParams } from './scoreUrlLoader';
 
 export interface ScoreCatalogItem {
   id: string;
   title: string;
   subtitle?: string;
   category: ScoreCategory;
-  rawYaml: string;
-  score: StageScore;
+  durationSec: number;
+  shotCount: number;
+  aspectRatio: number;
+  videoUrl: string;
+  isDefault?: boolean;
+  rawYaml?: string;
+  score?: StageScore;
   isCustom?: boolean;
   aliases?: string[];
   contentHash?: string;
@@ -24,84 +33,61 @@ export interface ScoreCatalogItem {
   sourceFileName?: string;
 }
 
-interface ManifestEntry {
-  id: string;
-  file: string;
-  category?: ScoreCategory;
-  aliases?: string[];
+export interface LoadedScoreCatalogItem extends ScoreCatalogItem {
+  rawYaml: string;
+  score: StageScore;
 }
 
-// Vite eagerly imports all YAML files in src/scores/ as raw strings
-const rawScoreModules = import.meta.glob<string>('../scores/**/*.yaml', {
-  query: '?raw',
-  eager: true,
-  import: 'default',
-});
+// Vite lazy-loads bundled YAML files as separate raw string chunks on demand
+const lazyScoreModules = import.meta.glob<string>(
+  '../scores/{studies,blueprints}/**/*.yaml',
+  {
+    query: '?raw',
+    eager: false,
+    import: 'default',
+  }
+);
+
+const indexEntryById = new Map<string, BundledScoreIndexEntry>();
+for (const entry of catalogIndex) {
+  indexEntryById.set(entry.id, entry);
+}
+
+export const INITIAL_CATALOG_ITEMS: ScoreCatalogItem[] = catalogIndex.map(
+  (entry) => ({
+    id: entry.id,
+    title: entry.title,
+    subtitle: entry.subtitle,
+    category: entry.category,
+    durationSec: entry.durationSec,
+    shotCount: entry.shotCount,
+    aspectRatio: entry.aspectRatio,
+    videoUrl: entry.videoUrl,
+    isDefault: entry.isDefault,
+    isCustom: false,
+    aliases: entry.aliases ?? [],
+  })
+);
+
+const loadedBundledCache = new Map<string, LoadedScoreCatalogItem>();
+const inFlightLoads = new Map<string, Promise<LoadedScoreCatalogItem>>();
 
 /**
- * Resolves raw YAML content from the eagerly loaded Vite glob map.
- * Normalizes relative paths and path separators for cross-platform robustness.
+ * Resolves a lazy Vite module loader for a score path relative to `src/scores/`.
+ * Normalizes relative paths and backslashes for cross-platform robustness.
  */
-function resolveRawScoreYaml(relFile: string): string | undefined {
+function resolveLazyScoreLoader(
+  relFile: string
+): (() => Promise<string>) | undefined {
   const target = relFile.replace(/^[./\\]+/, '').replace(/\\/g, '/');
-  for (const [key, content] of Object.entries(rawScoreModules)) {
+  for (const [key, loader] of Object.entries(lazyScoreModules)) {
     const cleanKey = key.replace(/^[./\\]+/, '').replace(/\\/g, '/');
     if (cleanKey.endsWith(target)) {
-      return content;
+      return loader;
     }
   }
   return undefined;
 }
-
-/**
- * Builds the bundled catalog items by parsing the declarative catalog.yaml manifest.
- */
-function buildInitialCatalog(): ScoreCatalogItem[] {
-  const parsedManifest = yaml.parse(catalogManifestRaw);
-  if (!Array.isArray(parsedManifest)) {
-    throw new Error('Invalid catalog.yaml: Expected top-level array of score entries.');
-  }
-
-  const items: ScoreCatalogItem[] = [];
-
-  for (const entry of parsedManifest as ManifestEntry[]) {
-    if (!entry.id || !entry.file) {
-      throw new Error(`Invalid catalog.yaml entry: Missing "id" or "file" property.`);
-    }
-
-    const rawYaml = resolveRawScoreYaml(entry.file);
-    if (!rawYaml) {
-      throw new Error(
-        `Score catalog manifest error: File "${entry.file}" specified for id "${entry.id}" was not found in src/scores/.`
-      );
-    }
-
-    const parsed = parseStageScore(rawYaml, entry.id);
-    if (!parsed.score) {
-      throw new Error(
-        `Failed to parse bundled score "${entry.file}" (${entry.id}): ${parsed.error}`
-      );
-    }
-
-    const hash = computeYamlContentHash(rawYaml);
-    items.push({
-      id: entry.id,
-      title: parsed.score.title,
-      subtitle: parsed.score.subtitle,
-      category: entry.category ?? 'blueprint',
-      rawYaml,
-      score: parsed.score,
-      isCustom: false,
-      aliases: entry.aliases ?? [],
-      contentHash: hash,
-      originalContentHash: hash,
-    });
-  }
-
-  return items;
-}
-
-export const INITIAL_CATALOG_ITEMS: ScoreCatalogItem[] = buildInitialCatalog();
 
 /**
  * Resolves a score catalog item by its canonical ID or any registered alias.
@@ -120,16 +106,159 @@ export function findCatalogItem(
 }
 
 /**
- * Checks whether a given scene ID corresponds to a factory bundled blueprint (by canonical ID or alias).
+ * Checks whether a given scene ID corresponds to a factory bundled score (by canonical ID or alias).
  */
 export function isBundledSceneId(id: string): boolean {
   return findCatalogItem(id, INITIAL_CATALOG_ITEMS) !== undefined;
 }
 
 /**
+ * Returns the default catalog item (preferring `isDefault === true`, else `catalog[0]`).
+ */
+export function getDefaultCatalogItem(
+  catalog: ScoreCatalogItem[] = INITIAL_CATALOG_ITEMS
+): ScoreCatalogItem {
+  const flagged = catalog.find((item) => item.isDefault === true);
+  if (flagged) return flagged;
+  const first = catalog[0];
+  if (!first) {
+    throw new Error('Score catalog is empty; cannot resolve default score.');
+  }
+  return first;
+}
+
+/**
+ * Returns the canonical ID of the default bundled scene.
+ */
+export function getDefaultSceneId(): string {
+  return getDefaultCatalogItem(INITIAL_CATALOG_ITEMS).id;
+}
+
+/**
+ * Returns a cached loaded bundled score synchronously if already loaded, or `undefined`.
+ */
+export function getCachedBundledScore(
+  idOrAlias: string
+): LoadedScoreCatalogItem | undefined {
+  const matched = findCatalogItem(idOrAlias, INITIAL_CATALOG_ITEMS);
+  if (!matched) return undefined;
+  return loadedBundledCache.get(matched.id);
+}
+
+/**
+ * Lazily loads, parses, and hashes a single bundled score by canonical ID or alias.
+ * Deduplicates concurrent in-flight requests and caches the parsed result.
+ */
+export async function loadBundledScore(
+  idOrAlias: string
+): Promise<LoadedScoreCatalogItem> {
+  const matched = findCatalogItem(idOrAlias, INITIAL_CATALOG_ITEMS);
+  if (!matched) {
+    throw new Error(
+      `Bundled score "${idOrAlias}" was not found in catalog manifest.`
+    );
+  }
+
+  const cached = loadedBundledCache.get(matched.id);
+  if (cached) {
+    return cached;
+  }
+
+  const pending = inFlightLoads.get(matched.id);
+  if (pending) {
+    return pending;
+  }
+
+  const entry = indexEntryById.get(matched.id);
+  if (!entry) {
+    throw new Error(
+      `Catalog index entry missing for bundled score "${matched.id}".`
+    );
+  }
+
+  const loader = resolveLazyScoreLoader(entry.file);
+  if (!loader) {
+    throw new Error(
+      `Score catalog manifest error: File "${entry.file}" specified for id "${entry.id}" was not found in src/scores/.`
+    );
+  }
+
+  const loadPromise = (async (): Promise<LoadedScoreCatalogItem> => {
+    const rawYaml = await loader();
+    const parsed = parseStageScore(rawYaml, entry.id);
+    if (!parsed.score) {
+      throw new Error(
+        `Failed to parse bundled score "${entry.file}" (${entry.id}): ${parsed.error}`
+      );
+    }
+
+    const hash = computeYamlContentHash(rawYaml);
+    const loadedItem: LoadedScoreCatalogItem = {
+      id: entry.id,
+      title: parsed.score.title,
+      subtitle: parsed.score.subtitle,
+      category: entry.category,
+      durationSec: parsed.score.durationSec,
+      shotCount: parsed.score.shots.length,
+      aspectRatio: parsed.score.aspectRatio,
+      videoUrl: parsed.score.videoUrl,
+      isDefault: entry.isDefault,
+      rawYaml,
+      score: parsed.score,
+      isCustom: false,
+      aliases: entry.aliases ?? [],
+      contentHash: hash,
+      originalContentHash: hash,
+    };
+
+    loadedBundledCache.set(entry.id, loadedItem);
+    return loadedItem;
+  })();
+
+  inFlightLoads.set(matched.id, loadPromise);
+  try {
+    return await loadPromise;
+  } finally {
+    inFlightLoads.delete(matched.id);
+  }
+}
+
+/**
+ * Loads and parses every bundled score in the catalog manifest.
+ */
+export async function loadAllBundledScores(): Promise<LoadedScoreCatalogItem[]> {
+  return Promise.all(
+    INITIAL_CATALOG_ITEMS.map((item) => loadBundledScore(item.id))
+  );
+}
+
+/**
+ * Preloads the single initial bundled score needed at Studio startup:
+ * - Resolves `?score=` / `?scene=` from `search` first
+ * - Else checks `storedSceneId`
+ * - If bundled, loads that single score; otherwise loads `getDefaultSceneId()`
+ */
+export async function preloadInitialBundledScore(
+  search?: string,
+  storedSceneId?: string | null
+): Promise<LoadedScoreCatalogItem> {
+  const { scoreId } = parseInitialUrlQueryParams(search ?? '');
+  if (scoreId && isBundledSceneId(scoreId)) {
+    return loadBundledScore(scoreId);
+  }
+  if (!scoreId && storedSceneId && isBundledSceneId(storedSceneId)) {
+    return loadBundledScore(storedSceneId);
+  }
+  return loadBundledScore(getDefaultSceneId());
+}
+
+/**
  * Generates a clean, minimal valid StageFlow choreography YAML score for new custom projects.
  */
-export function generateBlankScoreYaml(id: string, title = 'New Custom Scene'): string {
+export function generateBlankScoreYaml(
+  id: string,
+  title = 'New Custom Scene'
+): string {
   return `# ==============================================================================
 # STAGEFLOW CHOREOGRAPHY SCORE — ${title.toUpperCase()}
 # ==============================================================================

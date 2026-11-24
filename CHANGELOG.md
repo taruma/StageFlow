@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **9 New Directorial Scene Studies & Alphabetical Catalog Manifest (`src/scores/studies/*.yaml`, `src/scores/catalog.yaml`, `docs/SCORE_CATALOG.md`, `tests/integration/bundledScores.test.ts`, `tests/integration/scoreContract.test.ts`, `tests/unit/recorder.test.ts`, `tests/unit/storage.test.ts`)**:
+  - Added 9 auteur scene studies by Taruma Sakti (`coordinates-for-three.yaml`, `entropy.yaml`, `frequency-over-force.yaml`, `not-about-fish.yaml`, `observation-only.yaml`, `screaming-amber-wood.yaml`, `the-third-passenger.yaml`, `the-unresolved-variable.yaml`, `three-years-late.yaml`), expanding the bundled catalog to 19 scores (12 Studies ordered alphabetically `afraid`..`vector-field` + 7 pedagogical Blueprints `demo`..`blueprint-07`).
+  - Added optional `default: boolean` manifest support in `src/scores/catalog.yaml` (`vector-field` marked `default: true` with `vf` alias) so launch default selection is independent of display order.
+- **Build-Time Catalog Index & Lazy Bundled Score Chunking (`vite-plugin-score-catalog.ts`, `vite.config.ts`, `src/vite-env.d.ts`, `src/core/scoreCatalog.ts`, `src/App.tsx`, `src/hooks/useScorePersistence.ts`, `src/ui/InteractiveStudioApp.tsx`, `src/ui/ScoreLibraryModal.tsx`, `src/ui/library/ScoreLibraryCard.tsx`, `src/ui/library/ScoreInspectorPane.tsx`, `src/recorder/HeadlessRecorderView.tsx`, `scripts/record/cli.ts`, `scripts/record/batchRecord.ts`, `docs/ARCHITECTURE_FILE_MAP.md`, `docs/CORE_MATH_AND_SCORE_SPECIFICATIONS.md`, `docs/SCORE_CATALOG.md`)**:
+  - Added `scoreCatalogPlugin()` in `vite-plugin-score-catalog.ts` (wired into `vite.config.ts` and typed in `src/vite-env.d.ts`) emitting `virtual:stageflow-catalog-index` (`BundledScoreIndexEntry[]`) with Vite dev watcher and HMR invalidation.
+  - Updated `src/core/scoreCatalog.ts` to pair `virtual:stageflow-catalog-index` with lazy `import.meta.glob('../scores/{studies,blueprints}/**/*.yaml', { query: '?raw', import: 'default', eager: false })` chunks and exported `LoadedScoreCatalogItem`, `getDefaultCatalogItem()`, `getDefaultSceneId()`, `getCachedBundledScore()`, `loadBundledScore()`, `loadAllBundledScores()`, and `preloadInitialBundledScore()`.
+  - Updated `src/App.tsx` (`preloadInitialBundledScore`), `useScorePersistence.ts` (deferred mount invalidation + async hydration/migration/fork/reset), `InteractiveStudioApp.tsx`, `ScoreLibraryModal.tsx` (alphabetical `studyScores` sort, required `onEnsureScoreLoaded`, `scrollIntoView`), `ScoreLibraryCard.tsx`, `ScoreInspectorPane.tsx` (lightweight metadata rendering + loading state), `HeadlessRecorderView.tsx` (`generateBlankScoreYaml('headless-fallback')` fallback), and `scripts/record/cli.ts` / `batchRecord.ts` (async `loadBundledScore`).
 - **Session-Only 3D Diorama HUD Toggle (`DirectorialTransportBar.tsx`, `DioramaOverlayContainer.tsx`, `useStudioDisplaySettings.ts`, `InteractiveStudioApp.tsx`, `AppInfoModal.tsx`, `docs/DIORAMA_3D_AND_UI_SPECIFICATIONS.md`, `docs/MEDIA_CLOCK_AND_SYNC_SPECIFICATIONS.md`, `docs/ARCHITECTURE_FILE_MAP.md`, `README.md`, `AGENTS.md`)**:
   - Added session-only `showDioramaHud` state (default `true`, resets on page reload) and global hotkey `H` in `useStudioDisplaySettings.ts`.
   - Mounted an `Eye` / `EyeOff` toggle button in the desktop bottom-left transport slot (`hidden md:flex`) right beside the Stage Cam PNG Snapshot button in `DirectorialTransportBar.tsx`.
@@ -28,6 +35,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Choreography Contract Validation & Bundled Test Migration (`tests/integration/scoreContract.test.ts`, `tests/integration/bundledScores.test.ts`, `tests/unit/recorder.test.ts`, `tests/unit/storage.test.ts`, `README.md`)**:
+  - Updated `validateScoreContract()` in `scoreContract.test.ts` to support stage target presets (`center`, `origin`, `stage`) and dot-notation entity sub-anchors (`lastIndexOf('.')`), migrated bundled/unit suites to `loadAllBundledScores()` / `loadBundledScore()`, added coverage for all 12 studies + aliases and `getDefaultCatalogItem()`, and updated test count badges (`382` tests across `42` suites in `README.md`).
 - **Playback React Memo Hygiene & YouTube Embed Origin Guard (`src/ui/left-panel/SceneProductionBrief.tsx`, `src/ui/transport/DirectorialShotChipsStrip.tsx`, `src/media/youtubeMediaDriver.ts`)**:
   - Wrapped `SceneProductionBrief` and `DirectorialShotChipsStrip` in `React.memo` to skip redundant 10 Hz `uiSnapshot` re-renders (including `<ReactMarkdown>` re-parsing) when `score` / `activeShotId` are unchanged during playback.
   - Added guarded `origin` (`http*` check) to `YouTubeMediaDriver` `playerVars` to suppress cross-origin `postMessage` startup warnings on HTTP(S) hosts.
@@ -38,6 +47,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added `BUFFERING` (`state === 3`) clock freeze (without flipping UI play state), `25ms` deadband + `25ms–250ms` proportional rate-trimming (`reconcileYouTubeClockSample`), and a `0.75 * playbackRate` silent-stall extrapolation cap in `YouTubeMediaDriver` (`youtubeMediaDriver.ts`).
   - Restricted `OrbitControls` damping-delta flushing in `ObserverCameraRig.tsx` to discrete transitions (mount, presets, mode cuts, seeks, resets) and replaced per-frame `.slice().reverse().find(...)` allocations in `trajectoryChain.ts` with backward `for` loops.
   - Added unit tests for `reconcileYouTubeClockSample`, YouTube `BUFFERING`/silent-stall caps, `resolveDioramaGlOptions`, `shouldDrawMinimapTick`, and `areDioramaMinimapPropsEqual`.
+
+### Fixed
+
+- **Study Kinematic Continuity & CLI Recorder Default (`src/scores/studies/three-years-late.yaml`, `src/scores/studies/observation-only.yaml`, `scripts/record/cliArgs.ts`, `docs/VIEWPORT_RECORDER_GUIDE.md`)**:
+  - Added explicit `from:` anchors across `obs-02`–`obs-05` in `three-years-late.yaml` to eliminate observer camera eye jumps at shot boundaries (`< 0.05m` across `59.083s`, `91.167s`, and `112.667s`).
+  - Adjusted `blk-john-walkout` `end: 58.100` in `observation-only.yaml` so John arrives smoothly at `[0, 0, 5.15]` right as `exit_door_left` and `exit_door_right` swing open (`|rotationYRad| > 1.0` at `59.0s`).
+  - Fixed stale default `sceneInput` in `scripts/record/cliArgs.ts` and `docs/VIEWPORT_RECORDER_GUIDE.md` from `blueprint_01_two_shot_arc` to `demo`.
 
 ## [1.3.0] - 2026-11-23
 

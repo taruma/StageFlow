@@ -10,7 +10,7 @@ import { degToRad, sphericalToCartesian } from '../core/sphericalMath';
 import { parseStageScore } from '../core/scoreParser';
 import { computeStageFrame } from '../core/frameEngine';
 import { hasStageFrameBoundaryChanged } from '../core/frameBoundaryDiff';
-import { INITIAL_CATALOG_ITEMS } from '../core/scoreCatalog';
+import { generateBlankScoreYaml } from '../core/scoreCatalog';
 import { isEntityVisuallyVisible } from '../core/stageDisplayOptions';
 import { DioramaCanvas } from '../stage/DioramaCanvas';
 import { getDioramaThemeColors } from '../stage/dioramaTheme';
@@ -24,8 +24,11 @@ import type {
   HeadlessRecorderBridge,
 } from './recorderTypes';
 
+const FALLBACK_SCORE_YAML = generateBlankScoreYaml('headless-fallback');
+const FALLBACK_SCORE = parseStageScore(FALLBACK_SCORE_YAML, 'headless-fallback').score!;
+
 const DEFAULT_CONFIG: RecorderConfig = {
-  scoreYaml: INITIAL_CATALOG_ITEMS[0].rawYaml,
+  scoreYaml: FALLBACK_SCORE_YAML,
   cameraMode: 'scripted',
   labelMode: 'all',
   showGuides: false,
@@ -86,9 +89,9 @@ export const HeadlessRecorderView: React.FC = () => {
   const parsedScoreResult = useMemo(() => {
     try {
       const res = parseStageScore(config.scoreYaml);
-      return res.score ?? INITIAL_CATALOG_ITEMS[0].score;
+      return res.score ?? FALLBACK_SCORE;
     } catch {
-      return INITIAL_CATALOG_ITEMS[0].score;
+      return FALLBACK_SCORE;
     }
   }, [config.scoreYaml]);
 
@@ -241,7 +244,7 @@ export const HeadlessRecorderView: React.FC = () => {
         skinErrorRef.current = null;
 
         const res = parseStageScore(newConfig.scoreYaml);
-        const parsed = res.score ?? INITIAL_CATALOG_ITEMS[0].score;
+        const parsed = res.score ?? FALLBACK_SCORE;
         scoreRef.current = parsed;
 
         const entityById = new Map(parsed.entities.map((e) => [e.id, e]));

@@ -303,13 +303,38 @@ describe('localStorageUi — Synchronous UI Preferences Persistence', () => {
   });
 });
 
-import { isBundledSceneId, generateBlankScoreYaml } from '../../src/core/scoreCatalog';
+import {
+  getCachedBundledScore,
+  getDefaultCatalogItem,
+  getDefaultSceneId,
+  isBundledSceneId,
+  loadBundledScore,
+  generateBlankScoreYaml,
+} from '../../src/core/scoreCatalog';
 import { parseStageScore } from '../../src/core/scoreParser';
 
 describe('scoreCatalog — Bundled Presets & Blank Project Generator', () => {
+  it('resolves default catalog item and scene ID independently of study order', () => {
+    expect(getDefaultCatalogItem().id).toBe('vector-field');
+    expect(getDefaultSceneId()).toBe('vector-field');
+  });
+
   it('correctly identifies bundled scene IDs and custom scene IDs', () => {
-    // Canonical slugs
+    // Canonical study slugs (all 12)
+    expect(isBundledSceneId('afraid')).toBe(true);
+    expect(isBundledSceneId('coordinates-for-three')).toBe(true);
+    expect(isBundledSceneId('entropy')).toBe(true);
+    expect(isBundledSceneId('frequency-over-force')).toBe(true);
+    expect(isBundledSceneId('not-about-fish')).toBe(true);
+    expect(isBundledSceneId('observation-only')).toBe(true);
+    expect(isBundledSceneId('screaming-amber-wood')).toBe(true);
+    expect(isBundledSceneId('the-expansion')).toBe(true);
+    expect(isBundledSceneId('the-third-passenger')).toBe(true);
+    expect(isBundledSceneId('the-unresolved-variable')).toBe(true);
+    expect(isBundledSceneId('three-years-late')).toBe(true);
     expect(isBundledSceneId('vector-field')).toBe(true);
+
+    // Canonical blueprint slugs
     expect(isBundledSceneId('demo')).toBe(true);
     expect(isBundledSceneId('blueprint-02')).toBe(true);
     expect(isBundledSceneId('blueprint-03')).toBe(true);
@@ -320,6 +345,9 @@ describe('scoreCatalog — Bundled Presets & Blank Project Generator', () => {
 
     // Backwards-compatible legacy aliases
     expect(isBundledSceneId('vector-field-taruma-sakti')).toBe(true);
+    expect(isBundledSceneId('vf')).toBe(true);
+    expect(isBundledSceneId('entropy-taruma-sakti')).toBe(true);
+    expect(isBundledSceneId('not-about-fish-2026')).toBe(true);
     expect(isBundledSceneId('demo-blueprint')).toBe(true);
     expect(isBundledSceneId('blueprint-01')).toBe(true);
     expect(isBundledSceneId('blueprint-02-dialogue')).toBe(true);
@@ -329,14 +357,23 @@ describe('scoreCatalog — Bundled Presets & Blank Project Generator', () => {
     expect(isBundledSceneId('blueprint-06-optics-dof')).toBe(true);
     expect(isBundledSceneId('blueprint-07-camera-rigs')).toBe(true);
 
-    expect(isBundledSceneId('the-expansion')).toBe(true);
     expect(isBundledSceneId('the-expansion-taruma-sakti')).toBe(true);
-    expect(isBundledSceneId('afraid')).toBe(true);
     expect(isBundledSceneId('afraid-taruma-sakti')).toBe(true);
 
     expect(isBundledSceneId('fictitious-study-id')).toBe(false);
     expect(isBundledSceneId('custom-project-123')).toBe(false);
     expect(isBundledSceneId('random-id')).toBe(false);
+  });
+
+  it('lazily loads and caches a bundled score by canonical ID or alias', async () => {
+    const loaded = await loadBundledScore('entropy');
+    expect(loaded.id).toBe('entropy');
+    expect(loaded.rawYaml.length).toBeGreaterThan(0);
+    expect(loaded.score.shots.length).toBeGreaterThan(0);
+
+    const cached = getCachedBundledScore('entropy');
+    expect(cached).toBe(loaded);
+    expect(getCachedBundledScore('entropy-taruma-sakti')).toBe(loaded);
   });
 
   it('generates a valid, parseable blank choreography score', () => {

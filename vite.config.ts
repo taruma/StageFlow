@@ -1,9 +1,10 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
+import { scoreCatalogPlugin } from './vite-plugin-score-catalog';
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [scoreCatalogPlugin(), react(), tailwindcss()],
   server: {
     watch: {
       ignored: [
