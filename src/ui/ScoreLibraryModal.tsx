@@ -1,34 +1,51 @@
 /**
- * Accessible Score Library Modal for StageFlow (2-Column Master-Detail Layout).
- * Displays bundled factory blueprints and custom user scores with high-density compact rows,
- * keyboard arrow navigation (↑ / ↓ / Enter), sticky section headers, procedural 2D SVG stage minimap,
- * and unified project lifecycle management.
+ * Accessible Score Library Modal for StageFlow.
+ * Features a full-width 3-column compact grid by default, Custom-first section priority,
+ * build-time/IndexedDB Recency & metric sorting with direction toggle, media/aspect filters,
+ * 2D keyboard navigation, and an on-demand Details Inspector sidecar.
  */
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import {
-  Clapperboard,
-  Plus,
-  X,
-  Search,
-  LayoutList,
-  SlidersHorizontal,
-  ChevronDown,
-} from 'lucide-react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { Clapperboard, Plus, X } from 'lucide-react';
 import type { ScoreCatalogItem } from '../core/scoreCatalog';
-import type { LibraryFilterTab } from '../core/types';
+import type {
+  LibraryAspectFilter,
+  LibraryFilterTab,
+  LibrarySortDirection,
+  LibrarySortField,
+  LibrarySourceFilter,
+} from '../core/types';
+import {
+  classifyScoreAspectBucket,
+  filterScoreCatalog,
+  getDefaultSortDirection,
+  hasActiveLibraryFilters,
+  sortScoreCatalog,
+} from '../core/scoreCatalogFilters';
 import {
   loadStoredLibraryBlueprintExpanded,
   loadStoredLibraryCustomExpanded,
+  loadStoredLibraryShowDetails,
+  loadStoredLibrarySortDirection,
+  loadStoredLibrarySortField,
   loadStoredLibraryStudyExpanded,
   loadStoredLibraryTab,
   saveStoredLibraryBlueprintExpanded,
   saveStoredLibraryCustomExpanded,
+  saveStoredLibraryShowDetails,
+  saveStoredLibrarySortDirection,
+  saveStoredLibrarySortField,
   saveStoredLibraryStudyExpanded,
   saveStoredLibraryTab,
 } from '../core/storage/localStorageUi';
-import { ScoreLibraryCard } from './library/ScoreLibraryCard';
+import { ScoreLibraryToolbar } from './library/ScoreLibraryToolbar';
+import {
+  ScoreLibraryGridBody,
+  type ScoreLibrarySectionGroup,
+} from './library/ScoreLibraryGridBody';
+import { ScoreLibraryFooter } from './library/ScoreLibraryFooter';
 import { ScoreInspectorPane } from './library/ScoreInspectorPane';
+import { useScoreLibraryKeyboard } from './library/useScoreLibraryKeyboard';
 import { UI_TOKENS } from './tokens/ui';
 
 export type FilterTab = LibraryFilterTab;
@@ -64,214 +81,239 @@ export const ScoreLibraryModal: React.FC<ScoreLibraryModalProps> = ({
   onDeleteScore,
   onClose,
 }) => {
-  const [activeTab, setActiveTab] = useState<FilterTab>(() => {
-    return initialTab ?? loadStoredLibraryTab() ?? 'all';
-  });
+  const [activeTab, setActiveTab] = useState<FilterTab>(
+    () => initialTab ?? loadStoredLibraryTab() ?? 'all'
+  );
   const [searchQuery, setSearchQuery] = useState('');
+  const [sourceFilter, setSourceFilter] = useState<LibrarySourceFilter>('all');
+  const [aspectFilter, setAspectFilter] = useState<LibraryAspectFilter>('all');
+  const [sortField, setSortField] = useState<LibrarySortField>(
+    () => loadStoredLibrarySortField() ?? 'recent'
+  );
+  const [sortDirection, setSortDirection] = useState<LibrarySortDirection>(
+    () =>
+      loadStoredLibrarySortDirection() ??
+      getDefaultSortDirection(loadStoredLibrarySortField() ?? 'recent')
+  );
+  const [showDetails, setShowDetails] = useState<boolean>(
+    () => loadStoredLibraryShowDetails() ?? false
+  );
   const [selectedScoreId, setSelectedScoreId] = useState<string>(activeSceneId);
-  const [mobileView, setMobileView] = useState<'list' | 'details'>('list');
-  const [isStudyExpanded, setIsStudyExpanded] = useState<boolean>(() => {
-    return loadStoredLibraryStudyExpanded() ?? true;
-  });
-  const [isBlueprintExpanded, setIsBlueprintExpanded] = useState<boolean>(() => {
-    return loadStoredLibraryBlueprintExpanded() ?? false;
-  });
-  const [isCustomExpanded, setIsCustomExpanded] = useState<boolean>(() => {
-    return loadStoredLibraryCustomExpanded() ?? true;
-  });
+
+  const [isCustomExpanded, setIsCustomExpanded] = useState<boolean>(
+    () => loadStoredLibraryCustomExpanded() ?? true
+  );
+  const [isStudyExpanded, setIsStudyExpanded] = useState<boolean>(
+    () => loadStoredLibraryStudyExpanded() ?? true
+  );
+  const [isBlueprintExpanded, setIsBlueprintExpanded] = useState<boolean>(
+    () => loadStoredLibraryBlueprintExpanded() ?? false
+  );
+
   const listContainerRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const handleSelectTab = (tab: FilterTab) => {
     setActiveTab(tab);
     saveStoredLibraryTab(tab);
   };
 
-  const handleToggleStudyExpanded = () => {
-    setIsStudyExpanded((prev) => {
+  const handleToggleDetails = useCallback(() => {
+    setShowDetails((prev) => {
       const next = !prev;
-      saveStoredLibraryStudyExpanded(next);
+      saveStoredLibraryShowDetails(next);
+      return next;
+    });
+  }, []);
+
+  const handleSelectSortField = (field: LibrarySortField) => {
+    if (field === sortField) {
+      const nextDir: LibrarySortDirection =
+        sortDirection === 'desc' ? 'asc' : 'desc';
+      setSortDirection(nextDir);
+      saveStoredLibrarySortDirection(nextDir);
+      return;
+    }
+    const defaultDir = getDefaultSortDirection(field);
+    setSortField(field);
+    setSortDirection(defaultDir);
+    saveStoredLibrarySortField(field);
+    saveStoredLibrarySortDirection(defaultDir);
+  };
+
+  const handleToggleSortDirection = () => {
+    setSortDirection((prev) => {
+      const next: LibrarySortDirection = prev === 'desc' ? 'asc' : 'desc';
+      saveStoredLibrarySortDirection(next);
       return next;
     });
   };
 
-  const handleToggleBlueprintExpanded = () => {
-    setIsBlueprintExpanded((prev) => {
-      const next = !prev;
-      saveStoredLibraryBlueprintExpanded(next);
-      return next;
-    });
+  const handleResetFilters = () => {
+    setSearchQuery('');
+    setSourceFilter('all');
+    setAspectFilter('all');
   };
 
-  const handleToggleCustomExpanded = () => {
-    setIsCustomExpanded((prev) => {
-      const next = !prev;
-      saveStoredLibraryCustomExpanded(next);
-      return next;
-    });
-  };
-
-  // Synchronize initialTab and selectedScoreId when modal opens
   useEffect(() => {
     if (isOpen) {
-      if (initialTab) {
-        setActiveTab(initialTab);
-      } else {
-        setActiveTab(loadStoredLibraryTab() ?? 'all');
-      }
+      setActiveTab(initialTab ?? loadStoredLibraryTab() ?? 'all');
       setSelectedScoreId(activeSceneId);
-      setMobileView('list');
     }
   }, [isOpen, initialTab, activeSceneId]);
 
-  // Close on Escape key
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, [isOpen, onClose]);
+  const counts = useMemo(
+    () => ({
+      all: catalog.length,
+      custom: catalog.filter((i) => i.category === 'custom' || i.isCustom).length,
+      study: catalog.filter((i) => i.category === 'study').length,
+      blueprint: catalog.filter((i) => i.category === 'blueprint').length,
+    }),
+    [catalog]
+  );
 
-  const studyScores = useMemo(
+  const hasOtherAspect = useMemo(
     () =>
-      catalog
-        .filter((item) => item.category === 'study')
-        .sort((a, b) => a.title.localeCompare(b.title)),
-    [catalog]
-  );
-  const blueprintScores = useMemo(
-    () => catalog.filter((item) => item.category === 'blueprint'),
-    [catalog]
-  );
-  const customScores = useMemo(
-    () => catalog.filter((item) => item.category === 'custom' || item.isCustom),
+      catalog.some((i) => classifyScoreAspectBucket(i.aspectRatio) === 'other'),
     [catalog]
   );
 
-  const filteredScores = useMemo(() => {
-    let list = catalog;
-    if (activeTab === 'study') list = studyScores;
-    if (activeTab === 'blueprint') list = blueprintScores;
-    if (activeTab === 'custom') list = customScores;
+  const filtersActive = hasActiveLibraryFilters({
+    query: searchQuery,
+    source: sourceFilter,
+    aspect: aspectFilter,
+  });
 
-    if (!searchQuery.trim()) return list;
-    const q = searchQuery.toLowerCase();
-    return list.filter(
-      (item) =>
-        item.title.toLowerCase().includes(q) ||
-        (item.subtitle && item.subtitle.toLowerCase().includes(q)) ||
-        item.id.toLowerCase().includes(q)
+  const sortedFilteredScores = useMemo(
+    () =>
+      sortScoreCatalog(
+        filterScoreCatalog(catalog, {
+          tab: activeTab,
+          query: searchQuery,
+          source: sourceFilter,
+          aspect: aspectFilter,
+        }),
+        sortField,
+        sortDirection
+      ),
+    [catalog, activeTab, searchQuery, sourceFilter, aspectFilter, sortField, sortDirection]
+  );
+
+  const sections = useMemo<ScoreLibrarySectionGroup[]>(() => {
+    const customItems = sortedFilteredScores.filter(
+      (i) => i.category === 'custom' || i.isCustom
     );
-  }, [catalog, activeTab, studyScores, blueprintScores, customScores, searchQuery]);
+    const studyItems = sortedFilteredScores.filter((i) => i.category === 'study');
+    const blueprintItems = sortedFilteredScores.filter(
+      (i) => i.category === 'blueprint'
+    );
 
-  // Grouped lists for the "All" tab
-  const { studyFiltered, blueprintFiltered, customFiltered } = useMemo(() => {
-    return {
-      studyFiltered: filteredScores.filter((item) => item.category === 'study'),
-      blueprintFiltered: filteredScores.filter((item) => item.category === 'blueprint'),
-      customFiltered: filteredScores.filter((item) => item.category === 'custom' || item.isCustom),
-    };
-  }, [filteredScores]);
+    return [
+      {
+        key: 'custom',
+        label: 'Custom Projects',
+        items: customItems,
+        expanded: filtersActive || isCustomExpanded,
+        badgeClass:
+          'bg-amber-500/15 border-amber-400/30 text-amber-600 dark:text-amber-300',
+        onToggle: () =>
+          setIsCustomExpanded((p) => {
+            const next = !p;
+            saveStoredLibraryCustomExpanded(next);
+            return next;
+          }),
+      },
+      {
+        key: 'study',
+        label: 'Scene Studies',
+        items: studyItems,
+        expanded: filtersActive || isStudyExpanded,
+        badgeClass:
+          'bg-violet-500/15 border-violet-400/30 text-violet-600 dark:text-violet-300',
+        onToggle: () =>
+          setIsStudyExpanded((p) => {
+            const next = !p;
+            saveStoredLibraryStudyExpanded(next);
+            return next;
+          }),
+      },
+      {
+        key: 'blueprint',
+        label: 'Blueprints',
+        items: blueprintItems,
+        expanded: filtersActive || isBlueprintExpanded,
+        badgeClass:
+          'bg-sky-500/15 border-sky-400/30 text-sky-600 dark:text-sky-300',
+        onToggle: () =>
+          setIsBlueprintExpanded((p) => {
+            const next = !p;
+            saveStoredLibraryBlueprintExpanded(next);
+            return next;
+          }),
+      },
+    ];
+  }, [
+    sortedFilteredScores,
+    filtersActive,
+    isCustomExpanded,
+    isStudyExpanded,
+    isBlueprintExpanded,
+  ]);
 
-  // Determine scores currently visible in the DOM (respecting activeTab and collapsible sections)
-  const visibleScores = useMemo(() => {
-    if (activeTab === 'study') {
-      return studyFiltered;
-    }
-    if (activeTab === 'blueprint') {
-      return blueprintFiltered;
-    }
-    if (activeTab === 'custom') {
-      return customFiltered;
-    }
-    if (activeTab === 'all') {
-      const items: ScoreCatalogItem[] = [];
-      if (isStudyExpanded) items.push(...studyFiltered);
-      if (isBlueprintExpanded) items.push(...blueprintFiltered);
-      if (isCustomExpanded) items.push(...customFiltered);
-      return items;
-    }
-    return filteredScores;
-  }, [activeTab, studyFiltered, blueprintFiltered, customFiltered, isStudyExpanded, isBlueprintExpanded, isCustomExpanded, filteredScores]);
+  const visibleScores = useMemo(
+    () =>
+      activeTab !== 'all'
+        ? sortedFilteredScores
+        : sections.flatMap((s) => (s.expanded ? s.items : [])),
+    [activeTab, sortedFilteredScores, sections]
+  );
 
-  // Find currently selected score object, falling back to first visible/filtered item
-  const selectedScore = useMemo(() => {
-    const found = catalog.find((item) => item.id === selectedScoreId);
-    if (found) return found;
-    return visibleScores[0] || filteredScores[0] || catalog[0] || null;
-  }, [catalog, selectedScoreId, visibleScores, filteredScores]);
+  const selectedScore = useMemo(
+    () =>
+      sortedFilteredScores.find((i) => i.id === selectedScoreId) ??
+      visibleScores[0] ??
+      sortedFilteredScores[0] ??
+      catalog.find((i) => i.id === selectedScoreId) ??
+      catalog[0] ??
+      null,
+    [sortedFilteredScores, selectedScoreId, visibleScores, catalog]
+  );
 
-  // Lazy-load full YAML + AST for the inspected bundled score on demand
+  // Zero-waste lazy load: only parse full YAML when the Details Inspector is open
   useEffect(() => {
     if (
       isOpen &&
+      showDetails &&
       selectedScore &&
       !selectedScore.isCustom &&
       !selectedScore.score
     ) {
       void onEnsureScoreLoaded(selectedScore.id);
     }
-  }, [isOpen, selectedScore, onEnsureScoreLoaded]);
+  }, [isOpen, showDetails, selectedScore, onEnsureScoreLoaded]);
 
-  // Keep keyboard-selected card scrolled into view
-  useEffect(() => {
-    if (!isOpen || !listContainerRef.current) return;
-    const cards =
-      listContainerRef.current.querySelectorAll<HTMLElement>('[data-score-id]');
-    for (const card of cards) {
-      if (card.dataset.scoreId === selectedScoreId) {
-        card.scrollIntoView({ block: 'nearest' });
-        break;
-      }
-    }
-  }, [isOpen, selectedScoreId]);
+  const loadScoreAndClose = useCallback(
+    (scoreId: string) => {
+      onSelectScene(scoreId);
+      onClose();
+    },
+    [onSelectScene, onClose]
+  );
 
-  // Keyboard navigation: ArrowUp, ArrowDown, Enter
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleKeyNav = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') return;
-
-      const isInput =
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement;
-
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        const currentIndex = visibleScores.findIndex(
-          (s) => s.id === selectedScoreId
-        );
-        const nextIndex = Math.min(visibleScores.length - 1, currentIndex + 1);
-        if (visibleScores[nextIndex]) {
-          setSelectedScoreId(visibleScores[nextIndex].id);
-        }
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        const currentIndex = visibleScores.findIndex(
-          (s) => s.id === selectedScoreId
-        );
-        const prevIndex = Math.max(0, currentIndex - 1);
-        if (visibleScores[prevIndex]) {
-          setSelectedScoreId(visibleScores[prevIndex].id);
-        }
-      } else if (e.key === 'Enter') {
-        // If actively typing inside search or rename input, let input handle Enter
-        if (isInput) return;
-        if (selectedScore) {
-          e.preventDefault();
-          onSelectScene(selectedScore.id);
-          onClose();
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyNav);
-    return () => window.removeEventListener('keydown', handleKeyNav);
-  }, [isOpen, visibleScores, selectedScoreId, selectedScore, onSelectScene, onClose]);
+  useScoreLibraryKeyboard({
+    isOpen,
+    showDetails,
+    searchQuery,
+    visibleScores,
+    selectedScore,
+    listContainerRef,
+    searchInputRef,
+    onSelectScoreId: setSelectedScoreId,
+    onLoadScore: loadScoreAndClose,
+    onToggleDetails: handleToggleDetails,
+    onClearSearch: () => setSearchQuery(''),
+    onClose,
+  });
 
   if (!isOpen) return null;
 
@@ -287,21 +329,28 @@ export const ScoreLibraryModal: React.FC<ScoreLibraryModalProps> = ({
         className={UI_TOKENS.modal.containerLibrary}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Modal Header */}
         <div className={UI_TOKENS.modal.header}>
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 rounded-xl bg-surface-muted border border-border-main flex items-center justify-center text-text-main shrink-0 shadow-2xs">
+            <div className="w-8 h-8 rounded-xl bg-surface-muted border border-border-main flex items-center justify-center text-text-main shrink-0 shadow-2xs">
               <Clapperboard className="w-4 h-4" />
             </div>
             <div className="min-w-0">
               <h2
                 id="score-library-title"
-                className="text-base font-bold font-sans text-text-main tracking-tight leading-none"
+                className="text-sm sm:text-base font-bold font-sans text-text-main tracking-tight leading-none"
               >
                 Choreography Score Library
               </h2>
-              <span className="text-xs font-sans text-text-muted truncate block mt-1">
-                Explore bundled blueprint scores and custom saved scenes · <kbd className="font-mono text-[10px] px-1 py-0.2 rounded bg-surface border border-border-subtle">↑</kbd> <kbd className="font-mono text-[10px] px-1 py-0.2 rounded bg-surface border border-border-subtle">↓</kbd> to navigate
+              <span className="text-[11px] font-sans text-text-muted truncate block mt-1">
+                Click to select · Double-click or{' '}
+                <kbd className="font-mono text-[10px] px-1 rounded bg-surface border border-border-subtle">
+                  Enter
+                </kbd>{' '}
+                to load ·{' '}
+                <kbd className="font-mono text-[10px] px-1 rounded bg-surface border border-border-subtle">
+                  I
+                </kbd>{' '}
+                details
               </span>
             </div>
           </div>
@@ -321,7 +370,6 @@ export const ScoreLibraryModal: React.FC<ScoreLibraryModalProps> = ({
                 <span className="hidden sm:inline">New Blank</span>
               </button>
             )}
-
             <button
               type="button"
               onClick={onClose}
@@ -333,284 +381,89 @@ export const ScoreLibraryModal: React.FC<ScoreLibraryModalProps> = ({
           </div>
         </div>
 
-        {/* Master-Detail Body Layout */}
+        <ScoreLibraryToolbar
+          activeTab={activeTab}
+          onSelectTab={handleSelectTab}
+          counts={counts}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          searchInputRef={searchInputRef}
+          sourceFilter={sourceFilter}
+          onSourceFilterChange={setSourceFilter}
+          aspectFilter={aspectFilter}
+          onAspectFilterChange={setAspectFilter}
+          hasOtherAspect={hasOtherAspect}
+          sortField={sortField}
+          sortDirection={sortDirection}
+          onSelectSortField={handleSelectSortField}
+          onToggleSortDirection={handleToggleSortDirection}
+          showDetails={showDetails}
+          onToggleDetails={handleToggleDetails}
+          hasActiveFilters={filtersActive}
+          onResetFilters={handleResetFilters}
+        />
+
         <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
-          {/* Left Column: High-Density Score List & Search (w-full on mobile, ~40% on md+) */}
-          <div
-            className={`w-full md:w-[42%] lg:w-[40%] flex flex-col border-r border-border-subtle bg-surface min-h-0 ${
-              mobileView === 'details' ? 'hidden md:flex' : 'flex'
-            }`}
-          >
-            {/* Filter Tabs & Search Bar */}
-            <div className="p-3 border-b border-border-subtle bg-surface-subtle space-y-2 shrink-0">
-              <div className="flex items-center justify-between gap-2">
-                <div className={UI_TOKENS.button.segmentedGroup}>
-                  <button
-                    type="button"
-                    onClick={() => handleSelectTab('all')}
-                    className={
-                      activeTab === 'all'
-                        ? UI_TOKENS.button.segmentedItemActive
-                        : UI_TOKENS.button.segmentedItem
-                    }
-                  >
-                    All ({catalog.length})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSelectTab('study')}
-                    className={
-                      activeTab === 'study'
-                        ? UI_TOKENS.button.segmentedItemActive
-                        : UI_TOKENS.button.segmentedItem
-                    }
-                  >
-                    Studies ({studyScores.length})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSelectTab('blueprint')}
-                    className={
-                      activeTab === 'blueprint'
-                        ? UI_TOKENS.button.segmentedItemActive
-                        : UI_TOKENS.button.segmentedItem
-                    }
-                  >
-                    Blueprints ({blueprintScores.length})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSelectTab('custom')}
-                    className={
-                      activeTab === 'custom'
-                        ? UI_TOKENS.button.segmentedItemActive
-                        : UI_TOKENS.button.segmentedItem
-                    }
-                  >
-                    Custom ({customScores.length})
-                  </button>
-                </div>
+          <ScoreLibraryGridBody
+            activeTab={activeTab}
+            showDetails={showDetails}
+            sections={sections}
+            sortedFilteredScores={sortedFilteredScores}
+            activeSceneId={activeSceneId}
+            selectedScoreId={selectedScore?.id ?? null}
+            filtersActive={filtersActive}
+            listContainerRef={listContainerRef}
+            onSelectScore={setSelectedScoreId}
+            onLoadScore={loadScoreAndClose}
+            onInspectScore={(id) => {
+              setSelectedScoreId(id);
+              if (!showDetails) {
+                setShowDetails(true);
+                saveStoredLibraryShowDetails(true);
+              }
+            }}
+            onResetFilters={handleResetFilters}
+          />
 
-                {/* Mobile View Toggle */}
-                <div className="md:hidden flex items-center">
-                  <button
-                    type="button"
-                    onClick={() => setMobileView('details')}
-                    className="p-1.5 rounded-lg bg-surface border border-border-main text-text-muted hover:text-text-main text-xs font-mono flex items-center gap-1"
-                  >
-                    <SlidersHorizontal className="w-3.5 h-3.5" />
-                    <span>Inspector</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Search Field */}
-              <div className="relative w-full">
-                <Search className="w-3.5 h-3.5 text-text-faint absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search scores by title, note, or ID..."
-                  className={UI_TOKENS.input.search}
+          {showDetails && (
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-surface">
+              {selectedScore ? (
+                <ScoreInspectorPane
+                  item={selectedScore}
+                  isActive={selectedScore.id === activeSceneId}
+                  onSelectScore={() => loadScoreAndClose(selectedScore.id)}
+                  onForkScore={onForkScore}
+                  onDuplicateScore={onDuplicateScore}
+                  onExportScore={onExportScore}
+                  onRenameScore={onRenameScore}
+                  onDeleteScore={onDeleteScore}
                 />
-              </div>
-            </div>
-
-            {/* Scrollable High-Density Scores List */}
-            <div
-              ref={listContainerRef}
-              className="flex-1 overflow-y-auto p-2.5 space-y-1.5 custom-scrollbar"
-            >
-              {filteredScores.length === 0 ? (
-                <div className="py-16 text-center text-text-muted font-sans text-xs">
-                  No choreography scores found matching your criteria.
-                </div>
-              ) : activeTab === 'all' && (studyFiltered.length > 0 || blueprintFiltered.length > 0 || customFiltered.length > 0) ? (
-                <div className="space-y-2">
-                  {/* Scene Studies Section */}
-                  {studyFiltered.length > 0 && (
-                    <div className="space-y-1.5">
-                      <button
-                        type="button"
-                        onClick={handleToggleStudyExpanded}
-                        aria-expanded={isStudyExpanded}
-                        className="w-full px-2 py-1 text-[10px] font-mono font-bold tracking-wider text-text-muted hover:text-text-main uppercase flex items-center justify-between rounded-md hover:bg-surface-subtle transition-colors group select-none cursor-pointer"
-                      >
-                        <div className="flex items-center gap-1.5">
-                          <ChevronDown
-                            className={`w-3.5 h-3.5 text-text-faint group-hover:text-text-main transition-transform duration-150 ${
-                              isStudyExpanded ? 'rotate-0' : '-rotate-90'
-                            }`}
-                          />
-                          <span>Scene Studies</span>
-                        </div>
-                        <span className="text-[9.5px] px-1.5 py-0.2 rounded-full bg-violet-500/15 border border-violet-400/30 text-violet-600 dark:text-violet-300 font-mono">
-                          {studyFiltered.length}
-                        </span>
-                      </button>
-
-                      {isStudyExpanded && (
-                        <div className="space-y-1.5">
-                          {studyFiltered.map((item) => (
-                            <ScoreLibraryCard
-                              key={item.id}
-                              item={item}
-                              isActive={item.id === activeSceneId}
-                              isSelected={item.id === selectedScore?.id}
-                              onSelect={() => {
-                                setSelectedScoreId(item.id);
-                                setMobileView('details');
-                              }}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Bundled Blueprints Section */}
-                  {blueprintFiltered.length > 0 && (
-                    <div className="space-y-1.5">
-                      <button
-                        type="button"
-                        onClick={handleToggleBlueprintExpanded}
-                        aria-expanded={isBlueprintExpanded}
-                        className="w-full px-2 py-1 text-[10px] font-mono font-bold tracking-wider text-text-muted hover:text-text-main uppercase flex items-center justify-between rounded-md hover:bg-surface-subtle transition-colors group select-none cursor-pointer"
-                      >
-                        <div className="flex items-center gap-1.5">
-                          <ChevronDown
-                            className={`w-3.5 h-3.5 text-text-faint group-hover:text-text-main transition-transform duration-150 ${
-                              isBlueprintExpanded ? 'rotate-0' : '-rotate-90'
-                            }`}
-                          />
-                          <span>Blueprints</span>
-                        </div>
-                        <span className="text-[9.5px] px-1.5 py-0.2 rounded-full bg-surface-subtle border border-border-subtle group-hover:border-border-main text-text-muted font-mono">
-                          {blueprintFiltered.length}
-                        </span>
-                      </button>
-
-                      {isBlueprintExpanded && (
-                        <div className="space-y-1.5">
-                          {blueprintFiltered.map((item) => (
-                            <ScoreLibraryCard
-                              key={item.id}
-                              item={item}
-                              isActive={item.id === activeSceneId}
-                              isSelected={item.id === selectedScore?.id}
-                              onSelect={() => {
-                                setSelectedScoreId(item.id);
-                                setMobileView('details');
-                              }}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Custom Projects Section */}
-                  {customFiltered.length > 0 && (
-                    <div className="space-y-1.5">
-                      <button
-                        type="button"
-                        onClick={handleToggleCustomExpanded}
-                        aria-expanded={isCustomExpanded}
-                        className="w-full px-2 pt-2 pb-1 text-[10px] font-mono font-bold tracking-wider text-text-muted hover:text-text-main uppercase flex items-center justify-between rounded-md hover:bg-surface-subtle transition-colors group select-none cursor-pointer"
-                      >
-                        <div className="flex items-center gap-1.5">
-                          <ChevronDown
-                            className={`w-3.5 h-3.5 text-text-faint group-hover:text-text-main transition-transform duration-150 ${
-                              isCustomExpanded ? 'rotate-0' : '-rotate-90'
-                            }`}
-                          />
-                          <span>Custom Projects</span>
-                        </div>
-                        <span className="text-[9.5px] px-1.5 py-0.2 rounded-full bg-surface-subtle border border-border-subtle group-hover:border-border-main text-text-muted font-mono">
-                          {customFiltered.length}
-                        </span>
-                      </button>
-
-                      {isCustomExpanded && (
-                        <div className="space-y-1.5">
-                          {customFiltered.map((item) => (
-                            <ScoreLibraryCard
-                              key={item.id}
-                              item={item}
-                              isActive={item.id === activeSceneId}
-                              isSelected={item.id === selectedScore?.id}
-                              onSelect={() => {
-                                setSelectedScoreId(item.id);
-                                setMobileView('details');
-                              }}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
               ) : (
-                filteredScores.map((item) => (
-                  <ScoreLibraryCard
-                    key={item.id}
-                    item={item}
-                    isActive={item.id === activeSceneId}
-                    isSelected={item.id === selectedScore?.id}
-                    onSelect={() => {
-                      setSelectedScoreId(item.id);
-                      setMobileView('details');
-                    }}
-                  />
-                ))
+                <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-text-muted">
+                  <Clapperboard className="w-10 h-10 stroke-1 text-text-faint mb-3" />
+                  <span className="text-sm font-sans font-medium">
+                    No score selected
+                  </span>
+                </div>
               )}
             </div>
-          </div>
-
-          {/* Right Column: Choreography Inspector Pane */}
-          <div
-            className={`flex-1 flex flex-col min-h-0 overflow-hidden bg-surface ${
-              mobileView === 'list' ? 'hidden md:flex' : 'flex'
-            }`}
-          >
-            {/* Mobile Header to return to list */}
-            <div className="md:hidden p-2.5 border-b border-border-subtle bg-surface-subtle flex items-center justify-between">
-              <button
-                type="button"
-                onClick={() => setMobileView('list')}
-                className="text-xs font-mono text-text-muted hover:text-text-main flex items-center gap-1"
-              >
-                <LayoutList className="w-3.5 h-3.5" />
-                <span>← Back to Score List</span>
-              </button>
-            </div>
-
-            {selectedScore ? (
-              <ScoreInspectorPane
-                item={selectedScore}
-                isActive={selectedScore.id === activeSceneId}
-                onSelectScore={() => {
-                  onSelectScene(selectedScore.id);
-                  onClose();
-                }}
-                onForkScore={onForkScore}
-                onDuplicateScore={onDuplicateScore}
-                onExportScore={onExportScore}
-                onRenameScore={onRenameScore}
-                onDeleteScore={onDeleteScore}
-              />
-            ) : (
-              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-text-muted">
-                <Clapperboard className="w-10 h-10 stroke-1 text-text-faint mb-3" />
-                <span className="text-sm font-sans font-medium">No score selected</span>
-                <span className="text-xs text-text-faint mt-1">
-                  Select a score from the list to inspect its staging and optical breakdown.
-                </span>
-              </div>
-            )}
-          </div>
+          )}
         </div>
+
+        {!showDetails && (
+          <ScoreLibraryFooter
+            item={selectedScore}
+            isActive={selectedScore?.id === activeSceneId}
+            onSelectScore={() => {
+              if (selectedScore) loadScoreAndClose(selectedScore.id);
+            }}
+            onForkScore={onForkScore}
+            onDuplicateScore={onDuplicateScore}
+            onExportScore={onExportScore}
+            onRenameScore={onRenameScore}
+            onDeleteScore={onDeleteScore}
+          />
+        )}
       </div>
     </div>
   );

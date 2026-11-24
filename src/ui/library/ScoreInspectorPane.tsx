@@ -8,7 +8,7 @@
  * - Unified action bar (Load, Fork, Duplicate, Export, Rename, Delete)
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Play,
   Check,
@@ -28,6 +28,10 @@ import {
   Loader2,
 } from 'lucide-react';
 import type { ScoreCatalogItem } from '../../core/scoreCatalog';
+import {
+  formatScoreAspectRatio,
+  formatScoreDateLabel,
+} from '../../core/scoreCatalogFilters';
 import { ScoreStageMinimap } from './ScoreStageMinimap';
 
 export interface ScoreInspectorPaneProps {
@@ -41,46 +45,35 @@ export interface ScoreInspectorPaneProps {
   onDeleteScore?: (id: string) => Promise<boolean>;
 }
 
-function formatAspectRatio(ratio: number | string | undefined): string {
-  if (typeof ratio === 'string') return ratio;
-  if (!ratio || Number.isNaN(ratio)) return '16:9';
-  if (Math.abs(ratio - 16 / 9) < 0.05) return '16:9';
-  if (Math.abs(ratio - 2.39) < 0.08 || Math.abs(ratio - 2.35) < 0.08) return '2.39:1';
-  if (Math.abs(ratio - 4 / 3) < 0.05) return '4:3';
-  if (Math.abs(ratio - 1) < 0.05) return '1:1';
-  if (Math.abs(ratio - 9 / 16) < 0.05) return '9:16';
-  return `${ratio.toFixed(2)}:1`;
-}
-
 function getMediaSourceInfo(videoUrl?: string): {
   label: string;
   badgeClass: string;
   icon: React.FC<{ className?: string }>;
 } {
-  if (!videoUrl) {
+  if (!videoUrl || videoUrl.startsWith('procedural://')) {
     return {
       label: 'Stage Cam Simulator',
-      badgeClass: 'bg-cyan-500/15 text-cyan-600 dark:text-cyan-300 border-cyan-400/30',
+      badgeClass:
+        'bg-cyan-500/15 text-cyan-600 dark:text-cyan-300 border-cyan-400/30',
       icon: Camera,
     };
   }
-  if (videoUrl.startsWith('youtube://') || videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be')) {
+  if (
+    videoUrl.startsWith('youtube://') ||
+    videoUrl.includes('youtube.com') ||
+    videoUrl.includes('youtu.be')
+  ) {
     return {
       label: 'YouTube Sync',
-      badgeClass: 'bg-rose-500/15 text-rose-600 dark:text-rose-300 border-rose-400/30',
+      badgeClass:
+        'bg-rose-500/15 text-rose-600 dark:text-rose-300 border-rose-400/30',
       icon: Film,
-    };
-  }
-  if (videoUrl.startsWith('procedural://')) {
-    return {
-      label: 'Stage Cam Simulator',
-      badgeClass: 'bg-cyan-500/15 text-cyan-600 dark:text-cyan-300 border-cyan-400/30',
-      icon: Camera,
     };
   }
   return {
     label: 'Local Video',
-    badgeClass: 'bg-amber-500/15 text-amber-600 dark:text-amber-300 border-amber-400/30',
+    badgeClass:
+      'bg-amber-500/15 text-amber-600 dark:text-amber-300 border-amber-400/30',
     icon: Video,
   };
 }
@@ -99,6 +92,12 @@ export const ScoreInspectorPane: React.FC<ScoreInspectorPaneProps> = ({
   const [editTitle, setEditTitle] = useState(item.title);
   const [isDeletingConfirm, setIsDeletingConfirm] = useState(false);
 
+  useEffect(() => {
+    setIsRenaming(false);
+    setIsDeletingConfirm(false);
+    setEditTitle(item.title);
+  }, [item.id, item.title]);
+
   const durationSec = item.durationSec;
   const shotCount = item.shotCount;
   const entityCount = item.score?.entities?.length ?? 0;
@@ -106,6 +105,7 @@ export const ScoreInspectorPane: React.FC<ScoreInspectorPaneProps> = ({
   const mediaInfo = getMediaSourceInfo(item.videoUrl);
   const MediaIcon = mediaInfo.icon;
   const isScoreLoaded = Boolean(item.score);
+  const dateLabel = formatScoreDateLabel(item);
 
   // Extract unique lenses and maneuvers across shots
   const { lenses, maneuvers } = useMemo(() => {
@@ -140,7 +140,7 @@ export const ScoreInspectorPane: React.FC<ScoreInspectorPaneProps> = ({
       <div className="p-5 pb-4 border-b border-border-subtle shrink-0 space-y-2">
         <div className="flex items-center justify-between gap-2">
           {/* Media Engine & Project Status Badges */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span
               className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold border uppercase tracking-wider ${mediaInfo.badgeClass}`}
             >
@@ -159,6 +159,12 @@ export const ScoreInspectorPane: React.FC<ScoreInspectorPaneProps> = ({
             ) : (
               <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-600 dark:text-sky-300 border border-sky-400/30 uppercase tracking-wider font-bold">
                 Bundled Blueprint
+              </span>
+            )}
+
+            {dateLabel && (
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-surface-muted border border-border-subtle text-text-muted">
+                {dateLabel}
               </span>
             )}
           </div>
@@ -267,7 +273,7 @@ export const ScoreInspectorPane: React.FC<ScoreInspectorPaneProps> = ({
                   <span className="text-[10px] text-text-faint flex items-center gap-1">
                     <Video className="w-2.5 h-2.5" /> Film Gate
                   </span>
-                  <span className="font-bold text-text-main">{formatAspectRatio(aspectRatio)}</span>
+                  <span className="font-bold text-text-main">{formatScoreAspectRatio(aspectRatio)}</span>
                 </div>
                 <div className="p-2 rounded-xl bg-surface-muted/60 border border-border-subtle flex flex-col gap-0.5">
                   <span className="text-[10px] text-text-faint flex items-center gap-1">

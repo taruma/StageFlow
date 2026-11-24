@@ -104,6 +104,7 @@ stageflow/
 │   │   ├── scoreYamlUtils.ts        # Pure YAML header id/title modifiers, FNV-1a content hashing & duplicate matcher
 │   │   ├── scoreUrlLoader.ts        # Pure Layer 1 remote score validator, query param parser & HTTP fetcher
 │   │   ├── scoreCatalog.ts          # Bundled scene score catalog loader (virtual:stageflow-catalog-index + lazy YAML chunks), default & alias resolver
+│   │   ├── scoreCatalogFilters.ts   # Pure Layer 1 Score Library filters, directional sorting, recency & aspect formatters
 │   │   └── storage/                 # Client persistence utilities
 │   │       ├── scoreDb.ts           # IndexedDB persistence for score drafts & custom scenes (idb)
 │   │       └── localStorageUi.ts    # Synchronous localStorage helpers for UI preferences
@@ -179,17 +180,21 @@ stageflow/
 │   │   │   ├── guideMarkdownComponents.tsx # Custom markdown element renderers (h1-h3, pre, table)
 │   │   │   └── guideUtils.ts        # Section anchor mappings, recursive text, slug extractors & Markdown download helpers
 │   │   ├── library/                 # Modular score library submodules
-│   │   │   ├── ScoreLibraryCard.tsx # Cinematic choreography score card with color tags & telemetry
-│   │   │   ├── ScoreInspectorPane.tsx # Rich master-detail choreography inspector & action bar
+│   │   │   ├── ScoreLibraryToolbar.tsx # Compact 2-row category tabs, search, source/aspect filters, sort & Details toggle
+│   │   │   ├── ScoreLibraryGridBody.tsx # Responsive 3-column (or 2-column with Details) catalog grid & collapsible sections
+│   │   │   ├── ScoreLibraryFooter.tsx  # Persistent bottom action bar when Details Inspector is collapsed
+│   │   │   ├── ScoreLibraryCard.tsx # Ultra-compact 2-line choreography score card with color tags & telemetry
+│   │   │   ├── ScoreInspectorPane.tsx # Rich on-demand choreography inspector & action bar
 │   │   │   ├── ScoreStageMinimap.tsx # Pure 2D vector SVG top-down stage schematic preview
 │   │   │   ├── scoreMinimapUtils.ts  # Pure Layer 5 minimap target projection, offset & layout math
+│   │   │   ├── useScoreLibraryKeyboard.ts # 2D grid arrow traversal, '/', 'I', Enter & Escape keyboard hook
 │   │   │   └── MobileScoreLibraryModal.tsx # Full-screen touch-optimized mobile score switcher (<768px)
 │   │   ├── transport/               # Modular directorial transport bar submodules
 │   │   │   ├── DirectorialTimelineTrack.tsx # Scrubber track, shot ticks, hover tooltip & emerald loop brackets
 │   │   │   ├── DirectorialShotChipsStrip.tsx # Auto-centering shot chips, edge fade masks & hidden scrollbar
 │   │   │   └── DirectorialTransportDeck.tsx # Unified centered island deck (Play/Pause, timecode, loop, speed)
 │   │   ├── WorkspaceHeader.tsx      # SceneFlow-aligned 3-wing orchestrator header bar
-│   │   ├── ScoreLibraryModal.tsx    # Accessible 2-column master-detail score library & project hub
+│   │   ├── ScoreLibraryModal.tsx    # Accessible 3-column grid score library & on-demand inspector project hub
 │   │   ├── AppInfoModal.tsx         # Accessible About, shortcuts, creative intent & documentation modal
 │   │   ├── ResizableSplitWorkspace.tsx # Draggable 3-column studio container (30/40/30) with dual dividers
 │   │   ├── DioramaOverlayContainer.tsx # Center stage responsive HUD overlay dock
@@ -266,6 +271,7 @@ stageflow/
         ├── scoreParser.test.ts
         ├── scoreYamlUtils.test.ts
         ├── scoreUrlLoader.test.ts
+        ├── scoreCatalogFilters.test.ts
         ├── telemetryYamlFormatter.test.ts
         ├── shotBreakdownUtils.test.ts
         ├── scoreMinimapUtils.test.ts

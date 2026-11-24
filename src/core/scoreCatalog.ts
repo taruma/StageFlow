@@ -18,6 +18,8 @@ export interface ScoreCatalogItem {
   title: string;
   subtitle?: string;
   category: ScoreCategory;
+  date?: string;
+  updatedAt?: number;
   durationSec: number;
   shotCount: number;
   aspectRatio: number;
@@ -31,6 +33,27 @@ export interface ScoreCatalogItem {
   originalContentHash?: string;
   sourceUrl?: string;
   sourceFileName?: string;
+}
+
+/**
+ * Parses an ISO `YYYY-MM-DD` or dot-separated `YYYY.MM.DD` catalog date into a UTC epoch timestamp (ms).
+ */
+export function parseIsoDateToEpochMs(dateStr?: string): number | undefined {
+  if (!dateStr || typeof dateStr !== 'string') return undefined;
+  const match = dateStr.trim().match(/^(\d{4})[-.](\d{2})[-.](\d{2})$/);
+  if (!match) return undefined;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const dt = new Date(Date.UTC(year, month - 1, day));
+  if (
+    dt.getUTCFullYear() !== year ||
+    dt.getUTCMonth() + 1 !== month ||
+    dt.getUTCDate() !== day
+  ) {
+    return undefined;
+  }
+  return dt.getTime();
 }
 
 export interface LoadedScoreCatalogItem extends ScoreCatalogItem {
@@ -59,6 +82,7 @@ export const INITIAL_CATALOG_ITEMS: ScoreCatalogItem[] = catalogIndex.map(
     title: entry.title,
     subtitle: entry.subtitle,
     category: entry.category,
+    ...(entry.date ? { date: entry.date, updatedAt: parseIsoDateToEpochMs(entry.date) } : {}),
     durationSec: entry.durationSec,
     shotCount: entry.shotCount,
     aspectRatio: entry.aspectRatio,
@@ -198,6 +222,7 @@ export async function loadBundledScore(
       title: parsed.score.title,
       subtitle: parsed.score.subtitle,
       category: entry.category,
+      ...(entry.date ? { date: entry.date, updatedAt: parseIsoDateToEpochMs(entry.date) } : {}),
       durationSec: parsed.score.durationSec,
       shotCount: parsed.score.shots.length,
       aspectRatio: parsed.score.aspectRatio,

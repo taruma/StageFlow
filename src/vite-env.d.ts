@@ -5,6 +5,7 @@ declare module 'virtual:stageflow-catalog-index' {
     id: string;
     file: string;
     category: 'study' | 'blueprint' | 'custom';
+    date?: string;
     aliases: string[];
     isDefault: boolean;
     title: string;

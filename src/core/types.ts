@@ -425,4 +425,24 @@ export type ScoreCategory = 'study' | 'blueprint' | 'custom';
  */
 export type LibraryFilterTab = 'all' | ScoreCategory;
 
+/**
+ * Media source filters supported by the Score Library toolbar.
+ */
+export type LibrarySourceFilter = 'all' | 'youtube' | 'other';
+
+/**
+ * Film gate / aspect ratio filter buckets in the Score Library toolbar.
+ */
+export type LibraryAspectFilter = 'all' | '16:9' | 'scope' | 'other';
+
+/**
+ * Sort keys available in the Score Library.
+ */
+export type LibrarySortField = 'recent' | 'title' | 'duration' | 'shots';
+
+/**
+ * Sort direction for Score Library ordering.
+ */
+export type LibrarySortDirection = 'asc' | 'desc';
+
 

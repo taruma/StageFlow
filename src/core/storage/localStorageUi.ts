@@ -9,6 +9,8 @@ import type {
   DioramaThemeMode,
   LabelDisplayMode,
   LibraryFilterTab,
+  LibrarySortDirection,
+  LibrarySortField,
   SplitPreset,
 } from '../types';
 
@@ -33,6 +35,9 @@ const STORAGE_KEYS = {
   LIBRARY_STUDY_EXPANDED: 'stageflow:ui:library-study-expanded',
   LIBRARY_BLUEPRINT_EXPANDED: 'stageflow:ui:library-blueprint-expanded',
   LIBRARY_CUSTOM_EXPANDED: 'stageflow:ui:library-custom-expanded',
+  LIBRARY_SHOW_DETAILS: 'stageflow:ui:library-show-details',
+  LIBRARY_SORT_FIELD: 'stageflow:ui:library-sort-field',
+  LIBRARY_SORT_DIRECTION: 'stageflow:ui:library-sort-direction',
 } as const;
 
 export function loadStoredSplitPreset(): SplitPreset | null {
@@ -443,6 +448,76 @@ export function saveStoredLibraryCustomExpanded(expanded: boolean): void {
     // Ignore storage quota or access errors
   }
 }
+
+export function loadStoredLibraryShowDetails(): boolean | null {
+  try {
+    const val = localStorage.getItem(STORAGE_KEYS.LIBRARY_SHOW_DETAILS);
+    if (val === 'true') return true;
+    if (val === 'false') return false;
+  } catch {
+    // Ignore localStorage access restrictions
+  }
+  return null;
+}
+
+export function saveStoredLibraryShowDetails(showDetails: boolean): void {
+  try {
+    localStorage.setItem(
+      STORAGE_KEYS.LIBRARY_SHOW_DETAILS,
+      String(showDetails)
+    );
+  } catch {
+    // Ignore storage quota or access errors
+  }
+}
+
+export function loadStoredLibrarySortField(): LibrarySortField | null {
+  try {
+    const val = localStorage.getItem(STORAGE_KEYS.LIBRARY_SORT_FIELD);
+    if (
+      val === 'recent' ||
+      val === 'title' ||
+      val === 'duration' ||
+      val === 'shots'
+    ) {
+      return val;
+    }
+  } catch {
+    // Ignore localStorage access restrictions
+  }
+  return null;
+}
+
+export function saveStoredLibrarySortField(field: LibrarySortField): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.LIBRARY_SORT_FIELD, field);
+  } catch {
+    // Ignore storage quota or access errors
+  }
+}
+
+export function loadStoredLibrarySortDirection(): LibrarySortDirection | null {
+  try {
+    const val = localStorage.getItem(STORAGE_KEYS.LIBRARY_SORT_DIRECTION);
+    if (val === 'asc' || val === 'desc') {
+      return val;
+    }
+  } catch {
+    // Ignore localStorage access restrictions
+  }
+  return null;
+}
+
+export function saveStoredLibrarySortDirection(
+  direction: LibrarySortDirection
+): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.LIBRARY_SORT_DIRECTION, direction);
+  } catch {
+    // Ignore storage quota or access errors
+  }
+}
+
 
 
 

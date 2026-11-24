@@ -5,6 +5,7 @@ import {
   loadAllBundledScores,
   loadBundledScore,
 } from '../../src/core/scoreCatalog';
+import { sortScoreCatalog } from '../../src/core/scoreCatalogFilters';
 
 const ALL_LOADED_SCORES = await loadAllBundledScores();
 
@@ -34,6 +35,17 @@ describe('Bundled Choreography Scores — Catalog & Blueprint Regression Suite',
       expect(item.rawYaml).toBeTruthy();
       expect(['study', 'blueprint', 'custom']).toContain(item.category);
     }
+
+    for (const study of studies) {
+      expect(study.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(typeof study.updatedAt).toBe('number');
+      expect(Number.isFinite(study.updatedAt)).toBe(true);
+      expect(study.updatedAt!).toBeGreaterThan(0);
+    }
+
+    const recentStudies = sortScoreCatalog(studies, 'recent', 'desc');
+    expect(recentStudies[0].id).toBe('the-third-passenger');
+    expect(recentStudies[recentStudies.length - 1].id).toBe('the-expansion');
   });
 
   it('verifies all catalog items parse identically without errors (Golden Equivalence)', () => {

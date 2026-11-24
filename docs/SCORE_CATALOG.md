@@ -211,6 +211,7 @@ StageFlow decouples catalog registration from code. All built-in scores are decl
 - id: my-scene
   file: studies/my_scene.yaml
   category: study              # "study" | "blueprint"
+  date: "2026-08-23"           # Optional: ISO YYYY-MM-DD date for Recent sort
   default: true                # Optional: marks default launch scene independently of order
   aliases:
     - my-scene-alias
@@ -219,6 +220,6 @@ StageFlow decouples catalog registration from code. All built-in scores are decl
 
 - **Zero TypeScript Editing**: Adding a new score requires only adding the YAML file to `src/scores/` and declaring its entry in `catalog.yaml`.
 - **Decoupled Default Selection (`default: true`)**: Setting `default: true` on a catalog entry designates the default launch scene (`getDefaultCatalogItem()`) independently of alphabetical/display order (`vector-field` sits 12th alphabetically while remaining the default launch scene).
-- **Build-Time Metadata Index & Lazy YAML Chunking**: [`vite-plugin-score-catalog.ts`](../vite-plugin-score-catalog.ts) parses `catalog.yaml` and extracts lightweight metadata (`id`, `file`, `category`, `aliases`, `isDefault`, `title`, `subtitle`, `videoUrl`, `durationSec`, `shotCount`, `aspectRatio`) at build/dev startup into `virtual:stageflow-catalog-index`. [`src/core/scoreCatalog.ts`](../src/core/scoreCatalog.ts) pairs that index with lazy `import.meta.glob('../scores/{studies,blueprints}/**/*.yaml', { query: '?raw', import: 'default', eager: false })` YAML chunks so only the active score is parsed on initial load while remaining bundled scores load and cache on demand (`loadBundledScore`, `loadAllBundledScores`).
+- **Build-Time Metadata Index & Lazy YAML Chunking**: [`vite-plugin-score-catalog.ts`](../vite-plugin-score-catalog.ts) parses `catalog.yaml` and extracts lightweight metadata (`id`, `file`, `category`, `date`, `aliases`, `isDefault`, `title`, `subtitle`, `videoUrl`, `durationSec`, `shotCount`, `aspectRatio`) at build/dev startup into `virtual:stageflow-catalog-index`. [`src/core/scoreCatalog.ts`](../src/core/scoreCatalog.ts) pairs that index with lazy `import.meta.glob('../scores/{studies,blueprints}/**/*.yaml', { query: '?raw', import: 'default', eager: false })` YAML chunks so only the active score is parsed on initial load while remaining bundled scores load and cache on demand (`loadBundledScore`, `loadAllBundledScores`).
 - **Deep Linking**: The showrunner-defined `id` serves directly as the canonical URL query parameter (`?score=my-scene`), while `aliases:` provide 100% backwards compatibility for legacy identifiers.
 

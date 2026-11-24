@@ -7,6 +7,7 @@
 #   id: string          # Required: Canonical URL slug (e.g. ?score=vector-field)
 #   file: string        # Required: Path relative to src/scores/
 #   category: string    # Required: "study" | "blueprint"
+#   date: string        # Optional: ISO YYYY-MM-DD release/study date for Recent sort
 #   default: boolean    # Optional: Marks the default launch scene (independent of display order)
 #   aliases: string[]   # Optional: Backwards-compatible slugs or shortcuts
 # ==============================================================================
@@ -14,58 +15,70 @@
 - id: afraid
   file: studies/afraid.yaml
   category: study
+  date: "2026-07-04"
   aliases:
     - afraid-taruma-sakti
 
 - id: coordinates-for-three
   file: studies/coordinates-for-three.yaml
   category: study
+  date: "2026-08-15"
 
 - id: entropy
   file: studies/entropy.yaml
   category: study
+  date: "2026-08-09"
   aliases:
     - entropy-taruma-sakti
 
 - id: frequency-over-force
   file: studies/frequency-over-force.yaml
   category: study
+  date: "2026-08-08"
 
 - id: not-about-fish
   file: studies/not-about-fish.yaml
   category: study
+  date: "2026-07-16"
   aliases:
     - not-about-fish-2026
 
 - id: observation-only
   file: studies/observation-only.yaml
   category: study
+  date: "2026-08-11"
 
 - id: screaming-amber-wood
   file: studies/screaming-amber-wood.yaml
   category: study
+  date: "2026-08-16"
 
 - id: the-expansion
   file: studies/the-expansion.yaml
   category: study
+  date: "2026-03-31"
   aliases:
     - the-expansion-taruma-sakti
 
 - id: the-third-passenger
   file: studies/the-third-passenger.yaml
   category: study
+  date: "2026-08-23"
 
 - id: the-unresolved-variable
   file: studies/the-unresolved-variable.yaml
   category: study
+  date: "2026-07-09"
 
 - id: three-years-late
   file: studies/three-years-late.yaml
   category: study
+  date: "2026-08-12"
 
 - id: vector-field
   file: studies/vector_field.yaml
   category: study
+  date: "2026-07-16"
   default: true
   aliases:
     - vector-field-taruma-sakti

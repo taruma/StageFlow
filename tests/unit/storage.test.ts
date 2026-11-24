@@ -34,6 +34,12 @@ import {
   saveStoredLibraryBlueprintExpanded,
   loadStoredLibraryCustomExpanded,
   saveStoredLibraryCustomExpanded,
+  loadStoredLibraryShowDetails,
+  saveStoredLibraryShowDetails,
+  loadStoredLibrarySortField,
+  saveStoredLibrarySortField,
+  loadStoredLibrarySortDirection,
+  saveStoredLibrarySortDirection,
 } from '../../src/core/storage/localStorageUi';
 import { getDioramaThemeColors } from '../../src/stage/dioramaTheme';
 import {
@@ -268,6 +274,32 @@ describe('localStorageUi — Synchronous UI Preferences Persistence', () => {
     expect(loadStoredLibraryCustomExpanded()).toBe(true);
     saveStoredLibraryCustomExpanded(false);
     expect(loadStoredLibraryCustomExpanded()).toBe(false);
+  });
+
+  it('persists library details toggle and sort preferences with invalid-value fallbacks', () => {
+    expect(loadStoredLibraryShowDetails()).toBeNull();
+    saveStoredLibraryShowDetails(true);
+    expect(loadStoredLibraryShowDetails()).toBe(true);
+    saveStoredLibraryShowDetails(false);
+    expect(loadStoredLibraryShowDetails()).toBe(false);
+    globalThis.localStorage.setItem('stageflow:ui:library-show-details', 'invalid');
+    expect(loadStoredLibraryShowDetails()).toBeNull();
+
+    expect(loadStoredLibrarySortField()).toBeNull();
+    saveStoredLibrarySortField('duration');
+    expect(loadStoredLibrarySortField()).toBe('duration');
+    saveStoredLibrarySortField('shots');
+    expect(loadStoredLibrarySortField()).toBe('shots');
+    globalThis.localStorage.setItem('stageflow:ui:library-sort-field', 'unknown');
+    expect(loadStoredLibrarySortField()).toBeNull();
+
+    expect(loadStoredLibrarySortDirection()).toBeNull();
+    saveStoredLibrarySortDirection('asc');
+    expect(loadStoredLibrarySortDirection()).toBe('asc');
+    saveStoredLibrarySortDirection('desc');
+    expect(loadStoredLibrarySortDirection()).toBe('desc');
+    globalThis.localStorage.setItem('stageflow:ui:library-sort-direction', 'sideways');
+    expect(loadStoredLibrarySortDirection()).toBeNull();
   });
 
   it('provides distinct, valid hex colors for all diorama theme categories with light default', () => {

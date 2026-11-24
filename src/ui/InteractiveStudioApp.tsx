@@ -543,11 +543,13 @@ export const InteractiveStudioApp: React.FC = () => {
         const finalParsed = parseStageScore(finalYaml, finalId);
         const resolvedScore = finalParsed.score ?? result.score;
 
+        const now = Date.now();
         const newItem: LoadedScoreCatalogItem = {
           id: finalId,
           title: finalTitle,
           subtitle: resolvedScore.subtitle,
           category: 'custom',
+          updatedAt: now,
           durationSec: resolvedScore.durationSec,
           shotCount: resolvedScore.shots.length,
           aspectRatio: resolvedScore.aspectRatio,
@@ -567,7 +569,7 @@ export const InteractiveStudioApp: React.FC = () => {
           subtitle: newItem.subtitle,
           rawYaml: finalYaml,
           isCustom: true,
-          updatedAt: Date.now(),
+          updatedAt: now,
           contentHash: hash,
           originalContentHash: hash,
           sourceUrl: targetUrl,
@@ -632,10 +634,12 @@ export const InteractiveStudioApp: React.FC = () => {
         const finalParsed = parseStageScore(finalYaml, existing.id);
         const resolvedScore = finalParsed.score ?? parsed;
 
+        const now = Date.now();
         const updatedItem: LoadedScoreCatalogItem = {
           ...existing,
           title: resolvedScore.title,
           subtitle: resolvedScore.subtitle,
+          updatedAt: now,
           durationSec: resolvedScore.durationSec,
           shotCount: resolvedScore.shots.length,
           aspectRatio: resolvedScore.aspectRatio,
@@ -654,7 +658,7 @@ export const InteractiveStudioApp: React.FC = () => {
           subtitle: updatedItem.subtitle,
           rawYaml: finalYaml,
           isCustom: true,
-          updatedAt: Date.now(),
+          updatedAt: now,
           contentHash: hash,
           originalContentHash: hash,
           sourceFileName: updatedItem.sourceFileName,
@@ -685,11 +689,13 @@ export const InteractiveStudioApp: React.FC = () => {
         const finalParsed = parseStageScore(finalYaml, newId);
         const resolvedScore = finalParsed.score ?? parsed;
 
+        const now = Date.now();
         const newItem: LoadedScoreCatalogItem = {
           id: newId,
           title: newTitle,
           subtitle: resolvedScore.subtitle,
           category: 'custom',
+          updatedAt: now,
           durationSec: resolvedScore.durationSec,
           shotCount: resolvedScore.shots.length,
           aspectRatio: resolvedScore.aspectRatio,
@@ -708,7 +714,7 @@ export const InteractiveStudioApp: React.FC = () => {
           subtitle: newItem.subtitle,
           rawYaml: finalYaml,
           isCustom: true,
-          updatedAt: Date.now(),
+          updatedAt: now,
           contentHash: hash,
           originalContentHash: hash,
           sourceFileName: newItem.sourceFileName,
@@ -815,11 +821,13 @@ export const InteractiveStudioApp: React.FC = () => {
       const resolvedScore = finalParsed.score ?? parsed.score;
       const hash = computeYamlContentHash(finalYaml);
 
+      const now = Date.now();
       const newItem: LoadedScoreCatalogItem = {
         id: finalId,
         title: resolvedScore.title,
         subtitle: resolvedScore.subtitle,
         category: 'custom',
+        updatedAt: now,
         durationSec: resolvedScore.durationSec,
         shotCount: resolvedScore.shots.length,
         aspectRatio: resolvedScore.aspectRatio,
@@ -852,7 +860,7 @@ export const InteractiveStudioApp: React.FC = () => {
         subtitle: newItem.subtitle,
         rawYaml: finalYaml,
         isCustom: true,
-        updatedAt: Date.now(),
+        updatedAt: now,
         contentHash: hash,
         originalContentHash: hash,
         sourceFileName: fileName,

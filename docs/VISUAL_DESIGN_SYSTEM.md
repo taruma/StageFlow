@@ -151,29 +151,30 @@ To prevent Three.js Drei `<Html>` elements from colliding with or occluding 2D U
 
 ---
 
-## 7. Master-Detail Score Library Architecture
+## 7. Compact Grid & On-Demand Inspector Score Library Architecture
 
-The Choreography Score Library ([`ScoreLibraryModal.tsx`](../src/ui/ScoreLibraryModal.tsx)) implements an elevated 2-column studio layout (`max-w-5xl`) optimized for rapid browsing across large catalogs (10–50+ scores):
+The Choreography Score Library ([`ScoreLibraryModal.tsx`](../src/ui/ScoreLibraryModal.tsx)) implements a spacious `max-w-6xl` studio hub optimized for zero-scroll browsing across large catalogs (10–50+ scores):
 
-### 7.1 High-Density Navigation List (Left Column, ~40%)
-- **4-Way Filter Tabs**: Segmented category selector (`All`, `Studies`, `Blueprints`, `Custom`) for instant filtering across score collections.
-- **Ultra-Compact 2-Line Row Layout (`~50px`)**: Eliminates chunky multi-card waste, fitting 9–10 scores in the viewport simultaneously without scrolling.
-  - **Line 1 (Identity)**: Unified category tag (`STUDY` in Violet, `BP 01`–`BP 07` in Sky Blue, `CUSTOM` in Warm Amber) alongside `Inter` (`font-sans text-xs font-semibold`) un-truncated title.
-  - **Line 2 (Telemetry)**: Precision `JetBrains Mono` (`font-mono text-[10px]`) delimited string displaying media badge (`Simulator`, `YouTube`, `Local`), duration (`30.0s`), shot count (`17 shots`), and aspect ratio (`16:9`, `2.39:1`).
-- **3-Tier Category Color Coding**:
-  - **Directorial Scene Studies**: Deep **Violet / Purple** (`border-l-violet-500`, `bg-violet-500/15`, `text-violet-400`), conveying authentic scene studies authored by Taruma Sakti (such as *Vector Field*).
-  - **Bundled Blueprints**: Pure diorama **Sky Blue** (`border-l-sky-500`, `bg-sky-500/15`, `text-sky-400`), conveying factory-tested architectural reference material.
-  - **Custom User Projects**: Warm **Amber** (`border-l-amber-500`, `bg-amber-500/15`, `text-amber-400`), conveying active directorial drafting and user-authored scenes.
-- **Interactive Collapsible Sections**:
-  - `DIRECTORIAL SCENE STUDIES`, `BUNDLED BLUEPRINTS`, and `CUSTOM PROJECTS` section headers function as interactive accordions with rotating chevrons (`ChevronDown` / `ChevronRight`) and count badges.
-  - Clicking any section header collapses or expands that group's cards to optimize vertical scanning space.
-- **Keyboard Traversal & Dynamic Visibility**:
-  - `↑` / `ArrowUp` and `↓` / `ArrowDown` step smoothly across visible scores, automatically skipping collapsed sections and updating the inspector and 2D SVG minimap live.
-  - `Enter` loads the selected score directly into the 3D studio and closes the modal (auto-bypassed when search/rename inputs have focus).
+### 7.1 Full-Width Compact Grid & Filter/Sort Toolbar (`ScoreLibraryToolbar.tsx`, `ScoreLibraryGridBody.tsx`)
+- **4-Way Category Tabs**: Segmented category selector (`All`, `Custom`, `Studies`, `Blueprints`) prioritizing user projects alongside bundled work.
+- **Zero-Cost Filter & Sort Strip (`scoreCatalogFilters.ts`)**: Evaluates purely in-memory against `ScoreCatalogItem` metadata without parsing YAML:
+  - **Source Filter**: `All`, `YouTube`, `Sim / Local`.
+  - **Aspect Ratio Filter**: `All`, `16:9`, `Scope` (`2.39:1` / `21:9`), plus `Other` when `4:3` / `1:1` / `9:16` items exist.
+  - **Directional Sort**: `Recent` (IndexedDB `updatedAt` + `catalog.yaml` `date`), `A–Z`, `Duration`, and `Shots`, paired with an ascending/descending direction toggle (`↑` / `↓`).
+- **3-Column Responsive Grid (`Details OFF` default)**: Uses the full modal width (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`, or `1–2` columns when `Details` is toggled ON).
+- **Ultra-Compact 2-Line Card (`ScoreLibraryCard.tsx`, `~46px`)**: Fits 15–18+ projects in a single viewport without scrolling:
+  - **Line 1 (Identity)**: Unified category tag (`CUSTOM` in Warm Amber, `STUDY` in Violet, `BP 01`–`BP 07` in Sky Blue), `Inter` (`font-sans text-xs font-semibold`) title, optional `Active` chip, and hover `ⓘ` inspect trigger.
+  - **Line 2 (Telemetry)**: Precision `JetBrains Mono` (`font-mono text-[10px]`) delimited string displaying media badge (`Sim`, `YT`, `Video`), duration (`30.0s`), shot count (`17sh`), and aspect ratio (`16:9`, `2.39:1`, `21:9`).
+- **Custom-First Collapsible Sections**:
+  - In the `All` tab, sections render in priority order: `CUSTOM PROJECTS` (expanded default), `SCENE STUDIES` (expanded default), and `BLUEPRINTS` (collapsed default; auto-expands whenever search or filters are active).
+- **2D Keyboard Traversal & Safe Desktop Loading**:
+  - Single-click selects a card; double-click or `Enter` loads it into the studio and closes the modal.
+  - `ArrowLeft`/`ArrowRight`/`ArrowUp`/`ArrowDown` step across grid rows/columns, `/` focuses search, `I` toggles the Details Inspector, and `Esc` clears active search or closes the dialog.
 
-### 7.2 Choreography Inspector (Right Column, ~60%)
-- **Directorial Metadata & Notes**: High-contrast title in `Libre Baskerville` serif, full directorial notes, and media engine indicators.
-- **Procedural 2D Vector Stage Minimap (`ScoreStageMinimap.tsx`)**: Renders an instantaneous top-down SVG blueprint schematic of stage geometry, character proxies with facing chevrons, oriented bounding box polygons for box props, elliptical footprints, and camera trajectory cones in $< 0.1\text{ms}$ with zero WebGL overhead.
-- **Optical & Staging Grid**: 4-quadrant display of duration, shot count, film gate aspect ratio, and entity count.
-- **Shot Coverage Strips**: Sequential step-by-step breakdown of camera focal lengths, maneuvers, and duration cuts.
-- **Unified Lifecycle Controls**: Inline renaming, score duplication, YAML export, and deletion without auxiliary modal windows.
+### 7.2 On-Demand Choreography Inspector (`ScoreInspectorPane.tsx`) & Compact Footer (`ScoreLibraryFooter.tsx`)
+- **Collapsed by Default (`stageflow:ui:library-show-details`)**: Keeps the library calm and fast while browsing; [`ScoreLibraryFooter.tsx`](../src/ui/library/ScoreLibraryFooter.tsx) exposes `Fork to Edit`, `Duplicate`, `Rename`, `Export`, `Delete`, and `Load into Studio →` directly below the grid.
+- **On-Demand Sidecar (`Details ON`)**: Clicking `[ Details ]`, pressing `I`, or clicking a card's `ⓘ` icon opens [`ScoreInspectorPane.tsx`](../src/ui/library/ScoreInspectorPane.tsx) and lazily loads the full YAML/AST (`onEnsureScoreLoaded`):
+  - **Directorial Metadata & Notes**: Un-truncated title, optional `YYYY-MM-DD` date pill, full directorial notes, and media engine indicators.
+  - **Procedural 2D Vector Stage Minimap (`ScoreStageMinimap.tsx`)**: Renders an instantaneous top-down SVG blueprint schematic of stage geometry, character proxies with facing chevrons, oriented bounding box polygons for box props, elliptical footprints, and camera trajectory cones in $< 0.1\text{ms}$ with zero WebGL overhead.
+  - **Optical & Staging Grid**: 4-quadrant display of duration, shot count, film gate aspect ratio, and entity count.
+  - **Shot Coverage Strips & Unified Lifecycle Controls**: Sequential camera breakdown alongside inline renaming, duplication, YAML export, and deletion.

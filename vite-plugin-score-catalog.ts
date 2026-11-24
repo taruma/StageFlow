@@ -17,6 +17,7 @@ interface CatalogManifestEntry {
   id: string;
   file: string;
   category?: 'study' | 'blueprint' | 'custom';
+  date?: string;
   aliases?: string[];
   default?: boolean;
 }
@@ -25,6 +26,7 @@ export interface BundledScoreIndexEntry {
   id: string;
   file: string;
   category: 'study' | 'blueprint' | 'custom';
+  date?: string;
   aliases: string[];
   isDefault: boolean;
   title: string;
@@ -33,6 +35,30 @@ export interface BundledScoreIndexEntry {
   durationSec: number;
   shotCount: number;
   aspectRatio: number;
+}
+
+function normalizeCatalogDate(raw: unknown): string | undefined {
+  if (raw instanceof Date && !Number.isNaN(raw.getTime())) {
+    const y = raw.getUTCFullYear();
+    const m = String(raw.getUTCMonth() + 1).padStart(2, '0');
+    const d = String(raw.getUTCDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+  if (typeof raw !== 'string') return undefined;
+  const match = raw.trim().match(/^(\d{4})[-.](\d{2})[-.](\d{2})$/);
+  if (!match) return undefined;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const dt = new Date(Date.UTC(year, month - 1, day));
+  if (
+    dt.getUTCFullYear() !== year ||
+    dt.getUTCMonth() + 1 !== month ||
+    dt.getUTCDate() !== day
+  ) {
+    return undefined;
+  }
+  return `${match[1]}-${match[2]}-${match[3]}`;
 }
 
 function parseAspectRatioValue(raw: unknown): number {
@@ -195,11 +221,13 @@ function buildCatalogIndexEntries(
       rawEntry.category === 'custom'
         ? rawEntry.category
         : 'blueprint';
+    const date = normalizeCatalogDate(rawEntry.date);
 
     entries.push({
       id: String(rawEntry.id),
       file: relFile,
       category,
+      ...(date ? { date } : {}),
       aliases: Array.isArray(rawEntry.aliases)
         ? rawEntry.aliases.map(String)
         : [],

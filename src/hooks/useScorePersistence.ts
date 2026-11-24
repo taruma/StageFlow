@@ -133,6 +133,7 @@ export function useScorePersistence({
                 title: migratedRecord.title,
                 subtitle: migratedRecord.subtitle,
                 category: 'custom',
+                updatedAt: migratedRecord.updatedAt,
                 durationSec: parsedMigrated.score.durationSec,
                 shotCount: parsedMigrated.score.shots.length,
                 aspectRatio: parsedMigrated.score.aspectRatio,
@@ -164,6 +165,7 @@ export function useScorePersistence({
           title: record.title,
           subtitle: record.subtitle,
           category: 'custom',
+          updatedAt: record.updatedAt,
           durationSec: parsed.score.durationSec,
           shotCount: parsed.score.shots.length,
           aspectRatio: parsed.score.aspectRatio,
@@ -338,6 +340,7 @@ export function useScorePersistence({
       debounceTimerRef.current = setTimeout(async () => {
         const existingItem = catalog.find((c) => c.id === activeSceneId);
         const nextHash = computeYamlContentHash(nextYaml);
+        const now = Date.now();
 
         await saveStoredScore({
           id: activeSceneId,
@@ -345,7 +348,7 @@ export function useScorePersistence({
           subtitle: parsedScore.subtitle,
           rawYaml: nextYaml,
           isCustom: true,
-          updatedAt: Date.now(),
+          updatedAt: now,
           contentHash: nextHash,
           originalContentHash: existingItem?.originalContentHash ?? nextHash,
           sourceUrl: existingItem?.sourceUrl,
@@ -360,6 +363,7 @@ export function useScorePersistence({
                   ...item,
                   title: parsedScore.title,
                   subtitle: parsedScore.subtitle,
+                  updatedAt: now,
                   durationSec: parsedScore.durationSec,
                   shotCount: parsedScore.shots.length,
                   aspectRatio: parsedScore.aspectRatio,
@@ -406,11 +410,13 @@ export function useScorePersistence({
       if (!parsed.score) return null;
 
       const hash = computeYamlContentHash(updatedYaml);
+      const now = Date.now();
       const newItem: LoadedScoreCatalogItem = {
         id: newId,
         title: newTitle,
         subtitle: catalogItem.subtitle,
         category: 'custom',
+        updatedAt: now,
         durationSec: parsed.score.durationSec,
         shotCount: parsed.score.shots.length,
         aspectRatio: parsed.score.aspectRatio,
@@ -429,7 +435,7 @@ export function useScorePersistence({
         subtitle: newItem.subtitle,
         rawYaml: newItem.rawYaml,
         isCustom: true,
-        updatedAt: Date.now(),
+        updatedAt: now,
         contentHash: hash,
         originalContentHash: hash,
         sourceFileName: catalogItem.sourceFileName,
@@ -499,13 +505,20 @@ export function useScorePersistence({
       const parsed = parseStageScore(updatedYaml, sceneId);
       if (!parsed.score) return false;
 
+      const now = Date.now();
+      const nextHash = computeYamlContentHash(updatedYaml);
+
       await saveStoredScore({
         id: sceneId,
         title: trimmedTitle,
         subtitle: targetItem.subtitle,
         rawYaml: updatedYaml,
         isCustom: true,
-        updatedAt: Date.now(),
+        updatedAt: now,
+        contentHash: nextHash,
+        originalContentHash: targetItem.originalContentHash ?? nextHash,
+        sourceUrl: targetItem.sourceUrl,
+        sourceFileName: targetItem.sourceFileName,
       });
 
       setCatalog((prev) =>
@@ -514,12 +527,15 @@ export function useScorePersistence({
             ? {
                 ...item,
                 title: trimmedTitle,
+                updatedAt: now,
                 durationSec: parsed.score!.durationSec,
                 shotCount: parsed.score!.shots.length,
                 aspectRatio: parsed.score!.aspectRatio,
                 videoUrl: parsed.score!.videoUrl,
                 rawYaml: updatedYaml,
                 score: parsed.score!,
+                contentHash: nextHash,
+                originalContentHash: item.originalContentHash ?? nextHash,
               }
             : item
         )
@@ -546,11 +562,13 @@ export function useScorePersistence({
       if (!parsed.score) return null;
 
       const hash = computeYamlContentHash(blankYaml);
+      const now = Date.now();
       const newItem: LoadedScoreCatalogItem = {
         id: newId,
         title: newTitle,
         subtitle: parsed.score.subtitle,
         category: 'custom',
+        updatedAt: now,
         durationSec: parsed.score.durationSec,
         shotCount: parsed.score.shots.length,
         aspectRatio: parsed.score.aspectRatio,
@@ -568,7 +586,7 @@ export function useScorePersistence({
         subtitle: newItem.subtitle,
         rawYaml: newItem.rawYaml,
         isCustom: true,
-        updatedAt: Date.now(),
+        updatedAt: now,
         contentHash: hash,
         originalContentHash: hash,
       });
