@@ -26,7 +26,7 @@ export interface DirectorialShotChipsStripProps {
 
 export const DirectorialShotChipsStrip: React.FC<
   DirectorialShotChipsStripProps
-> = ({ shots, activeShotId, onSeek }) => {
+> = React.memo(({ shots, activeShotId, onSeek }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const activeChipRef = useRef<HTMLButtonElement | null>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -160,4 +160,4 @@ export const DirectorialShotChipsStrip: React.FC<
       )}
     </div>
   );
-};
+});

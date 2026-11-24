@@ -53,7 +53,7 @@ function getMediaSourceBadge(videoUrl?: string): {
   return { label: 'Video Player', icon: Video };
 }
 
-export const SceneProductionBrief: React.FC<SceneProductionBriefProps> = ({
+export const SceneProductionBrief: React.FC<SceneProductionBriefProps> = React.memo(({
   score,
 }) => {
   const durationSec = score.durationSec ?? 0;
@@ -199,4 +199,4 @@ export const SceneProductionBrief: React.FC<SceneProductionBriefProps> = ({
       )}
     </div>
   );
-};
+});

@@ -202,6 +202,13 @@ export class YouTubeMediaDriver implements MediaClockDriver {
       containerElement.innerHTML = '';
       containerElement.appendChild(mountTarget);
 
+      const origin =
+        typeof window !== 'undefined' &&
+        typeof window.location?.origin === 'string' &&
+        window.location.origin.startsWith('http')
+          ? window.location.origin
+          : undefined;
+
       this.player = new win.YT.Player(mountTarget, {
         videoId,
         width: '100%',
@@ -214,6 +221,7 @@ export class YouTubeMediaDriver implements MediaClockDriver {
           rel: 0,
           playsinline: 1,
           iv_load_policy: 3,
+          ...(origin ? { origin } : {}),
         },
         events: {
           onReady: () => {
