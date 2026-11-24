@@ -10,6 +10,7 @@ import { Canvas, useThree } from '@react-three/fiber';
 import type {
   AppThemeCategory,
   LabelDisplayMode,
+  StageDisplayOptions,
   StageFrame,
   StageScore,
 } from '../core/types';
@@ -25,6 +26,7 @@ export interface StageCamMonitorCanvasProps {
   frameRef: React.RefObject<StageFrame>;
   uiFrame: StageFrame;
   labelMode?: LabelDisplayMode;
+  stageDisplay?: StageDisplayOptions;
   isPlaying?: boolean;
   showGuides?: boolean;
   dofBlurEnabled?: boolean;
@@ -40,6 +42,7 @@ const MonitorDemandInvalidator: React.FC<{
   score: StageScore;
   uiFrame: StageFrame;
   labelMode: LabelDisplayMode;
+  stageDisplay?: StageDisplayOptions;
   isPlaying: boolean;
   dofBlurEnabled: boolean;
   themeCategory: AppThemeCategory;
@@ -50,6 +53,7 @@ const MonitorDemandInvalidator: React.FC<{
   score,
   uiFrame,
   labelMode,
+  stageDisplay,
   isPlaying,
   dofBlurEnabled,
   themeCategory,
@@ -67,6 +71,7 @@ const MonitorDemandInvalidator: React.FC<{
     score,
     uiFrame,
     labelMode,
+    stageDisplay,
     isPlaying,
     dofBlurEnabled,
     themeCategory,
@@ -86,6 +91,7 @@ export const StageCamMonitorCanvas: React.FC<StageCamMonitorCanvasProps> = ({
   frameRef,
   uiFrame,
   labelMode = 'all',
+  stageDisplay,
   isPlaying = false,
   showGuides = true,
   dofBlurEnabled = false,
@@ -127,6 +133,7 @@ export const StageCamMonitorCanvas: React.FC<StageCamMonitorCanvasProps> = ({
           score={score}
           uiFrame={uiFrame}
           labelMode={labelMode}
+          stageDisplay={stageDisplay}
           isPlaying={isPlaying}
           dofBlurEnabled={dofBlurEnabled}
           themeCategory={themeCategory}
@@ -143,6 +150,7 @@ export const StageCamMonitorCanvas: React.FC<StageCamMonitorCanvasProps> = ({
           frameRef={frameRef}
           uiFrame={uiFrame}
           labelMode={labelMode}
+          stageDisplay={stageDisplay}
           isPlaying={isPlaying}
           cameraMode="stage-pov"
           themeCategory={themeCategory}

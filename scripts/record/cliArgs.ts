@@ -6,10 +6,15 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { isLabelDisplayMode } from '../../src/core/constants';
+import {
+  DEFAULT_STAGE_DISPLAY_OPTIONS,
+  isStageFloorMode,
+} from '../../src/core/stageDisplayOptions';
 import type {
   AppThemeCategory,
   CameraViewMode,
   LabelDisplayMode,
+  StageFloorMode,
 } from '../../src/core/types';
 import { CAMERA_PRESETS } from './cameraPresets';
 import type {
@@ -39,6 +44,14 @@ Options:
   --no-blur               Force thin-lens DoF bokeh blur OFF
   --theme <category>      Diorama theme: "dark" (default), "warm", or "light"
   --labels <mode>         "all" (default), "cast", "camera-only", or "off"
+  --floor <mode>          Stage floor: "solid" (default), "grid", or "off"
+  --hide-characters       Visually hide all character mannequins
+  --hide-props            Visually hide all stage props
+  --hide-markers          Visually hide all floor gaffer markers
+  --hide-character <id>   Visually hide a specific character ID (repeatable)
+  --no-arrows             Hide entity +Z ground facing direction arrows
+  --no-footprints         Hide entity ground contact & highlight rings
+  --no-trails             Hide entity dashed floor movement trails
   --guides                Show optical viewfinder composition guides
   --hud                   Include 2D shot breakdown and telemetry badges
   --preset <name>         Camera angle preset: isometric (iso), top-down (top), front, side
@@ -108,6 +121,14 @@ export function parseArgs(
   let cameraMode: CameraViewMode = 'scripted';
   let presetName: string | undefined;
   let labels: LabelDisplayMode = 'all';
+  let floorMode: StageFloorMode = DEFAULT_STAGE_DISPLAY_OPTIONS.floorMode;
+  let showCharacters = DEFAULT_STAGE_DISPLAY_OPTIONS.showCharacters;
+  let showProps = DEFAULT_STAGE_DISPLAY_OPTIONS.showProps;
+  let showMarkers = DEFAULT_STAGE_DISPLAY_OPTIONS.showMarkers;
+  const hiddenCharacterIds: string[] = [];
+  let showArrows = DEFAULT_STAGE_DISPLAY_OPTIONS.showArrows;
+  let showFootprints = DEFAULT_STAGE_DISPLAY_OPTIONS.showFootprints;
+  let showTrails = DEFAULT_STAGE_DISPLAY_OPTIONS.showTrails;
   let guides = false;
   let hud = false;
   let dofBlur: boolean | undefined = undefined;
@@ -158,6 +179,31 @@ export function parseArgs(
         );
       }
       labels = mode;
+    } else if (arg === '--floor' && args[i + 1]) {
+      const mode = args[++i].toLowerCase();
+      if (!isStageFloorMode(mode)) {
+        throw new Error(
+          `Invalid --floor "${mode}". Expected "solid", "grid", or "off".`
+        );
+      }
+      floorMode = mode;
+    } else if (arg === '--hide-characters') {
+      showCharacters = false;
+    } else if (arg === '--hide-props') {
+      showProps = false;
+    } else if (arg === '--hide-markers') {
+      showMarkers = false;
+    } else if (arg === '--hide-character' && args[i + 1]) {
+      const id = args[++i].trim();
+      if (id && !hiddenCharacterIds.includes(id)) {
+        hiddenCharacterIds.push(id);
+      }
+    } else if (arg === '--no-arrows') {
+      showArrows = false;
+    } else if (arg === '--no-footprints') {
+      showFootprints = false;
+    } else if (arg === '--no-trails') {
+      showTrails = false;
     } else if (arg === '--guides') {
       guides = true;
     } else if (arg === '--hud') {
@@ -246,6 +292,16 @@ export function parseArgs(
     preset: presetName as CliOptions['preset'],
     customPose,
     labels,
+    stageDisplay: {
+      floorMode,
+      showCharacters,
+      showProps,
+      showMarkers,
+      hiddenCharacterIds,
+      showArrows,
+      showFootprints,
+      showTrails,
+    },
     guides,
     hud,
     dofBlur,

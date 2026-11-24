@@ -6,6 +6,7 @@ import type {
   AppThemeCategory,
   CameraViewMode,
   LabelDisplayMode,
+  StageDisplayOptions,
 } from '../../src/core/types';
 
 export type CaptureFormat = 'jpeg' | 'png';
@@ -21,6 +22,7 @@ export interface CliOptions {
     target?: [number, number, number];
   };
   labels: LabelDisplayMode;
+  stageDisplay?: StageDisplayOptions;
   guides: boolean;
   hud: boolean;
   dofBlur?: boolean;

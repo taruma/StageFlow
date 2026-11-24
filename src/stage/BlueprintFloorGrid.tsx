@@ -8,7 +8,11 @@ import React, { useCallback, useEffect, useMemo } from 'react';
 import { useThree } from '@react-three/fiber';
 import { Grid, Line, Text } from '@react-three/drei';
 import * as THREE from 'three';
-import type { AppThemeCategory, CameraViewMode } from '../core/types';
+import type {
+  AppThemeCategory,
+  CameraViewMode,
+  StageFloorMode,
+} from '../core/types';
 import { getDioramaThemeColors } from './dioramaTheme';
 
 export interface BlueprintFloorGridProps {
@@ -18,6 +22,7 @@ export interface BlueprintFloorGridProps {
   showLabels?: boolean;
   cameraMode?: CameraViewMode;
   themeCategory?: AppThemeCategory;
+  floorMode?: StageFloorMode;
 }
 
 export const BlueprintFloorGrid: React.FC<BlueprintFloorGridProps> = React.memo(({
@@ -27,6 +32,7 @@ export const BlueprintFloorGrid: React.FC<BlueprintFloorGridProps> = React.memo(
   showLabels = true,
   cameraMode,
   themeCategory = 'light',
+  floorMode = 'solid',
 }) => {
   const halfW = width * 0.5;
   const halfD = depth * 0.5;
@@ -80,17 +86,21 @@ export const BlueprintFloorGrid: React.FC<BlueprintFloorGridProps> = React.memo(
     };
   }, [ringGeom]);
 
+  if (floorMode === 'off') return null;
+
   return (
     <group>
-      {/* Subtle matte ground floor to anchor shadows/grids */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]}>
-        <planeGeometry args={[width * 2.4, depth * 2.4]} />
-        <meshBasicMaterial
-          color={themeColors.floorColor}
-          transparent
-          opacity={themeColors.floorOpacity}
-        />
-      </mesh>
+      {/* Subtle matte ground floor to anchor shadows/grids (hidden in 'grid' mode to inspect -Y geometry) */}
+      {floorMode === 'solid' && (
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]}>
+          <planeGeometry args={[width * 2.4, depth * 2.4]} />
+          <meshBasicMaterial
+            color={themeColors.floorColor}
+            transparent
+            opacity={themeColors.floorOpacity}
+          />
+        </mesh>
+      )}
 
       {/* Dual-cadence precision metric grid (1m major, 0.25m minor) */}
       <Grid

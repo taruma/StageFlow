@@ -291,6 +291,24 @@ describe('stagePerfHelpers — Issue #9 deterministic performance guards', () =>
       expect(
         areDirectionalMannequinPropsEqual(prev, {
           ...nextSameVisual,
+          showArrows: false,
+        })
+      ).toBe(false);
+      expect(
+        areDirectionalMannequinPropsEqual(prev, {
+          ...nextSameVisual,
+          showFootprints: false,
+        })
+      ).toBe(false);
+      expect(
+        areDirectionalMannequinPropsEqual(prev, {
+          ...nextSameVisual,
+          showTrails: false,
+        })
+      ).toBe(false);
+      expect(
+        areDirectionalMannequinPropsEqual(prev, {
+          ...nextSameVisual,
           initialState: { ...initialB, def: { ...def } },
         })
       ).toBe(false);

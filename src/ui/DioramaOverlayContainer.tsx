@@ -12,14 +12,18 @@ import type {
   CameraViewMode,
   LabelDisplayMode,
   SphericalPose,
+  StageDisplayOptions,
+  StageFloorMode,
   StageFrame,
   StageScore,
 } from '../core/types';
+import type { StageDisplayFlagKey } from '../core/stageDisplayOptions';
 import type { ActiveSkinEntry } from '../hooks/useStageSkins';
 import type { CameraPresetType } from '../stage/cameraPresets';
 import { CompactDioramaHeader } from './CompactDioramaHeader';
 import { ShotBreakdownHud } from './ShotBreakdownHud';
 import { LabelDisplayModeToggle } from './LabelDisplayModeToggle';
+import { StageDisplayPopover } from './StageDisplayPopover';
 import { CameraPresetControls } from './CameraPresetControls';
 import { CameraModeSwitcher } from './CameraModeSwitcher';
 import { CameraTelemetryCapsule } from './CameraTelemetryCapsule';
@@ -35,6 +39,7 @@ export interface DioramaOverlayContainerProps {
   cameraMode: CameraViewMode;
   isPlaying: boolean;
   labelMode: LabelDisplayMode;
+  stageDisplay?: StageDisplayOptions;
   showGuides: boolean;
   dofBlurEnabled?: boolean;
   showMinimap?: boolean;
@@ -50,6 +55,10 @@ export interface DioramaOverlayContainerProps {
   onSetCameraMode: (mode: CameraViewMode) => void;
   onSelectPreset: (preset: CameraPresetType) => void;
   onSelectLabelMode: (mode: LabelDisplayMode) => void;
+  onSelectFloorMode?: (mode: StageFloorMode) => void;
+  onToggleStageDisplayFlag?: (key: StageDisplayFlagKey) => void;
+  onToggleCharacterVisible?: (characterId: string) => void;
+  onResetStageDisplay?: () => void;
   onToggleGuides: () => void;
   onToggleDofBlur?: () => void;
   onToggleMinimap?: () => void;
@@ -64,6 +73,7 @@ export const DioramaOverlayContainer: React.FC<DioramaOverlayContainerProps> = (
   cameraMode,
   isPlaying,
   labelMode,
+  stageDisplay,
   showGuides,
   dofBlurEnabled = false,
   showMinimap = true,
@@ -79,6 +89,10 @@ export const DioramaOverlayContainer: React.FC<DioramaOverlayContainerProps> = (
   onSetCameraMode,
   onSelectPreset,
   onSelectLabelMode,
+  onSelectFloorMode,
+  onToggleStageDisplayFlag,
+  onToggleCharacterVisible,
+  onResetStageDisplay,
   onToggleGuides,
   onToggleDofBlur,
   onToggleMinimap,
@@ -213,6 +227,11 @@ export const DioramaOverlayContainer: React.FC<DioramaOverlayContainerProps> = (
             onSelectPreset={onSelectPreset}
             labelMode={labelMode}
             onSelectLabelMode={onSelectLabelMode}
+            stageDisplay={stageDisplay}
+            onSelectFloorMode={onSelectFloorMode}
+            onToggleStageDisplayFlag={onToggleStageDisplayFlag}
+            onToggleCharacterVisible={onToggleCharacterVisible}
+            onResetStageDisplay={onResetStageDisplay}
             showGuides={showGuides}
             onToggleGuides={onToggleGuides}
             dofBlurEnabled={dofBlurEnabled}
@@ -246,6 +265,20 @@ export const DioramaOverlayContainer: React.FC<DioramaOverlayContainerProps> = (
                 onToggleMinimap={onToggleMinimap}
                 cameraMode={cameraMode}
               />
+              {stageDisplay &&
+                onSelectFloorMode &&
+                onToggleStageDisplayFlag &&
+                onToggleCharacterVisible &&
+                onResetStageDisplay && (
+                  <StageDisplayPopover
+                    score={score}
+                    stageDisplay={stageDisplay}
+                    onSelectFloorMode={onSelectFloorMode}
+                    onToggleStageDisplayFlag={onToggleStageDisplayFlag}
+                    onToggleCharacterVisible={onToggleCharacterVisible}
+                    onResetStageDisplay={onResetStageDisplay}
+                  />
+                )}
             </div>
             {skinPill}
             {showMinimap && (

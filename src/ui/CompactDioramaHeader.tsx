@@ -21,12 +21,19 @@ import {
   X,
 } from 'lucide-react';
 import { LABEL_DISPLAY_MODES } from '../core/constants';
+import {
+  hasCustomStageDisplayOptions,
+  type StageDisplayFlagKey,
+} from '../core/stageDisplayOptions';
 import type {
   CameraViewMode,
   LabelDisplayMode,
+  StageDisplayOptions,
+  StageFloorMode,
   StageFrame,
   StageScore,
 } from '../core/types';
+import { StageDisplayControlsSection } from './StageDisplayControlsSection';
 import {
   DIORAMA_CAMERA_PRESETS,
   type CameraPresetType,
@@ -40,6 +47,11 @@ export interface CompactDioramaHeaderProps {
   onSelectPreset: (preset: CameraPresetType) => void;
   labelMode: LabelDisplayMode;
   onSelectLabelMode: (mode: LabelDisplayMode) => void;
+  stageDisplay?: StageDisplayOptions;
+  onSelectFloorMode?: (mode: StageFloorMode) => void;
+  onToggleStageDisplayFlag?: (key: StageDisplayFlagKey) => void;
+  onToggleCharacterVisible?: (characterId: string) => void;
+  onResetStageDisplay?: () => void;
   showGuides: boolean;
   onToggleGuides: () => void;
   dofBlurEnabled?: boolean;
@@ -55,6 +67,11 @@ export const CompactDioramaHeader: React.FC<CompactDioramaHeaderProps> = ({
   onSelectPreset,
   labelMode,
   onSelectLabelMode,
+  stageDisplay,
+  onSelectFloorMode,
+  onToggleStageDisplayFlag,
+  onToggleCharacterVisible,
+  onResetStageDisplay,
   showGuides,
   onToggleGuides,
   dofBlurEnabled = false,
@@ -220,12 +237,18 @@ export const CompactDioramaHeader: React.FC<CompactDioramaHeaderProps> = ({
         >
           <Compass className="w-3 h-3 text-text-faint" />
           <span>View</span>
+          {stageDisplay && hasCustomStageDisplayOptions(stageDisplay) && (
+            <span
+              className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0"
+              aria-label="Custom view filters active"
+            />
+          )}
           <ChevronDown className="w-3 h-3 text-text-faint" />
         </button>
 
         {/* View Options Dropdown Popover */}
         {isViewMenuOpen && (
-          <div className="absolute top-full right-0 mt-2 w-52 bg-surface border border-border-main rounded-2xl p-2.5 shadow-2xl z-50 flex flex-col gap-2 animate-in fade-in zoom-in-95 duration-100 text-[10.5px]">
+          <div className="absolute top-full right-0 mt-2 w-56 max-h-[75vh] overflow-y-auto bg-surface border border-border-main rounded-2xl p-2.5 shadow-2xl z-50 flex flex-col gap-2 animate-in fade-in zoom-in-95 duration-100 text-[10.5px]">
             {/* Presets Cluster */}
             <div>
               <span className="text-[9px] font-bold text-text-faint font-mono uppercase tracking-wider block px-1.5 pb-1">
@@ -292,6 +315,24 @@ export const CompactDioramaHeader: React.FC<CompactDioramaHeaderProps> = ({
                 ))}
               </div>
             </div>
+
+            {stageDisplay &&
+              onSelectFloorMode &&
+              onToggleStageDisplayFlag &&
+              onToggleCharacterVisible &&
+              onResetStageDisplay && (
+                <>
+                  <div className="w-full h-[1px] bg-border-subtle" />
+                  <StageDisplayControlsSection
+                    score={score}
+                    stageDisplay={stageDisplay}
+                    onSelectFloorMode={onSelectFloorMode}
+                    onToggleStageDisplayFlag={onToggleStageDisplayFlag}
+                    onToggleCharacterVisible={onToggleCharacterVisible}
+                    onResetStageDisplay={onResetStageDisplay}
+                  />
+                </>
+              )}
 
             {/* Optical Guides & DoF Blur Toggles (in Stage POV) */}
             {cameraMode === 'stage-pov' && (

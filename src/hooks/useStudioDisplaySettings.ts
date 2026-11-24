@@ -6,7 +6,16 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { getNextLabelDisplayMode } from '../core/constants';
-import type { LabelDisplayMode } from '../core/types';
+import {
+  DEFAULT_STAGE_DISPLAY_OPTIONS,
+  toggleHiddenCharacterId,
+  type StageDisplayFlagKey,
+} from '../core/stageDisplayOptions';
+import type {
+  LabelDisplayMode,
+  StageDisplayOptions,
+  StageFloorMode,
+} from '../core/types';
 import {
   loadStoredDioramaMinimap,
   loadStoredDofBlur,
@@ -34,6 +43,43 @@ export function useStudioDisplaySettings() {
   const [showMinimap, setShowMinimapState] = useState<boolean>(
     () => loadStoredDioramaMinimap() ?? true
   );
+
+  // Session-only visual diorama display filters (intentionally reset on page reload)
+  const [stageDisplay, setStageDisplay] = useState<StageDisplayOptions>(
+    DEFAULT_STAGE_DISPLAY_OPTIONS
+  );
+
+  const handleSelectFloorMode = useCallback((floorMode: StageFloorMode) => {
+    setStageDisplay((prev) =>
+      prev.floorMode === floorMode ? prev : { ...prev, floorMode }
+    );
+  }, []);
+
+  const handleToggleStageDisplayFlag = useCallback((key: StageDisplayFlagKey) => {
+    setStageDisplay((prev) => ({ ...prev, [key]: !prev[key] }));
+  }, []);
+
+  const handleToggleCharacterVisible = useCallback((characterId: string) => {
+    setStageDisplay((prev) => ({
+      ...prev,
+      hiddenCharacterIds: toggleHiddenCharacterId(
+        prev.hiddenCharacterIds,
+        characterId
+      ),
+    }));
+  }, []);
+
+  const handleClearHiddenCharacters = useCallback(() => {
+    setStageDisplay((prev) =>
+      prev.hiddenCharacterIds.length === 0
+        ? prev
+        : { ...prev, hiddenCharacterIds: [] }
+    );
+  }, []);
+
+  const handleResetStageDisplay = useCallback(() => {
+    setStageDisplay(DEFAULT_STAGE_DISPLAY_OPTIONS);
+  }, []);
 
   const handleSelectLabelMode = useCallback((mode: LabelDisplayMode) => {
     setLabelModeState(mode);
@@ -120,11 +166,17 @@ export function useStudioDisplaySettings() {
     showGuides,
     dofBlurEnabled,
     showMinimap,
+    stageDisplay,
     handleSelectLabelMode,
     handleCycleLabelMode,
     handleToggleGuides,
     handleToggleDofBlur,
     handleToggleMinimap,
     setDofBlurEnabled,
+    handleSelectFloorMode,
+    handleToggleStageDisplayFlag,
+    handleToggleCharacterVisible,
+    handleClearHiddenCharacters,
+    handleResetStageDisplay,
   };
 }

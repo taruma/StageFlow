@@ -74,6 +74,7 @@ stageflow/
 │   ├── core/                        # Layer 1: Pure TypeScript Math, Optics & Stateless Frame Engine
 │   │   ├── types.ts                 # Canonical interfaces (StageScore, ShotCue, ObserverShotCue, BlockingCueSpec, StageFrame)
 │   │   ├── constants.ts             # Metric bounds, sensor constants, blueprint color palette
+│   │   ├── stageDisplayOptions.ts   # Pure session-only visual diorama display filters (floor mode, object/character visibility, cues)
 │   │   ├── fileDropClassifier.ts    # Pure asset classifier (.yaml/.video/.glb) & file-drag DataTransfer guard
 │   │   ├── minimapMath.ts           # Pure 2D XZ top-down minimap bounds, Stage Camera frustum/focus & Observer geometry
 │   │   ├── skinMath.ts              # Pure .glb Box3 normalization math, filename target matcher, batch conflict/plan resolver & skin cache signatures
@@ -204,6 +205,8 @@ stageflow/
 │   │   ├── YamlInspectorDrawer.tsx  # Slide-out live YAML editor with read-only protection & fork-on-edit
 │   │   ├── ToastContainer.tsx       # Floating animated toast notification banners
 │   │   ├── LabelDisplayModeToggle.tsx # Floating 4-mode 3D diorama label toggle (All / Cast / Cam / Off), Guides, Blur & Map toggle
+│   │   ├── StageDisplayPopover.tsx  # Top-right [ View ▾ ] popover for session-only floor, object & cue filters
+│   │   ├── StageDisplayControlsSection.tsx # Shared Stage Floor, Scene Objects (incl. per-character) & Entity Cues controls
 │   │   ├── DioramaMinimap.tsx       # Live 60fps imperative SVG top-down stage minimap overlay (entities, Stage Cam frustum/focus, Observer)
 │   │   ├── dioramaMinimapRenderer.ts # Imperative SVG attribute updater for DioramaMinimap (zero React re-renders during playback)
 │   │   ├── StageCamViewfinderOverlay.tsx # Optical film gate, look-around mask & composition guides
@@ -271,6 +274,7 @@ stageflow/
         ├── mediaDrivers.test.ts
         ├── billboardLabelLod.test.ts
         ├── useIsMobile.test.ts
+        ├── stageDisplayOptions.test.ts
         ├── stagePerfHelpers.test.ts
         └── recorder.test.ts
 ```

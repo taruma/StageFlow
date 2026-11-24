@@ -333,4 +333,54 @@ describe('CLI Default Output Path Resolution', () => {
     expect(parseArgs(['01', '--labels', 'off']).labels).toBe('off');
     expect(() => parseArgs(['01', '--labels', 'invalid'])).toThrow(/Invalid --labels/);
   });
+
+  it('parses stage visual display flags (--floor, --hide-*, --no-*) cleanly', () => {
+    const defaults = parseArgs(['01']);
+    expect(defaults.stageDisplay).toEqual({
+      floorMode: 'solid',
+      showCharacters: true,
+      showProps: true,
+      showMarkers: true,
+      hiddenCharacterIds: [],
+      showArrows: true,
+      showFootprints: true,
+      showTrails: true,
+    });
+
+    const custom = parseArgs([
+      '01',
+      '--camera',
+      'stage-pov',
+      '--floor',
+      'GRID',
+      '--hide-props',
+      '--hide-markers',
+      '--hide-character',
+      'actor_a',
+      '--hide-character',
+      'actor_b',
+      '--hide-character',
+      'actor_a',
+      '--no-arrows',
+      '--no-footprints',
+      '--no-trails',
+    ]);
+    expect(custom.cameraMode).toBe('stage-pov');
+    expect(custom.stageDisplay).toEqual({
+      floorMode: 'grid',
+      showCharacters: true,
+      showProps: false,
+      showMarkers: false,
+      hiddenCharacterIds: ['actor_a', 'actor_b'],
+      showArrows: false,
+      showFootprints: false,
+      showTrails: false,
+    });
+
+    const hideAllChars = parseArgs(['01', '--floor', 'off', '--hide-characters']);
+    expect(hideAllChars.stageDisplay?.floorMode).toBe('off');
+    expect(hideAllChars.stageDisplay?.showCharacters).toBe(false);
+
+    expect(() => parseArgs(['01', '--floor', 'glass'])).toThrow(/Invalid --floor/);
+  });
 });

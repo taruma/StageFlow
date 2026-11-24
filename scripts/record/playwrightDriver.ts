@@ -8,6 +8,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { chromium } from 'playwright';
 import { parseStageScore } from '../../src/core/scoreParser';
+import { hasCustomStageDisplayOptions } from '../../src/core/stageDisplayOptions';
 import type { RecorderConfig } from '../../src/recorder/recorderTypes';
 import {
   concatMediaSegments,
@@ -115,6 +116,7 @@ export async function runRecordSession(
       scoreYaml,
       cameraMode: options.cameraMode,
       labelMode: options.labels,
+      stageDisplay: options.stageDisplay,
       showGuides: options.guides,
       showHud: options.hud,
       dofBlur: options.dofBlur,
@@ -148,6 +150,24 @@ export async function runRecordSession(
     console.log(
       `  Labels:        ${options.labels.toUpperCase()} | HUD: ${options.hud ? 'ON' : 'OFF'} | Guides: ${options.guides ? 'ON' : 'OFF'}`
     );
+    if (options.stageDisplay && hasCustomStageDisplayOptions(options.stageDisplay)) {
+      const sd = options.stageDisplay;
+      const hidden: string[] = [];
+      if (!sd.showCharacters) hidden.push('characters');
+      else if (sd.hiddenCharacterIds.length > 0) {
+        hidden.push(`char(${sd.hiddenCharacterIds.join(',')})`);
+      }
+      if (!sd.showProps) hidden.push('props');
+      if (!sd.showMarkers) hidden.push('markers');
+      if (!sd.showArrows) hidden.push('arrows');
+      if (!sd.showFootprints) hidden.push('footprints');
+      if (!sd.showTrails) hidden.push('trails');
+      console.log(
+        `  Stage View:    floor=${sd.floorMode.toUpperCase()}${
+          hidden.length > 0 ? ` | hidden=${hidden.join(', ')}` : ''
+        }`
+      );
+    }
     console.log(`  Optics Blur:   ${blurDisplay} | Theme: ${themeDisplay}`);
     console.log(
       `  Audio Track:   ${options.audioPath ? options.audioPath : 'NONE (silent)'}`

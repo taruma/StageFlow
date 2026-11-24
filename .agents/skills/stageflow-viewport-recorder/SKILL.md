@@ -47,6 +47,10 @@ npm run record [scene] [options]
 | `--no-blur` | Flag | Force thin-lens depth of field bokeh blur OFF | Auto |
 | `--theme` | `dark` \| `warm` \| `light` | Diorama theme palette (background, metric grid, floor stone) | `dark` |
 | `--labels` | `all` \| `cast` \| `camera-only` \| `off` | Floating 3D Drei HTML entity & camera badges | `all` |
+| `--floor` | `solid` \| `grid` \| `off` | Stage floor mode (`grid` reveals `-Y` sub-floor geometry) | `solid` |
+| `--hide-characters` / `--hide-props` / `--hide-markers` | Flag | Visually hide entity categories without altering camera math | Off |
+| `--hide-character` | `<id>` | Visually hide a specific character ID (repeatable) | None |
+| `--no-arrows` / `--no-footprints` / `--no-trails` | Flag | Hide entity `+Z` facing arrows, ground rings, or trails | Off |
 | `--guides` | Flag | Show optical safe-action frame, rule-of-thirds grid, and reticle | Off |
 | `--hud` | Flag | Show 2D shot breakdown and degree/meter telemetry badges | Off |
 | `--audio` | `<path>` | Path to local reference video/audio to slap audio track onto output (visuals excluded) | None (silent) |

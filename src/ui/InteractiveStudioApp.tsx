@@ -116,6 +116,11 @@ export const InteractiveStudioApp: React.FC = () => {
     saveStoredActiveSceneId(id);
   }, []);
 
+  // Reset per-character visual hides when switching scenes
+  useEffect(() => {
+    display.handleClearHiddenCharacters();
+  }, [activeSceneId, display.handleClearHiddenCharacters]);
+
   // Score Library Modal state & initial category tab
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [libraryInitialTab, setLibraryInitialTab] = useState<
@@ -990,6 +995,7 @@ export const InteractiveStudioApp: React.FC = () => {
               uiFrame={stageLoop.uiSnapshot.frame}
               isPlaying={mediaClock.isPlaying}
               labelMode={display.labelMode}
+              stageDisplay={display.stageDisplay}
               showGuides={display.showGuides}
               dofBlurEnabled={display.dofBlurEnabled}
               onToggleDofBlur={display.handleToggleDofBlur}
@@ -1035,6 +1041,7 @@ export const InteractiveStudioApp: React.FC = () => {
                   frameRef={stageLoop.frameRef}
                   uiFrame={stageLoop.uiSnapshot.frame}
                   labelMode={display.labelMode}
+                  stageDisplay={display.stageDisplay}
                   isPlaying={mediaClock.isPlaying}
                   showGuides={display.showGuides}
                   dofBlurEnabled={display.dofBlurEnabled}
@@ -1081,6 +1088,7 @@ export const InteractiveStudioApp: React.FC = () => {
               evaluateTick60fps={stageLoop.evaluateTick60fps}
               onFreeOrbitPoseChange={stageLoop.notifyFreeOrbitChange}
               labelMode={display.labelMode}
+              stageDisplay={display.stageDisplay}
               dofBlurEnabled={display.dofBlurEnabled}
               themeCategory={theme.effectiveDioramaCategory}
               cameraPresetActionRef={cameraPresetActionRef}
@@ -1103,6 +1111,7 @@ export const InteractiveStudioApp: React.FC = () => {
               cameraMode={stageLoop.cameraMode}
               isPlaying={mediaClock.isPlaying}
               labelMode={display.labelMode}
+              stageDisplay={display.stageDisplay}
               showGuides={display.showGuides}
               dofBlurEnabled={display.dofBlurEnabled}
               showMinimap={display.showMinimap}
@@ -1118,6 +1127,10 @@ export const InteractiveStudioApp: React.FC = () => {
               onSetCameraMode={stageLoop.setCameraMode}
               onSelectPreset={handleSelectCameraPreset}
               onSelectLabelMode={display.handleSelectLabelMode}
+              onSelectFloorMode={display.handleSelectFloorMode}
+              onToggleStageDisplayFlag={display.handleToggleStageDisplayFlag}
+              onToggleCharacterVisible={display.handleToggleCharacterVisible}
+              onResetStageDisplay={display.handleResetStageDisplay}
               onToggleGuides={display.handleToggleGuides}
               onToggleDofBlur={display.handleToggleDofBlur}
               onToggleMinimap={display.handleToggleMinimap}

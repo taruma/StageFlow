@@ -8,7 +8,13 @@
  */
 
 import React from 'react';
-import type { AppThemeCategory, LabelDisplayMode, StageFrame, StageScore } from '../core/types';
+import type {
+  AppThemeCategory,
+  LabelDisplayMode,
+  StageDisplayOptions,
+  StageFrame,
+  StageScore,
+} from '../core/types';
 import type { MediaSourceInfo } from '../media/mediaTypes';
 import { StageCamMonitorCanvas } from '../stage/StageCamMonitorCanvas';
 
@@ -21,6 +27,7 @@ export interface UniversalVideoViewportProps {
   uiFrame: StageFrame;
   isPlaying: boolean;
   labelMode?: LabelDisplayMode;
+  stageDisplay?: StageDisplayOptions;
   showGuides?: boolean;
   dofBlurEnabled?: boolean;
   onToggleDofBlur?: () => void;
@@ -41,6 +48,7 @@ export const UniversalVideoViewport: React.FC<UniversalVideoViewportProps> = ({
   uiFrame,
   isPlaying,
   labelMode,
+  stageDisplay,
   showGuides = true,
   dofBlurEnabled = false,
   onToggleDofBlur,
@@ -85,6 +93,7 @@ export const UniversalVideoViewport: React.FC<UniversalVideoViewportProps> = ({
             frameRef={frameRef}
             uiFrame={uiFrame}
             labelMode={labelMode}
+            stageDisplay={stageDisplay}
             isPlaying={isPlaying}
             showGuides={showGuides}
             dofBlurEnabled={dofBlurEnabled}

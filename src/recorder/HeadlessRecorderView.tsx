@@ -11,6 +11,7 @@ import { parseStageScore } from '../core/scoreParser';
 import { computeStageFrame } from '../core/frameEngine';
 import { hasStageFrameBoundaryChanged } from '../core/frameBoundaryDiff';
 import { INITIAL_CATALOG_ITEMS } from '../core/scoreCatalog';
+import { isEntityVisuallyVisible } from '../core/stageDisplayOptions';
 import { DioramaCanvas } from '../stage/DioramaCanvas';
 import { getDioramaThemeColors } from '../stage/dioramaTheme';
 import { preloadStageEnvironmentSkin } from '../stage/StageEnvironmentSkin';
@@ -239,9 +240,23 @@ export const HeadlessRecorderView: React.FC = () => {
         settledSkinUrlsRef.current.clear();
         skinErrorRef.current = null;
 
+        const res = parseStageScore(newConfig.scoreYaml);
+        const parsed = res.score ?? INITIAL_CATALOG_ITEMS[0].score;
+        scoreRef.current = parsed;
+
+        const entityById = new Map(parsed.entities.map((e) => [e.id, e]));
+        const visibleEntitySkinUrls = Object.entries(
+          newConfig.entitySkinUrls ?? {}
+        )
+          .filter(([entityId]) => {
+            const def = entityById.get(entityId);
+            return def ? isEntityVisuallyVisible(def, newConfig.stageDisplay) : true;
+          })
+          .map(([, url]) => url);
+
         const expectedSkinUrls = [
           newConfig.stageSkinUrl,
-          ...Object.values(newConfig.entitySkinUrls ?? {}),
+          ...visibleEntitySkinUrls,
         ].filter((u): u is string => Boolean(u));
 
         for (const skinUrl of expectedSkinUrls) {
@@ -249,9 +264,6 @@ export const HeadlessRecorderView: React.FC = () => {
         }
 
         setConfig(newConfig);
-        const res = parseStageScore(newConfig.scoreYaml);
-        const parsed = res.score ?? INITIAL_CATALOG_ITEMS[0].score;
-        scoreRef.current = parsed;
         const effectiveEnd =
           newConfig.endSec > newConfig.startSec
             ? newConfig.endSec
@@ -353,6 +365,7 @@ export const HeadlessRecorderView: React.FC = () => {
         evaluateTick60fps={evaluateTick60fps}
         onFreeOrbitPoseChange={() => {}}
         labelMode={config.labelMode}
+        stageDisplay={config.stageDisplay}
         dofBlurEnabled={effectiveDofBlur}
         themeCategory={effectiveTheme}
         stageSkinUrl={config.stageSkinUrl ?? null}

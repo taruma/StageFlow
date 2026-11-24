@@ -9,9 +9,14 @@ import type {
   AppThemeCategory,
   CameraViewMode,
   LabelDisplayMode,
+  StageDisplayOptions,
   StageFrame,
   StageScore,
 } from '../core/types';
+import {
+  DEFAULT_STAGE_DISPLAY_OPTIONS,
+  isEntityVisuallyVisible,
+} from '../core/stageDisplayOptions';
 import { BlueprintFloorGrid } from './BlueprintFloorGrid';
 import { DirectionalMannequin } from './DirectionalMannequin';
 import {
@@ -24,6 +29,7 @@ export interface BlueprintStageSceneProps {
   frameRef: React.RefObject<StageFrame>;
   uiFrame: StageFrame;
   labelMode?: LabelDisplayMode;
+  stageDisplay?: StageDisplayOptions;
   isPlaying?: boolean;
   cameraMode?: CameraViewMode;
   themeCategory?: AppThemeCategory;
@@ -40,6 +46,7 @@ export const BlueprintStageScene: React.FC<BlueprintStageSceneProps> = ({
   frameRef,
   uiFrame,
   labelMode = 'all',
+  stageDisplay = DEFAULT_STAGE_DISPLAY_OPTIONS,
   isPlaying = false,
   cameraMode,
   themeCategory = 'light',
@@ -50,11 +57,14 @@ export const BlueprintStageScene: React.FC<BlueprintStageSceneProps> = ({
   onStageSkinError,
   onEntitySkinError,
 }) => {
+  const visibleEntities = uiFrame.entitiesList.filter((ent) =>
+    isEntityVisuallyVisible(ent.def, stageDisplay)
+  );
   const hasVisibleEntitySkin =
     stageSkinVisible &&
     Boolean(
       entitySkinUrls &&
-        uiFrame.entitiesList.some((ent) => Boolean(entitySkinUrls[ent.id]))
+        visibleEntities.some((ent) => Boolean(entitySkinUrls[ent.id]))
     );
   const hasAnyVisibleSkin =
     Boolean(stageSkinUrl && stageSkinVisible) || hasVisibleEntitySkin;
@@ -91,10 +101,11 @@ export const BlueprintStageScene: React.FC<BlueprintStageSceneProps> = ({
         showLabels={labelMode !== 'off'}
         cameraMode={cameraMode}
         themeCategory={themeCategory}
+        floorMode={stageDisplay.floorMode}
       />
 
       {/* Directional Character Mannequins & Stage Props */}
-      {uiFrame.entitiesList.map((entityState) => (
+      {visibleEntities.map((entityState) => (
         <DirectionalMannequin
           key={entityState.id}
           entityId={entityState.id}
@@ -104,6 +115,9 @@ export const BlueprintStageScene: React.FC<BlueprintStageSceneProps> = ({
           labelMode={labelMode}
           isPlaying={isPlaying}
           cameraMode={cameraMode}
+          showArrows={stageDisplay.showArrows}
+          showFootprints={stageDisplay.showFootprints}
+          showTrails={stageDisplay.showTrails}
           skinUrl={entitySkinUrls?.[entityState.id] ?? null}
           skinVisible={stageSkinVisible}
           onEntitySkinLoad={onSkinLoad}

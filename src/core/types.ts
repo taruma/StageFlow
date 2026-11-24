@@ -61,6 +61,19 @@ export type CameraViewMode = 'scripted' | 'free' | 'stage-pov';
 
 export type LabelDisplayMode = 'all' | 'cast' | 'camera-only' | 'off';
 
+export type StageFloorMode = 'solid' | 'grid' | 'off';
+
+export interface StageDisplayOptions {
+  floorMode: StageFloorMode;
+  showCharacters: boolean;
+  showProps: boolean;
+  showMarkers: boolean;
+  hiddenCharacterIds: readonly string[];
+  showArrows: boolean;
+  showFootprints: boolean;
+  showTrails: boolean;
+}
+
 export type SplitPreset = 'split' | 'full';
 
 export interface WorkspaceLayoutDimensions {

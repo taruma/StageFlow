@@ -138,6 +138,14 @@ All options must be preceded by `--` when invoking via `npm run record`:
 | **`--preset`** | `iso` \| `top` \| `front` \| `side` | Autored | Snaps Observer Camera to an architectural angle preset (`isometric`, `top-down`, `front`, `side`). |
 | **`--theme`** | `dark` \| `warm` \| `light` | `dark` | 3D diorama floor & background palette (`dark` obsidian, `warm` drafting paper, `light` stone). |
 | **`--labels`** | `all` \| `cast` \| `camera-only` \| `off`| `all` | Controls 3D billboard identity badges and floor compass markers. |
+| **`--floor`** | `solid` \| `grid` \| `off` | `solid` | Stage floor visual mode (`grid` hides the matte floor plane to reveal `-Y` geometry). |
+| **`--hide-characters`** | — | `false` | Visually hides all character mannequins (math & camera evaluation untouched). |
+| **`--hide-props`** | — | `false` | Visually hides all stage props. |
+| **`--hide-markers`** | — | `false` | Visually hides all floor gaffer markers. |
+| **`--hide-character`** | `<entity_id>` | None | Visually hides a specific character ID (repeatable, e.g. `--hide-character hero`). |
+| **`--no-arrows`** | — | `false` | Hides `+Z` ground facing direction arrows on entities. |
+| **`--no-footprints`** | — | `false` | Hides ground contact & highlight rings on entities. |
+| **`--no-trails`** | — | `false` | Hides dashed floor movement trails on entities. |
 | **`--guides`** | — | `false` | Displays SMPTE 90% safe action frame, rule-of-thirds grid, and center optical crosshairs. |
 | **`--hud`** | — | `false` | Renders 2D top-left shot breakdown HUD and bottom-right camera telemetry capsule. |
 | **`--res`** | `1080p` \| `4k` \| `720p` \| `square` \| `vertical` | `1080p` | Preset canvas dimensions (see §4.1). |
@@ -249,6 +257,13 @@ npm run record 04 -- --theme warm --preset iso -o warm_isometric.mp4
 ```bash
 npm run record 02 -- --labels off -o clean_geometry.mp4
 ```
+
+### 6.3 Pure-Visual Stage Display Filters (`--floor`, `--hide-*`, `--no-*`)
+Filter diorama layers visually across both `--camera scripted` and `--camera stage-pov` without altering core evaluation math or camera framing:
+- **`--floor solid | grid | off`**: `solid` *(default)* renders both the matte floor plane and metric grid; `grid` hides only the matte floor plane (`0.92–0.95` opacity) so `-Y` sub-floor props/stages remain visible through the wireframe grid; `off` hides the floor plane and grid completely.
+- **`--hide-characters`**, **`--hide-props`**, **`--hide-markers`**: Visually hides entire entity categories (`HeadlessRecorderView` automatically skips `.glb` skin preloading for hidden entities).
+- **`--hide-character <id>`**: Repeatable flag to hide specific character IDs while keeping other characters visible.
+- **`--no-arrows`**, **`--no-footprints`**, **`--no-trails`**: Independently suppresses entity `+Z` ground facing arrows, footprint rings, or dashed movement trails.
 
 ---
 

@@ -40,6 +40,9 @@ export interface DirectionalMannequinProps {
   labelMode?: LabelDisplayMode;
   isPlaying?: boolean;
   cameraMode?: CameraViewMode;
+  showArrows?: boolean;
+  showFootprints?: boolean;
+  showTrails?: boolean;
   skinUrl?: string | null;
   skinVisible?: boolean;
   onEntitySkinLoad?: (url: string) => void;
@@ -56,6 +59,9 @@ export function areDirectionalMannequinPropsEqual(
     prev.labelMode === next.labelMode &&
     prev.isPlaying === next.isPlaying &&
     prev.cameraMode === next.cameraMode &&
+    (prev.showArrows ?? true) === (next.showArrows ?? true) &&
+    (prev.showFootprints ?? true) === (next.showFootprints ?? true) &&
+    (prev.showTrails ?? true) === (next.showTrails ?? true) &&
     prev.skinUrl === next.skinUrl &&
     prev.skinVisible === next.skinVisible &&
     prev.initialState.def === next.initialState.def &&
@@ -77,6 +83,9 @@ const DirectionalMannequinComponent: React.FC<DirectionalMannequinProps> = ({
   labelMode = 'all',
   isPlaying = false,
   cameraMode,
+  showArrows = true,
+  showFootprints = true,
+  showTrails = true,
   skinUrl,
   skinVisible = true,
   onEntitySkinLoad,
@@ -570,7 +579,7 @@ const DirectionalMannequinComponent: React.FC<DirectionalMannequinProps> = ({
   return (
     <group>
       {/* Dynamic Floor Movement Trail (World Space) */}
-      {trailLinePoints.length >= 2 && (
+      {showTrails && trailLinePoints.length >= 2 && (
         <Line
           points={trailLinePoints}
           color={color}
@@ -587,54 +596,59 @@ const DirectionalMannequinComponent: React.FC<DirectionalMannequinProps> = ({
       {/* 60fps Animated Entity Transform Group (controlled imperatively to avoid JSX prop overwrite) */}
       <group ref={groupRef}>
         {/* Ground Contact Shadow & Selection Ring */}
-        <group ref={footprintRef}>
-          {isBoxProp && boxFootprintGeometry ? (
-            <mesh
-              rotation={[-Math.PI / 2, 0, 0]}
-              position={[0, 0.012, 0]}
-              geometry={boxFootprintGeometry}
-            >
-              <meshBasicMaterial
-                color={color}
-                transparent
-                opacity={highlighted ? 0.9 : 0.45}
-                side={THREE.DoubleSide}
-              />
-            </mesh>
-          ) : (
-            <mesh
-              rotation={[-Math.PI / 2, 0, 0]}
-              position={[0, 0.012, 0]}
-              scale={[1, rx > 1e-5 ? rz / rx : 1, 1]}
-              visible={def.kind !== 'marker' || highlighted}
-            >
-              <ringGeometry
-                args={[
-                  rx * 0.92,
-                  highlighted ? rx * 1.35 : rx * 1.12,
-                  32,
-                ]}
-              />
-              <meshBasicMaterial
-                color={color}
-                transparent
-                opacity={highlighted ? 0.9 : 0.45}
-                side={THREE.DoubleSide}
-              />
-            </mesh>
-          )}
-        </group>
+        {showFootprints && (
+          <group ref={footprintRef}>
+            {isBoxProp && boxFootprintGeometry ? (
+              <mesh
+                rotation={[-Math.PI / 2, 0, 0]}
+                position={[0, 0.012, 0]}
+                geometry={boxFootprintGeometry}
+              >
+                <meshBasicMaterial
+                  color={color}
+                  transparent
+                  opacity={highlighted ? 0.9 : 0.45}
+                  side={THREE.DoubleSide}
+                />
+              </mesh>
+            ) : (
+              <mesh
+                rotation={[-Math.PI / 2, 0, 0]}
+                position={[0, 0.012, 0]}
+                scale={[1, rx > 1e-5 ? rz / rx : 1, 1]}
+                visible={def.kind !== 'marker' || highlighted}
+              >
+                <ringGeometry
+                  args={[
+                    rx * 0.92,
+                    highlighted ? rx * 1.35 : rx * 1.12,
+                    32,
+                  ]}
+                />
+                <meshBasicMaterial
+                  color={color}
+                  transparent
+                  opacity={highlighted ? 0.9 : 0.45}
+                  side={THREE.DoubleSide}
+                />
+              </mesh>
+            )}
+          </group>
+        )}
 
         {/* Ground Facing Direction Arrow (+Z Forward) */}
-        {(def.kind !== 'marker' || def.shape === 'puck' || def.rotationYRad !== 0) && (
-          <Line
-            points={forwardIndicatorPoints}
-            color={color}
-            lineWidth={highlighted ? 2.2 : 1.4}
-            transparent
-            opacity={highlighted ? 0.95 : 0.65}
-          />
-        )}
+        {showArrows &&
+          (def.kind !== 'marker' ||
+            def.shape === 'puck' ||
+            def.rotationYRad !== 0) && (
+            <Line
+              points={forwardIndicatorPoints}
+              color={color}
+              lineWidth={highlighted ? 2.2 : 1.4}
+              transparent
+              opacity={highlighted ? 0.95 : 0.65}
+            />
+          )}
 
         {/* 3D Mesh Pitch/Roll Tilt Group (YXZ order, unscaled to prevent shear) */}
         <group ref={tiltGroupRef}>

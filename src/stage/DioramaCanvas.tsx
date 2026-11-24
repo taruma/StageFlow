@@ -12,6 +12,7 @@ import type {
   CameraViewMode,
   LabelDisplayMode,
   SphericalPose,
+  StageDisplayOptions,
   StageFrame,
   StageScore,
 } from '../core/types';
@@ -33,6 +34,7 @@ export interface DioramaCanvasProps {
   evaluateTick60fps: () => StageFrame;
   onFreeOrbitPoseChange: (pose: SphericalPose, immediate?: boolean) => void;
   labelMode?: LabelDisplayMode;
+  stageDisplay?: StageDisplayOptions;
   dofBlurEnabled?: boolean;
   themeCategory?: AppThemeCategory;
   cameraPresetActionRef?: React.RefObject<{
@@ -96,6 +98,7 @@ const CanvasDemandInvalidator: React.FC<{
   isPlaying: boolean;
   uiFrame: StageFrame;
   labelMode: LabelDisplayMode;
+  stageDisplay?: StageDisplayOptions;
   dofBlurEnabled: boolean;
   themeCategory: AppThemeCategory;
   cameraPresetSeq: number;
@@ -110,6 +113,7 @@ const CanvasDemandInvalidator: React.FC<{
   isPlaying,
   uiFrame,
   labelMode,
+  stageDisplay,
   dofBlurEnabled,
   themeCategory,
   cameraPresetSeq,
@@ -132,6 +136,7 @@ const CanvasDemandInvalidator: React.FC<{
     isPlaying,
     uiFrame,
     labelMode,
+    stageDisplay,
     dofBlurEnabled,
     themeCategory,
     cameraPresetSeq,
@@ -173,6 +178,7 @@ export const DioramaCanvas: React.FC<DioramaCanvasProps> = ({
   evaluateTick60fps,
   onFreeOrbitPoseChange,
   labelMode = 'all',
+  stageDisplay,
   dofBlurEnabled = false,
   themeCategory = 'light',
   cameraPresetActionRef,
@@ -227,6 +233,7 @@ export const DioramaCanvas: React.FC<DioramaCanvasProps> = ({
             isPlaying={isPlaying}
             uiFrame={uiFrame}
             labelMode={labelMode}
+            stageDisplay={stageDisplay}
             dofBlurEnabled={dofBlurEnabled}
             themeCategory={themeCategory}
             cameraPresetSeq={cameraPresetSeq}
@@ -247,6 +254,7 @@ export const DioramaCanvas: React.FC<DioramaCanvasProps> = ({
           frameRef={frameRef}
           uiFrame={uiFrame}
           labelMode={labelMode}
+          stageDisplay={stageDisplay}
           isPlaying={isPlaying}
           cameraMode={cameraMode}
           themeCategory={themeCategory}
