@@ -2,10 +2,12 @@ import { describe, it, expect } from 'vitest';
 import {
   breakScoreHistoryCoalescing,
   canRedoScore,
+  canResetScore,
   canUndoScore,
   commitScoreHistory,
   createScoreHistory,
   redoScoreHistory,
+  resetScoreHistory,
   undoScoreHistory,
 } from '../../src/core/scoreHistory';
 
@@ -119,5 +121,33 @@ describe('scoreHistory', () => {
 
     const broken = breakScoreHistoryCoalescing(h);
     expect(broken.lastCommitMode).toBeNull();
+  });
+
+  it('resets back to session baseline in 1 click while allowing 1-click redo back to pre-reset state', () => {
+    let h = createScoreHistory('v0');
+    expect(canResetScore(h)).toBe(false);
+
+    h = commitScoreHistory(h, 'v1', { mode: 'checkpoint' });
+    h = commitScoreHistory(h, 'v2', { mode: 'checkpoint' });
+    expect(canResetScore(h)).toBe(true);
+
+    h = resetScoreHistory(h);
+    expect(h.present).toBe('v0');
+    expect(canUndoScore(h)).toBe(false);
+    expect(canResetScore(h)).toBe(false);
+    expect(canRedoScore(h)).toBe(true);
+    expect(h.revision).toBe(1);
+
+    // 1-click Redo immediately restores pre-reset state
+    h = redoScoreHistory(h);
+    expect(h.present).toBe('v2');
+    expect(canResetScore(h)).toBe(true);
+    expect(h.revision).toBe(2);
+
+    // Editing after Reset clears future
+    h = resetScoreHistory(h);
+    h = commitScoreHistory(h, 'v3-fresh', { mode: 'checkpoint' });
+    expect(canRedoScore(h)).toBe(false);
+    expect(h.baseline).toBe('v0');
   });
 });

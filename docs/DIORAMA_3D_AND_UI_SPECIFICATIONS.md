@@ -244,8 +244,8 @@ Adopts professional 3D viewport convention (Blender, Unreal Engine, Maya) distri
 
 ### 4.5 Dual-Mode Choreography Score Studio (`src/ui/editor/`, `YamlStudioPanel.tsx`, `VisualScoreEditor.tsx`)
 - Mounted full-height in the right studio column when **`Edit`** is active, hosting the inline **`[ Visual | YAML ]`** switcher inside `YamlEditorHeader.tsx`.
-- **Plain-Text-as-Truth & Unified Undo/Redo (`useScoreDocument.ts`, `scoreHistory.ts`)**:
-  - Both modes read and mutate a single canonical `rawYaml` history stack (`Cmd/Ctrl+Z`, `Cmd/Ctrl+Shift+Z`, `Ctrl+Y`) with `Undo`/`Redo` toolbar controls and `data-native-undo="true"` / `aria-modal="true"` input isolation.
+- **Plain-Text-as-Truth & Unified Undo/Redo/Reset (`useScoreDocument.ts`, `scoreHistory.ts`)**:
+  - Both modes read and mutate a single canonical `rawYaml` history stack (`Cmd/Ctrl+Z`, `Cmd/Ctrl+Shift+Z`, `Ctrl+Y`) with `Undo`/`Redo` and 1-click redoable **`Reset`** (`resetScoreHistory`) toolbar controls and `data-native-undo="true"` / `aria-modal="true"` input isolation.
   - CodeMirror 6 replaces `basicSetup` with explicit extensions excluding CodeMirror's isolated `history()`, routing `Mod-z` / `Mod-Shift-z` / `Ctrl-y` directly into `scoreHistory.ts` and syncing via `historyRevision`.
 - **YAML-Mirrored Visual Score Editor (`src/ui/editor/visual/`, `VisualScoreEditor.tsx`)**:
   - Renders the exact top-to-bottom YAML structure as collapsible sections with live item counts (`scene:`, `stage:`, `entities: (N)`, `blocking: (N)`, `shots: (N)`, `observer_shots: (N)`), preserving coupled (`shots[].observer_camera`/`entities`), decoupled (`blocking:`/`observer_shots:`), and flat vs. nested shot polymorphism without rewriting authored files.
@@ -260,7 +260,7 @@ Adopts professional 3D viewport convention (Blender, Unreal Engine, Maya) distri
 - **Debounced Live Sync & Re-Evaluation (~150ms)**: In `YAML` mode, typing updates locally at 60fps while `parseStageScore` and 3D diorama re-evaluation trigger after 150ms of inactivity (`mode: 'coalesce'`).
 - **Top Panel Header (`YamlEditorHeader.tsx`) & Action Bar (`YamlActionBar.tsx`)**:
   - Header hosts the compact **`[ Visual | YAML ]`** mode switcher alongside `Live Sync` / `Read-Only`, **`[ SPEC ]`**, **`[ Guide ]`**, and **`[ ✕ ]`** close.
-  - Action Bar hosts **`Undo` / `Redo`**, mode-specific helpers (a single section-level **`Fold` / `Unfold`** toggle + 1-click **`Active`** shot jump in Visual; **`[ Wrap ]`** in YAML persisted under `stageflow:ui:editor-word-wrap`), **`[ Copy ]`**, and **`[ Fork to Edit → ]`**.
+  - Action Bar hosts **`Undo` / `Redo` / `Reset`**, mode-specific helpers (a single section-level **`Fold` / `Unfold`** toggle + 1-click **`Active`** shot jump in Visual; **`[ Wrap ]`** in YAML persisted under `stageflow:ui:editor-word-wrap`), **`[ Copy ]`**, and **`[ Fork to Edit → ]`**.
 
 ### 4.6 Directorial Playback Transport Suite (`DirectorialTransportBar.tsx`, `src/ui/transport/`)
 Decomposed into 3 focused submodules to preserve the $\le 250$ line modularity standard:

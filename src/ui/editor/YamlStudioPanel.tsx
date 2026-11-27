@@ -41,6 +41,7 @@ export interface YamlStudioPanelProps {
   historyRevision: number;
   canUndo: boolean;
   canRedo: boolean;
+  canReset: boolean;
   sceneId?: string;
   visualIR: VisualScoreIR | null;
   visualIRError: string | null;
@@ -75,6 +76,7 @@ export interface YamlStudioPanelProps {
   getCurrentTimeSec: () => number;
   onUndo: () => void;
   onRedo: () => void;
+  onResetToBaseline: () => void;
   onForkScore?: () => void;
   onClose: () => void;
 }
@@ -88,6 +90,7 @@ export const YamlStudioPanel: React.FC<YamlStudioPanelProps> = React.memo(
     historyRevision,
     canUndo,
     canRedo,
+    canReset,
     sceneId,
     visualIR,
     visualIRError,
@@ -108,6 +111,7 @@ export const YamlStudioPanel: React.FC<YamlStudioPanelProps> = React.memo(
     getCurrentTimeSec,
     onUndo,
     onRedo,
+    onResetToBaseline,
     onForkScore,
     onClose,
   }) => {
@@ -180,10 +184,12 @@ export const YamlStudioPanel: React.FC<YamlStudioPanelProps> = React.memo(
           wordWrap={wordWrap}
           canUndo={canUndo}
           canRedo={canRedo}
+          canReset={canReset}
           anySectionExpanded={anySectionExpanded}
           hasActiveShot={Boolean(activeShotId)}
           onUndo={onUndo}
           onRedo={onRedo}
+          onResetToBaseline={onResetToBaseline}
           onToggleWordWrap={handleToggleWordWrap}
           onToggleFoldSections={handleToggleFoldSections}
           onJumpToActiveShot={handleJumpToActiveShot}

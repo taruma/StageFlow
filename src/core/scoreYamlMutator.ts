@@ -7,6 +7,7 @@
 
 import {
   Document,
+  Pair,
   isMap,
   isScalar,
   isSeq,
@@ -155,6 +156,25 @@ function applySetField(
   }
 }
 
+const STRUCTURAL_BLOCK_KEYS = new Set([
+  'metadata',
+  'optics',
+  'stage',
+  'entities',
+  'blocking',
+  'shots',
+  'score',
+  'observer_shots',
+  'observerShots',
+  'stage_camera',
+  'stageCamera',
+  'camera',
+  'observer_camera',
+  'observerCamera',
+  'rig',
+  'waypoints',
+]);
+
 function applyAddField(
   doc: Document,
   parentPath: YamlPath,
@@ -169,7 +189,21 @@ function applyAddField(
     : ensureMapAtPath(doc, parentPath);
   if (!targetMap) return;
   const formatted = formatValueForWrite(rawValue, format);
-  targetMap.set(key, createFormattedNode(doc, formatted, format));
+  const valueNode = createFormattedNode(doc, formatted, format);
+
+  if (targetMap.has(key) || STRUCTURAL_BLOCK_KEYS.has(key)) {
+    targetMap.set(key, valueNode);
+    return;
+  }
+
+  const insertIdx = targetMap.items.findIndex(
+    (pair) => isScalar(pair.key) && STRUCTURAL_BLOCK_KEYS.has(String(pair.key.value))
+  );
+  if (insertIdx >= 0) {
+    targetMap.items.splice(insertIdx, 0, new Pair(doc.createNode(key), valueNode));
+  } else {
+    targetMap.set(key, valueNode);
+  }
 }
 
 function generateUniqueItemId(seq: YAMLSeq, prefix: string): string {

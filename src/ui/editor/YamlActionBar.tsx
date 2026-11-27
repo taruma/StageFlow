@@ -13,6 +13,7 @@ import {
   Copy,
   Crosshair,
   Redo2,
+  RotateCcw,
   Undo2,
   WrapText,
 } from 'lucide-react';
@@ -25,10 +26,12 @@ export interface YamlActionBarProps {
   wordWrap: boolean;
   canUndo: boolean;
   canRedo: boolean;
+  canReset: boolean;
   anySectionExpanded?: boolean;
   hasActiveShot?: boolean;
   onUndo: () => void;
   onRedo: () => void;
+  onResetToBaseline: () => void;
   onToggleWordWrap: () => void;
   onToggleFoldSections?: () => void;
   onJumpToActiveShot?: () => void;
@@ -43,10 +46,12 @@ export const YamlActionBar: React.FC<YamlActionBarProps> = React.memo(
     wordWrap,
     canUndo,
     canRedo,
+    canReset,
     anySectionExpanded = true,
     hasActiveShot = false,
     onUndo,
     onRedo,
+    onResetToBaseline,
     onToggleWordWrap,
     onToggleFoldSections,
     onJumpToActiveShot,
@@ -85,6 +90,16 @@ export const YamlActionBar: React.FC<YamlActionBarProps> = React.memo(
                 aria-label="Redo"
               >
                 <Redo2 className="w-3 h-3" />
+              </button>
+              <button
+                type="button"
+                disabled={!canReset}
+                onClick={onResetToBaseline}
+                className="p-1 rounded-md bg-surface-subtle hover:bg-surface-hover border border-border-main text-text-body hover:text-amber-500 disabled:opacity-35 disabled:pointer-events-none cursor-pointer transition-colors"
+                title="Reset all session changes to opening baseline (Redo restores)"
+                aria-label="Reset changes"
+              >
+                <RotateCcw className="w-3 h-3" />
               </button>
             </div>
           )}

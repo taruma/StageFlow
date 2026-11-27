@@ -3,7 +3,7 @@
  * with nested `rig:` and `waypoints:` sub-cards.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { ChevronDown, ChevronRight, Video, X } from 'lucide-react';
 import type { VisualCameraBlockNode } from '../../../../core/scoreYamlProjectionHelpers';
 import type { VisualEditorCallbacks } from '../visualEditorTypes';
@@ -29,6 +29,7 @@ export const CameraBlockCard: React.FC<CameraBlockCardProps> = React.memo(
     defaultExpanded = true,
   }) => {
     const [expanded, setExpanded] = useState(defaultExpanded);
+    const handleExpandOnAdd = useCallback(() => setExpanded(true), []);
 
     return (
       <div className={`${UI_TOKENS.inspector.treeRail} space-y-1`}>
@@ -57,6 +58,7 @@ export const CameraBlockCard: React.FC<CameraBlockCardProps> = React.memo(
               label="+ Key"
               disabled={callbacks.disabled}
               onCommand={callbacks.onCommand}
+              onAfterAdd={handleExpandOnAdd}
             />
             {removable && !callbacks.disabled && (
               <button

@@ -278,6 +278,7 @@ export const FieldValueControl: React.FC<FieldValueControlProps> = React.memo(
         data-native-undo="true"
         disabled={disabled}
         value={textDraft}
+        placeholder={desc?.hint ?? 'Enter value…'}
         onChange={(e) => setTextDraft(e.target.value)}
         onBlur={commitTextInput}
         onKeyDown={(e) => e.key === 'Enter' && commitTextInput()}

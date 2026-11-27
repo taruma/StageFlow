@@ -217,4 +217,45 @@ describe('scoreYamlMutator', () => {
     expect(shotSection.indexOf('lens:')).toBeLessThan(shotSection.indexOf('maneuver:'));
     expect(afterNested).toContain('# Normal lens');
   });
+
+  it('inserts added scalar fields before structural blocks instead of the bottom of YAML', () => {
+    const withDesc = applyScoreYamlCommand(SAMPLE_YAML, {
+      type: 'add-field',
+      parentPath: [],
+      key: 'description',
+      value: 'Studio staging note',
+    });
+    expect(withDesc.indexOf('description:')).toBeLessThan(
+      withDesc.indexOf('entities:')
+    );
+
+    const vfPath = path.resolve(
+      __dirname,
+      '../../src/scores/studies/vector_field.yaml'
+    );
+    const vfYaml = fs.readFileSync(vfPath, 'utf8');
+    const vfWithDesc = applyScoreYamlCommand(vfYaml, {
+      type: 'add-field',
+      parentPath: [],
+      key: 'description',
+      value: 'Cornfield confrontation',
+    });
+    expect(vfWithDesc.indexOf('description:')).toBeLessThan(
+      vfWithDesc.indexOf('optics:')
+    );
+    expect(parseStageScore(vfWithDesc, 'vf').error).toBeNull();
+
+    const shotWithFocus = applyScoreYamlCommand(withDesc, {
+      type: 'add-field',
+      parentPath: ['shots', 0],
+      key: 'focus',
+      value: 'hero',
+    });
+    const shotSlice = shotWithFocus
+      .split('- id: "shot-1"')[1]
+      .split('- id: "shot-2"')[0];
+    expect(shotSlice.indexOf('focus:')).toBeLessThan(
+      shotSlice.indexOf('stage_camera:')
+    );
+  });
 });

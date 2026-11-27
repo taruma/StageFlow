@@ -25,6 +25,7 @@ export interface AddPropertyPopoverProps {
   label?: string;
   disabled?: boolean;
   onCommand: (cmd: ScoreYamlCommand) => void;
+  onAfterAdd?: () => void;
 }
 
 export const AddPropertyPopover: React.FC<AddPropertyPopoverProps> = React.memo(
@@ -35,6 +36,7 @@ export const AddPropertyPopover: React.FC<AddPropertyPopoverProps> = React.memo(
     label = '+ Property',
     disabled = false,
     onCommand,
+    onAfterAdd,
   }) => {
     const [isOpen, setIsOpen] = useState(false);
 
@@ -55,6 +57,7 @@ export const AddPropertyPopover: React.FC<AddPropertyPopoverProps> = React.memo(
         format: field.formatHint,
       });
       setIsOpen(false);
+      onAfterAdd?.();
     };
 
     return (

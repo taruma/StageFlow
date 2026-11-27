@@ -50,6 +50,7 @@ export const YamlInspectorDrawer: React.FC<YamlInspectorDrawerProps> = ({
       historyRevision={0}
       canUndo={false}
       canRedo={false}
+      canReset={false}
       sceneId={sceneId}
       visualIR={null}
       visualIRError={null}
@@ -71,6 +72,7 @@ export const YamlInspectorDrawer: React.FC<YamlInspectorDrawerProps> = ({
       getCurrentTimeSec={ZERO_TIME}
       onUndo={NOOP}
       onRedo={NOOP}
+      onResetToBaseline={NOOP}
       onForkScore={onForkScore}
       onClose={onClose}
     />

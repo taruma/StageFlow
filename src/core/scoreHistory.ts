@@ -13,6 +13,7 @@
 export type ScoreHistoryCommitMode = 'coalesce' | 'checkpoint';
 
 export interface ScoreHistoryState {
+  readonly baseline: string;
   readonly past: readonly string[];
   readonly present: string;
   readonly future: readonly string[];
@@ -20,9 +21,9 @@ export interface ScoreHistoryState {
   readonly lastGroupKey: string | null;
   readonly lastCommitAt: number | null;
   /**
-   * Monotonic counter incremented exclusively when `undoScoreHistory` or
-   * `redoScoreHistory` transitions `present`. Editors subscribe to this
-   * revision so even actively focused buffers immediately resync.
+   * Monotonic counter incremented exclusively when `undoScoreHistory`,
+   * `redoScoreHistory`, or `resetScoreHistory` transitions `present`. Editors subscribe
+   * to this revision so even actively focused buffers immediately resync.
    */
   readonly revision: number;
 }
@@ -47,6 +48,7 @@ export const DEFAULT_MAX_HISTORY_ENTRIES = 100;
 
 export function createScoreHistory(initialPresent: string): ScoreHistoryState {
   return {
+    baseline: initialPresent,
     past: [],
     present: initialPresent,
     future: [],
@@ -63,6 +65,10 @@ export function canUndoScore(state: ScoreHistoryState): boolean {
 
 export function canRedoScore(state: ScoreHistoryState): boolean {
   return state.future.length > 0;
+}
+
+export function canResetScore(state: ScoreHistoryState): boolean {
+  return state.present !== state.baseline;
 }
 
 /**
@@ -136,6 +142,7 @@ export function commitScoreHistory(
     // pop that redundant entry so Undo never produces a phantom no-op step.
     if (state.past[state.past.length - 1] === nextPresent) {
       return {
+        baseline: state.baseline,
         past: state.past.slice(0, -1),
         present: nextPresent,
         future: [],
@@ -147,6 +154,7 @@ export function commitScoreHistory(
     }
 
     return {
+      baseline: state.baseline,
       past: state.past,
       present: nextPresent,
       future: [],
@@ -163,6 +171,7 @@ export function commitScoreHistory(
       : [...state.past, state.present];
 
   return {
+    baseline: state.baseline,
     past: nextPast,
     present: nextPresent,
     future: [],
@@ -184,6 +193,7 @@ export function undoScoreHistory(state: ScoreHistoryState): ScoreHistoryState {
 
   const previous = state.past[state.past.length - 1];
   return {
+    baseline: state.baseline,
     past: state.past.slice(0, -1),
     present: previous,
     future: [state.present, ...state.future],
@@ -205,9 +215,31 @@ export function redoScoreHistory(state: ScoreHistoryState): ScoreHistoryState {
 
   const [next, ...restFuture] = state.future;
   return {
+    baseline: state.baseline,
     past: [...state.past, state.present],
     present: next,
     future: restFuture,
+    lastCommitMode: null,
+    lastGroupKey: null,
+    lastCommitAt: null,
+    revision: state.revision + 1,
+  };
+}
+
+/**
+ * Resets `present` back to the session `baseline` while pushing the prior `present`
+ * onto `future` so 1-click Redo restores the pre-reset state until any new edit clears `future`.
+ */
+export function resetScoreHistory(state: ScoreHistoryState): ScoreHistoryState {
+  if (state.present === state.baseline) {
+    return state;
+  }
+
+  return {
+    baseline: state.baseline,
+    past: [],
+    present: state.baseline,
+    future: [state.present, ...state.future],
     lastCommitMode: null,
     lastGroupKey: null,
     lastCommitAt: null,

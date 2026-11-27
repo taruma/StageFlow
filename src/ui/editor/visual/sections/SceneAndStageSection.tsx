@@ -2,7 +2,7 @@
  * Collapsible Scene Metadata, Optics, and Stage sections for the Visual Score Editor.
  */
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import type { VisualScoreIR } from '../../../../core/scoreYamlProjectionHelpers';
 import type { VisualEditorCallbacks } from '../visualEditorTypes';
 import { CollapsibleYamlSection } from '../CollapsibleYamlSection';
@@ -29,6 +29,14 @@ export const SceneAndStageSection: React.FC<SceneAndStageSectionProps> =
       onToggleStage,
       callbacks,
     }) => {
+      const handleExpandSceneOnAdd = useCallback(() => {
+        if (!isSceneExpanded) onToggleScene();
+      }, [isSceneExpanded, onToggleScene]);
+
+      const handleExpandStageOnAdd = useCallback(() => {
+        if (!isStageExpanded) onToggleStage();
+      }, [isStageExpanded, onToggleStage]);
+
       return (
         <>
           <CollapsibleYamlSection
@@ -45,6 +53,7 @@ export const SceneAndStageSection: React.FC<SceneAndStageSectionProps> =
                 label="+ Key"
                 disabled={callbacks.disabled}
                 onCommand={callbacks.onCommand}
+                onAfterAdd={handleExpandSceneOnAdd}
               />
             }
           >
@@ -111,6 +120,7 @@ export const SceneAndStageSection: React.FC<SceneAndStageSectionProps> =
                 label="+ Key"
                 disabled={callbacks.disabled}
                 onCommand={callbacks.onCommand}
+                onAfterAdd={handleExpandStageOnAdd}
               />
             }
           >

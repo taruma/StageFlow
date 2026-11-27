@@ -1259,6 +1259,7 @@ export const InteractiveStudioApp: React.FC = () => {
             historyRevision={doc.historyRevision}
             canUndo={doc.canUndo}
             canRedo={doc.canRedo}
+            canReset={doc.canReset}
             visualIR={doc.visualIR}
             visualIRError={doc.visualIRError}
             entities={doc.activeScore.entities}
@@ -1279,6 +1280,7 @@ export const InteractiveStudioApp: React.FC = () => {
             getCurrentTimeSec={getCurrentTimeSec}
             onUndo={doc.undo}
             onRedo={doc.redo}
+            onResetToBaseline={doc.resetToBaseline}
             onForkScore={handleForkScore}
             onClose={layout.closeEditMode}
           />

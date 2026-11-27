@@ -15,10 +15,12 @@ import type {
 } from '../core/types';
 import {
   canRedoScore,
+  canResetScore,
   canUndoScore,
   commitScoreHistory,
   createScoreHistory,
   redoScoreHistory,
+  resetScoreHistory,
   undoScoreHistory,
   type ScoreHistoryState,
 } from '../core/scoreHistory';
@@ -331,6 +333,17 @@ export function useScoreDocument({
     applyParsedYamlResult(nextState.present, true);
   }, [applyParsedYamlResult]);
 
+  const resetToBaseline = useCallback(() => {
+    if (isBundledRef.current) return;
+    const prev = historyRef.current;
+    if (!canResetScore(prev)) return;
+    const nextState = resetScoreHistory(prev);
+    setPreviewScore(null);
+    historyRef.current = nextState;
+    setHistory(nextState);
+    applyParsedYamlResult(nextState.present, true);
+  }, [applyParsedYamlResult]);
+
   // Global document-level Undo/Redo handler (skips modals and native-undo inputs)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -398,6 +411,7 @@ export function useScoreDocument({
     historyRevision: history.revision,
     canUndo: !isBundled && canUndoScore(history),
     canRedo: !isBundled && canRedoScore(history),
+    canReset: !isBundled && canResetScore(history),
     activeScore,
     effectiveScore: previewScore ?? activeScore,
     isScrubbing: previewScore !== null,
@@ -420,5 +434,6 @@ export function useScoreDocument({
     cancelScrub,
     undo,
     redo,
+    resetToBaseline,
   };
 }
