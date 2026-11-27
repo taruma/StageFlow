@@ -121,4 +121,35 @@ shots:
       fullIr.optics.fields.map((f) => f.key)
     );
   });
+
+  it('projects freeform metadata scalars, nested maps, and lists in BP01 and Three Years Late', () => {
+    const bp01 = readScoreFile('blueprints/demo_blueprint.yaml');
+    const parsed01 = parseStageScore(bp01, 'demo-blueprint');
+    const ir01 = projectVisualScoreIR(bp01, parsed01.score).ir!;
+
+    expect(ir01.metadata.exists).toBe(true);
+    expect(ir01.metadata.entries.map((e) => [e.key, e.kind])).toEqual([
+      ['music', 'scalar'],
+      ['camera_package', 'map'],
+      ['production_notes', 'list'],
+    ]);
+    const pkg = ir01.metadata.entries[1];
+    expect(pkg.kind === 'map' && pkg.entries.map((c) => c.key)).toEqual([
+      'body',
+      'stabilizer',
+    ]);
+    const notes = ir01.metadata.entries[2];
+    expect(notes.kind === 'list' && notes.items).toHaveLength(2);
+
+    const tyl = readScoreFile('studies/three-years-late.yaml');
+    const parsedTyl = parseStageScore(tyl, 'three-years-late');
+    const irTyl = projectVisualScoreIR(tyl, parsedTyl.score).ir!;
+    expect(irTyl.metadata.exists).toBe(true);
+    expect(
+      irTyl.metadata.entries.some((e) => e.key === 'directorial_notes' && e.kind === 'list')
+    ).toBe(true);
+    const descField = irTyl.rootFields.find((f) => f.canonicalKey === 'description');
+    expect(descField?.descriptor?.multiline).toBe(true);
+    expect(String(descField?.value)).toContain('\n');
+  });
 });

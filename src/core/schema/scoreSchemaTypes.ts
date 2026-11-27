@@ -110,6 +110,8 @@ export interface FieldDescriptor {
   readonly options?: readonly string[];
   readonly group: FieldGroup;
   readonly hint: string;
+  readonly description?: string;
+  readonly multiline?: boolean;
   readonly defaultOnAdd: unknown;
   readonly required?: boolean;
   readonly formatHint?: 'lens-mm' | 'aperture' | 'vec3-flow' | 'plain';

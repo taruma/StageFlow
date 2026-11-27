@@ -755,6 +755,7 @@ export const SHOT_SCHEMA_FIELDS: readonly FieldDescriptor[] = [
     kind: 'string',
     group: 'identity',
     hint: 'Directorial staging note displayed in Shot Breakdown HUD',
+    multiline: true,
     defaultOnAdd: '',
   },
   {

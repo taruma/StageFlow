@@ -3,11 +3,12 @@
  * (Figma scrubbers, lens presets, aperture, vec3, enum select, target anchor, toggle, color, or raw text).
  */
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { VisualFieldNode } from '../../../core/scoreYamlProjectionHelpers';
 import { STANDARD_LENS_PRESETS_MM } from '../../../core/schema/scoreSchemaTypes';
 import type { VisualEditorCallbacks } from './visualEditorTypes';
 import { UI_TOKENS } from '../../tokens/ui';
+import { AutoSizeTextarea } from './AutoSizeTextarea';
 import { FigmaNumberPill } from './FigmaNumberPill';
 import { Vec3ScrubRow, normalizeVec3Tuple } from './Vec3ScrubRow';
 import { TargetAnchorControl } from './TargetAnchorControl';
@@ -19,6 +20,16 @@ import {
 export interface FieldValueControlProps {
   field: VisualFieldNode;
   callbacks: VisualEditorCallbacks;
+}
+
+export function isMultilineTextField(field: VisualFieldNode): boolean {
+  const kind = field.descriptor?.kind ?? 'raw-yaml';
+  if (kind !== 'string' && kind !== 'raw-yaml') return false;
+  if (field.descriptor?.multiline) return true;
+  if (typeof field.value === 'string') {
+    return field.value.includes('\n') || field.value.length > 52;
+  }
+  return false;
 }
 
 function parseNumericFromRaw(raw: unknown, fallback = 0): number {
@@ -57,6 +68,7 @@ export const FieldValueControl: React.FC<FieldValueControlProps> = React.memo(
     const [textDraft, setTextDraft] = useState<string>(() =>
       formatFieldText(field.value)
     );
+    const skipNextBlurRef = useRef(false);
 
     useEffect(() => {
       setTextDraft(formatFieldText(field.value));
@@ -75,6 +87,10 @@ export const FieldValueControl: React.FC<FieldValueControlProps> = React.memo(
     );
 
     const commitTextInput = useCallback(() => {
+      if (skipNextBlurRef.current) {
+        skipNextBlurRef.current = false;
+        return;
+      }
       const prevStr =
         field.value === null || field.value === undefined
           ? ''
@@ -92,6 +108,11 @@ export const FieldValueControl: React.FC<FieldValueControlProps> = React.memo(
       }
       handleCommitPlain(textDraft);
     }, [field.value, handleCommitPlain, kind, textDraft]);
+
+    const cancelTextInput = useCallback(() => {
+      skipNextBlurRef.current = true;
+      setTextDraft(formatFieldText(field.value));
+    }, [field.value]);
 
     const enumOptions: InspectorSelectOption[] = useMemo(() => {
       if (kind !== 'enum' || !desc?.options) return [];
@@ -236,13 +257,32 @@ export const FieldValueControl: React.FC<FieldValueControlProps> = React.memo(
           aria-checked={checked}
           disabled={disabled}
           onClick={() => handleCommitPlain(!checked)}
-          className={`px-2 py-0.5 rounded-md border text-[10px] font-mono font-semibold transition-colors cursor-pointer ${
-            checked
-              ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-600 dark:text-emerald-300'
-              : 'bg-surface-subtle border-border-main text-text-muted'
-          }`}
+          className="inline-flex items-center gap-1.5 group/sw cursor-pointer disabled:opacity-60 disabled:cursor-default"
         >
-          {checked ? 'true' : 'false'}
+          <span
+            className={`relative inline-flex items-center w-7 h-4 rounded-full border p-0.5 transition-colors duration-150 ${
+              checked
+                ? 'bg-emerald-500/25 border-emerald-500/60'
+                : 'bg-surface-muted border-border-main'
+            }`}
+          >
+            <span
+              className={`w-2.5 h-2.5 rounded-full shadow-xs transition-transform duration-150 ${
+                checked
+                  ? 'translate-x-3 bg-emerald-500 dark:bg-emerald-400'
+                  : 'translate-x-0 bg-text-faint'
+              }`}
+            />
+          </span>
+          <span
+            className={`text-[10px] font-mono font-semibold w-8 text-left transition-colors ${
+              checked
+                ? 'text-emerald-600 dark:text-emerald-300'
+                : 'text-text-muted'
+            }`}
+          >
+            {checked ? 'true' : 'false'}
+          </span>
         </button>
       );
     }
@@ -272,6 +312,20 @@ export const FieldValueControl: React.FC<FieldValueControlProps> = React.memo(
       );
     }
 
+    if (isMultilineTextField(field)) {
+      return (
+        <AutoSizeTextarea
+          disabled={disabled}
+          value={textDraft}
+          placeholder={desc?.hint ?? 'Enter multi-line text…'}
+          ariaLabel={field.key}
+          onChange={setTextDraft}
+          onCommit={commitTextInput}
+          onCancel={cancelTextInput}
+        />
+      );
+    }
+
     return (
       <input
         type="text"
@@ -281,7 +335,15 @@ export const FieldValueControl: React.FC<FieldValueControlProps> = React.memo(
         placeholder={desc?.hint ?? 'Enter value…'}
         onChange={(e) => setTextDraft(e.target.value)}
         onBlur={commitTextInput}
-        onKeyDown={(e) => e.key === 'Enter' && commitTextInput()}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            commitTextInput();
+            e.currentTarget.blur();
+          } else if (e.key === 'Escape') {
+            cancelTextInput();
+            e.currentTarget.blur();
+          }
+        }}
         className={`flex-1 min-w-[90px] ${UI_TOKENS.inspector.textInput}`}
       />
     );

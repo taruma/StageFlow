@@ -25,6 +25,8 @@ export const ROOT_SCHEMA_FIELDS: readonly FieldDescriptor[] = [
     kind: 'string',
     group: 'identity',
     hint: 'Score schema version (default "1.0")',
+    description:
+      'StageFlow YAML schema version used by the parser. Keep at "1.0" for full compatibility across studies and blueprints.',
     defaultOnAdd: '1.0',
   },
   {
@@ -33,6 +35,8 @@ export const ROOT_SCHEMA_FIELDS: readonly FieldDescriptor[] = [
     kind: 'string',
     group: 'identity',
     hint: 'Unique scene identifier slug',
+    description:
+      'Unique slug identifying this score in local storage, URL links, and the Scene Library.',
     defaultOnAdd: 'custom-scene',
     required: true,
   },
@@ -42,6 +46,8 @@ export const ROOT_SCHEMA_FIELDS: readonly FieldDescriptor[] = [
     kind: 'string',
     group: 'identity',
     hint: 'Display title shown in header & library',
+    description:
+      'Human-readable title displayed in the Studio header, Scene Library cards, and export manifests.',
     defaultOnAdd: 'Untitled Scene',
     required: true,
   },
@@ -51,6 +57,9 @@ export const ROOT_SCHEMA_FIELDS: readonly FieldDescriptor[] = [
     kind: 'string',
     group: 'identity',
     hint: 'Short one-line logline or camera summary',
+    description:
+      'Short premise, logline, or camera grammar summary shown under the title in the Production Brief and Library.',
+    multiline: true,
     defaultOnAdd: '',
   },
   {
@@ -60,6 +69,9 @@ export const ROOT_SCHEMA_FIELDS: readonly FieldDescriptor[] = [
     kind: 'string',
     group: 'identity',
     hint: 'Scene-wide staging premise or directorial note',
+    description:
+      'Detailed directorial premise, spatial rules, or scene overview rendered in the Production Brief drawer (supports multi-line YAML | blocks).',
+    multiline: true,
     defaultOnAdd: '',
   },
   {
@@ -69,6 +81,8 @@ export const ROOT_SCHEMA_FIELDS: readonly FieldDescriptor[] = [
     kind: 'string',
     group: 'media',
     hint: 'YouTube URL, local path, or procedural://slug',
+    description:
+      'Primary playback source synchronized to the 3D diorama: a YouTube watch URL, a local video path, or "procedural://<slug>" for the 60fps wireframe simulator.',
     defaultOnAdd: 'procedural://scene',
   },
   {
@@ -79,6 +93,8 @@ export const ROOT_SCHEMA_FIELDS: readonly FieldDescriptor[] = [
     options: ASPECT_RATIO_PRESETS,
     group: 'media',
     hint: 'Film gate aspect ratio (e.g. "16:9", "2.39:1")',
+    description:
+      'Shapes the Stage Cam rectangular film-gate frustum in 3D space, the viewfinder matte overlay, and the video workspace frame.',
     defaultOnAdd: '16:9',
   },
   {
@@ -91,6 +107,8 @@ export const ROOT_SCHEMA_FIELDS: readonly FieldDescriptor[] = [
     step: 0.1,
     group: 'timing',
     hint: 'Total timeline duration in seconds',
+    description:
+      'Master playback duration in seconds used for scrubbing, procedural simulation length, and last-shot clamping when omitted.',
     defaultOnAdd: 10.0,
   },
   {
@@ -103,6 +121,8 @@ export const ROOT_SCHEMA_FIELDS: readonly FieldDescriptor[] = [
     step: 0.05,
     group: 'timing',
     hint: 'Global clock offset added to media playhead',
+    description:
+      'Global time shift (in seconds) added to the video/media playhead to align score timestamps with an external video clip without re-timing cues.',
     defaultOnAdd: 0.0,
   },
   {
@@ -111,6 +131,8 @@ export const ROOT_SCHEMA_FIELDS: readonly FieldDescriptor[] = [
     kind: 'boolean',
     group: 'timing',
     hint: 'Auto-chain shot start times from previous end',
+    description:
+      'Scene-wide default for camera continuity: when enabled, shots inherit the prior shot end pose and smoothly chain from where the camera left off.',
     defaultOnAdd: true,
   },
   {
@@ -120,6 +142,8 @@ export const ROOT_SCHEMA_FIELDS: readonly FieldDescriptor[] = [
     kind: 'boolean',
     group: 'display',
     hint: 'Render 3D tripod stands & dolly rails',
+    description:
+      'Controls whether physical 3D camera rig geometry (tripods, dolly tracks, and spline rails) renders on the diorama floor by default.',
     defaultOnAdd: true,
   },
   {
@@ -129,6 +153,8 @@ export const ROOT_SCHEMA_FIELDS: readonly FieldDescriptor[] = [
     kind: 'boolean',
     group: 'optics',
     hint: 'Enable opt-in Stage Cam optical bokeh blur',
+    description:
+      'Enables the initial optical Depth-of-Field bokeh pass in Stage Cam POV & Monitor viewports when the scene loads.',
     defaultOnAdd: false,
   },
   {
@@ -139,6 +165,8 @@ export const ROOT_SCHEMA_FIELDS: readonly FieldDescriptor[] = [
     options: DOF_PRESETS,
     group: 'optics',
     hint: 'Scene-wide Depth of Field preset',
+    description:
+      'Scene-wide Depth of Field blur falloff preset ("shallow", "medium", or "deep") used whenever an individual shot does not specify its own DoF.',
     defaultOnAdd: 'medium',
   },
   {
@@ -151,6 +179,8 @@ export const ROOT_SCHEMA_FIELDS: readonly FieldDescriptor[] = [
     step: 0.2,
     group: 'optics',
     hint: 'Scene-wide lens f-stop (e.g. "f/4.0")',
+    description:
+      'Scene-wide fallback lens f-stop controlling hyperfocal distance and bokeh blur radius across shots unless overridden per shot.',
     defaultOnAdd: 'f/4.0',
     formatHint: 'aperture',
   },
@@ -164,6 +194,8 @@ export const OPTICS_SCHEMA_FIELDS: readonly FieldDescriptor[] = [
     kind: 'boolean',
     group: 'optics',
     hint: 'Enable Stage Cam thin-lens bokeh blur on load',
+    description:
+      'Activates the single-pass Stage Cam viewfinder bokeh shader when the score opens (can still be toggled live via the Blur pill or hotkey B).',
     defaultOnAdd: true,
   },
   {
@@ -174,6 +206,8 @@ export const OPTICS_SCHEMA_FIELDS: readonly FieldDescriptor[] = [
     options: DOF_PRESETS,
     group: 'optics',
     hint: 'Scene-wide fallback Depth of Field ("shallow" | "medium" | "deep")',
+    description:
+      'Overrides the implicit depth-of-field spread across the whole scene ("shallow" f/2.0 feel, "medium" balanced, or "deep" landscape focus).',
     defaultOnAdd: 'medium',
   },
   {
@@ -186,6 +220,8 @@ export const OPTICS_SCHEMA_FIELDS: readonly FieldDescriptor[] = [
     step: 0.2,
     group: 'optics',
     hint: 'Explicit scene-wide fallback f-stop (e.g. "f/2.8")',
+    description:
+      'Explicit physical lens f-stop (takes precedence over the "dof" preset) used to compute near/far focus brackets and bokeh blur width.',
     defaultOnAdd: 'f/4.0',
     formatHint: 'aperture',
   },
@@ -702,6 +738,7 @@ export const BLOCKING_ENTITY_SCHEMA_FIELDS: readonly FieldDescriptor[] = [
     kind: 'string',
     group: 'identity',
     hint: 'Action note for this entity cue',
+    multiline: true,
     defaultOnAdd: '',
   },
 ];

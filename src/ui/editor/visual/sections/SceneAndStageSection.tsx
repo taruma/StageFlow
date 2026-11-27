@@ -3,12 +3,14 @@
  */
 
 import React, { useCallback } from 'react';
+import { X } from 'lucide-react';
 import type { VisualScoreIR } from '../../../../core/scoreYamlProjectionHelpers';
 import type { VisualEditorCallbacks } from '../visualEditorTypes';
 import { CollapsibleYamlSection } from '../CollapsibleYamlSection';
 import { SortableFieldList } from '../SortableFieldList';
 import { AddPropertyPopover } from '../AddPropertyPopover';
 import { CameraBlockCard } from './CameraBlockCard';
+import { SceneMetadataBlock } from './SceneMetadataBlock';
 
 export interface SceneAndStageSectionProps {
   ir: VisualScoreIR;
@@ -63,20 +65,44 @@ export const SceneAndStageSection: React.FC<SceneAndStageSectionProps> =
               callbacks={callbacks}
             />
 
-            {ir.optics.exists ? (
+            <SceneMetadataBlock
+              metadata={ir.metadata}
+              disabled={callbacks.disabled}
+              onCommand={callbacks.onCommand}
+            />
+
+            {ir.optics.exists && (
               <div className="mt-2 pl-2.5 border-l-2 border-emerald-500/40 space-y-0.5">
                 <div className="flex items-center justify-between gap-2 py-0.5">
                   <span className="text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400">
                     optics:
                   </span>
-                  <AddPropertyPopover
-                    section="optics"
-                    parentPath={ir.optics.yamlPath}
-                    authoredRawKeys={ir.optics.fields.map((f) => f.key)}
-                    label="+ Key"
-                    disabled={callbacks.disabled}
-                    onCommand={callbacks.onCommand}
-                  />
+                  <div className="flex items-center gap-1">
+                    <AddPropertyPopover
+                      section="optics"
+                      parentPath={ir.optics.yamlPath}
+                      authoredRawKeys={ir.optics.fields.map((f) => f.key)}
+                      label="+ Key"
+                      disabled={callbacks.disabled}
+                      onCommand={callbacks.onCommand}
+                    />
+                    {!callbacks.disabled && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          callbacks.onCommand({
+                            type: 'remove-field',
+                            path: ['optics'],
+                          })
+                        }
+                        title="Remove optics: block"
+                        aria-label="Remove optics block"
+                        className="p-0.5 rounded text-text-faint opacity-70 hover:opacity-100 hover:text-rose-500 transition-opacity cursor-pointer"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <SortableFieldList
                   parentPath={ir.optics.yamlPath}
@@ -84,9 +110,28 @@ export const SceneAndStageSection: React.FC<SceneAndStageSectionProps> =
                   callbacks={callbacks}
                 />
               </div>
-            ) : (
-              !callbacks.disabled && (
-                <div className="pt-1 flex justify-end">
+            )}
+
+            {!callbacks.disabled && (!ir.metadata.exists || !ir.optics.exists) && (
+              <div className="pt-1.5 flex flex-wrap items-center justify-end gap-3">
+                {!ir.metadata.exists && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      callbacks.onCommand({
+                        type: 'add-field',
+                        parentPath: ['metadata'],
+                        key: 'director',
+                        value: '',
+                        format: 'plain',
+                      })
+                    }
+                    className="text-[10px] font-mono text-text-muted hover:text-violet-500 cursor-pointer"
+                  >
+                    + Add metadata: block
+                  </button>
+                )}
+                {!ir.optics.exists && (
                   <button
                     type="button"
                     onClick={() =>
@@ -101,8 +146,8 @@ export const SceneAndStageSection: React.FC<SceneAndStageSectionProps> =
                   >
                     + Add optics: block
                   </button>
-                </div>
-              )
+                )}
+              </div>
             )}
           </CollapsibleYamlSection>
 

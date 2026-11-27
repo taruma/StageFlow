@@ -21,6 +21,7 @@ import {
   projectCameraBlockNode,
   projectEntityOverrideMap,
   projectMapFields,
+  projectMetadataBlock,
   type VisualBlockingItem,
   type VisualEntityItem,
   type VisualObserverShotItem,
@@ -97,6 +98,7 @@ export function projectVisualScoreIRFromDoc(
   const rootMap = contents as YAMLMap;
 
   const rootFields = projectMapFields(rootMap, [], 'root', lineCounter);
+  const metadata = projectMetadataBlock(rootMap, lineCounter);
 
   // Optics block
   const opticsPair = findMapPairByKeys(rootMap, ['optics']);
@@ -406,6 +408,7 @@ export function projectVisualScoreIRFromDoc(
 
   const ir: VisualScoreIR = {
     rootFields,
+    metadata,
     optics,
     stage,
     entities,

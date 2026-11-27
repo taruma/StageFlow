@@ -8,6 +8,7 @@
 import {
   Document,
   Pair,
+  Scalar,
   isMap,
   isScalar,
   isSeq,
@@ -44,6 +45,7 @@ export type ScoreYamlCommand =
       format?: ScalarFormatHint;
     }
   | { type: 'remove-field'; path: YamlPath }
+  | { type: 'append-seq-item'; path: YamlPath; value: unknown }
   | {
       type: 'reorder-map-key';
       parentPath: YamlPath;
@@ -95,11 +97,31 @@ function createFormattedNode(
   format?: ScalarFormatHint
 ): Node {
   const node = doc.createNode(value);
-  if ((format === 'vec3-flow' || Array.isArray(value)) && isSeq(node)) {
+  if (typeof value === 'string' && value.includes('\n') && isScalar(node)) {
+    node.type = Scalar.BLOCK_LITERAL;
+  }
+  if (
+    isSeq(node) &&
+    (format === 'vec3-flow' ||
+      (format !== 'plain' &&
+        Array.isArray(value) &&
+        value.length > 0 &&
+        value.every((v) => typeof v === 'number')))
+  ) {
     node.flow = true;
   }
   return node;
 }
+
+const ROOT_BODY_SECTION_KEYS = new Set([
+  'stage',
+  'entities',
+  'blocking',
+  'shots',
+  'score',
+  'observer_shots',
+  'observerShots',
+]);
 
 function ensureMapAtPath(doc: Document, path: YamlPath): YAMLMap | null {
   if (!isMap(doc.contents)) {
@@ -113,9 +135,32 @@ function ensureMapAtPath(doc: Document, path: YamlPath): YAMLMap | null {
     const next = curr.get(seg, true);
     if (isMap(next)) {
       curr = next;
-    } else if (next === undefined) {
+    } else if (
+      isScalar(next) &&
+      (next.value === null || next.value === undefined || next.value === '')
+    ) {
       const created = new YAMLMap();
       curr.set(seg, created);
+      curr = created;
+    } else if (next === undefined) {
+      const created = new YAMLMap();
+      if (curr === doc.contents && (seg === 'metadata' || seg === 'optics')) {
+        const insertIdx = curr.items.findIndex((pair) => {
+          if (!isScalar(pair.key)) return false;
+          const k = String(pair.key.value);
+          return (
+            ROOT_BODY_SECTION_KEYS.has(k) ||
+            (seg === 'metadata' && k === 'optics')
+          );
+        });
+        if (insertIdx >= 0) {
+          curr.items.splice(insertIdx, 0, new Pair(doc.createNode(seg), created));
+        } else {
+          curr.set(seg, created);
+        }
+      } else {
+        curr.set(seg, created);
+      }
       curr = created;
     } else {
       return null;
@@ -136,6 +181,16 @@ function applySetField(
 
   if (isScalar(existing)) {
     existing.value = formatted;
+    if (typeof formatted === 'string') {
+      if (formatted.includes('\n')) {
+        existing.type = Scalar.BLOCK_LITERAL;
+      } else if (
+        existing.type === Scalar.BLOCK_LITERAL ||
+        existing.type === Scalar.BLOCK_FOLDED
+      ) {
+        existing.type = Scalar.QUOTE_DOUBLE;
+      }
+    }
     return;
   }
 
@@ -300,6 +355,28 @@ export function applyScoreYamlCommandDetailed(
     case 'remove-field':
       doc.deleteIn(command.path);
       break;
+
+    case 'append-seq-item': {
+      const existing = doc.getIn(command.path, true);
+      if (isSeq(existing)) {
+        existing.items.push(createFormattedNode(doc, command.value, 'plain'));
+      } else if (command.path.length > 0) {
+        const parentPath = command.path.slice(0, -1);
+        const key = command.path[command.path.length - 1];
+        const targetMap =
+          parentPath.length === 0
+            ? isMap(doc.contents)
+              ? doc.contents
+              : null
+            : ensureMapAtPath(doc, parentPath);
+        if (targetMap && typeof key === 'string') {
+          const seq = new YAMLSeq();
+          seq.items.push(createFormattedNode(doc, command.value, 'plain'));
+          targetMap.set(key, seq);
+        }
+      }
+      break;
+    }
 
     case 'reorder-map-key':
       applyReorderMapKey(

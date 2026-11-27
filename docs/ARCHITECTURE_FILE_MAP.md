@@ -194,7 +194,9 @@ stageflow/
 │   │   │       ├── FigmaNumberPill.tsx # Horizontal pointer-capture numeric scrubber + click-to-type pill
 │   │   │       ├── Vec3ScrubRow.tsx # Single-row X/Y/Z triplet of FigmaNumberPill scrubbers
 │   │   │       ├── TargetAnchorControl.tsx # Entity ID, multi-entity & [x, y, z] target selector
-│   │   │       ├── FieldValueControl.tsx # Schema-typed value control dispatcher (scrubber, presets, enum, color, raw)
+│   │   │       ├── FieldValueControl.tsx # Schema-typed value control dispatcher (scrubber, presets, switch, enum, color, multiline, raw)
+│   │   │       ├── AutoSizeTextarea.tsx # Auto-growing multi-line textarea control for prose & block-literal YAML fields
+│   │   │       ├── FieldInfoPopover.tsx # Lazy Radix `(?)` info popover displaying description, constraints, options & aliases
 │   │   │       ├── InspectorSelect.tsx # Theme-native headless dropdown wrapper (`@radix-ui/react-select`)
 │   │   │       ├── SchemaFieldRow.tsx # Key label row shell delegating input rendering to FieldValueControl
 │   │   │       ├── AddPropertyPopover.tsx # Categorized "+ Property" menu backed by scoreSchema.ts
@@ -203,7 +205,7 @@ stageflow/
 │   │   │       ├── CardReorderActions.tsx # Shared Up/Down/Delete card header action buttons
 │   │   │       ├── WaypointsBlock.tsx # Shared `waypoints:` list block for CameraBlockCard & ObserverShotsSection
 │   │   │       ├── EntityOverridesBlock.tsx # Shared `entities:` override block for BlockingSection & ShotCard
-│   │   │       └── sections/        # Section renderers (CameraBlockCard, SceneAndStage, Entities, Blocking, ShotTimingBar, ShotCard, Shots, ObserverShots)
+│   │   │       └── sections/        # Section renderers (CameraBlockCard, SceneAndStage, SceneMetadataBlock/Controls, Entities, Blocking, ShotTimingBar, ShotCard, Shots, ObserverShots)
 │   │   ├── guide/                   # In-app choreography score & script specification manual
 │   │   │   ├── index.ts             # Barrel exports for guide documentation views
 │   │   │   ├── ScoreAuthoringGuideView.tsx # Standalone Markdown + KaTeX manual view (?mode=guide / ?mode=spec) with .md download

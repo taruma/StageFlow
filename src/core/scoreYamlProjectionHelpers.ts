@@ -119,8 +119,47 @@ export interface VisualObserverShotItem {
   flatWaypoints?: VisualWaypointItem[];
 }
 
+export type VisualMetadataEntry =
+  | {
+      kind: 'scalar';
+      key: string;
+      yamlPath: YamlPath;
+      value: string | number | boolean | null;
+      lineRange?: [number, number];
+    }
+  | {
+      kind: 'list';
+      key: string;
+      yamlPath: YamlPath;
+      items: Array<{
+        index: number;
+        yamlPath: YamlPath;
+        value: string;
+      }>;
+      lineRange?: [number, number];
+    }
+  | {
+      kind: 'map';
+      key: string;
+      yamlPath: YamlPath;
+      entries: Array<{
+        key: string;
+        yamlPath: YamlPath;
+        value: string | number | boolean | null;
+      }>;
+      lineRange?: [number, number];
+    };
+
+export interface VisualMetadataBlock {
+  exists: boolean;
+  yamlPath: YamlPath;
+  lineRange?: [number, number];
+  entries: VisualMetadataEntry[];
+}
+
 export interface VisualScoreIR {
   rootFields: VisualFieldNode[];
+  metadata: VisualMetadataBlock;
   optics: {
     exists: boolean;
     yamlPath: YamlPath;
@@ -306,6 +345,116 @@ export function projectEntityOverrideMap(
     });
   }
   return list;
+}
+
+export function projectMetadataBlock(
+  rootMap: YAMLMap,
+  lineCounter?: LineCounter
+): VisualMetadataBlock {
+  const pair = findMapPairByKeys(rootMap, ['metadata']);
+  if (!pair || !isMap(pair.node)) {
+    return {
+      exists: false,
+      yamlPath: ['metadata'],
+      entries: [],
+    };
+  }
+
+  const metadataMap = pair.node;
+  const entries: VisualMetadataEntry[] = [];
+
+  for (const item of metadataMap.items) {
+    if (!isScalar(item.key)) continue;
+    const key = String(item.key.value);
+    const entryPath: YamlPath = ['metadata', key];
+    const valNode = item.value as Node | null | undefined;
+    const lineRange = getNodeLineRange(valNode ?? item.key, lineCounter);
+
+    if (isSeq(valNode)) {
+      entries.push({
+        kind: 'list',
+        key,
+        yamlPath: entryPath,
+        items: valNode.items.map((el, index) => {
+          const json =
+            el !== null && typeof el === 'object' && 'toJSON' in el
+              ? (el as Node).toJSON()
+              : el;
+          const str =
+            typeof json === 'string'
+              ? json
+              : json == null
+              ? ''
+              : JSON.stringify(json);
+          return {
+            index,
+            yamlPath: ['metadata', key, index],
+            value: str,
+          };
+        }),
+        lineRange,
+      });
+    } else if (isMap(valNode)) {
+      const childEntries: Array<{
+        key: string;
+        yamlPath: YamlPath;
+        value: string | number | boolean | null;
+      }> = [];
+      for (const childPair of valNode.items) {
+        if (!isScalar(childPair.key)) continue;
+        const childKey = String(childPair.key.value);
+        const childVal = childPair.value as Node | null | undefined;
+        let value: string | number | boolean | null = '';
+        if (isScalar(childVal)) {
+          const raw = childVal.toJSON();
+          value =
+            raw === null ||
+            typeof raw === 'string' ||
+            typeof raw === 'number' ||
+            typeof raw === 'boolean'
+              ? raw
+              : String(raw);
+        } else if (childVal) {
+          value = JSON.stringify(childVal.toJSON());
+        }
+        childEntries.push({
+          key: childKey,
+          yamlPath: ['metadata', key, childKey],
+          value,
+        });
+      }
+      entries.push({
+        kind: 'map',
+        key,
+        yamlPath: entryPath,
+        entries: childEntries,
+        lineRange,
+      });
+    } else {
+      const raw = valNode ? valNode.toJSON() : '';
+      const value =
+        raw === null ||
+        typeof raw === 'string' ||
+        typeof raw === 'number' ||
+        typeof raw === 'boolean'
+          ? raw
+          : JSON.stringify(raw);
+      entries.push({
+        kind: 'scalar',
+        key,
+        yamlPath: entryPath,
+        value,
+        lineRange,
+      });
+    }
+  }
+
+  return {
+    exists: true,
+    yamlPath: ['metadata'],
+    lineRange: getNodeLineRange(metadataMap, lineCounter),
+    entries,
+  };
 }
 
 export function seqItems(seq: YAMLSeq): Node[] {

@@ -258,4 +258,84 @@ describe('scoreYamlMutator', () => {
       shotSlice.indexOf('stage_camera:')
     );
   });
+
+  it('inserts optics: and metadata: blocks before stage:/entities:, heals bare null blocks, and deletes cleanly', () => {
+    const withOptics = applyScoreYamlCommand(SAMPLE_YAML, {
+      type: 'add-field',
+      parentPath: ['optics'],
+      key: 'dof',
+      value: 'medium',
+    });
+    expect(withOptics.indexOf('optics:')).toBeLessThan(
+      withOptics.indexOf('entities:')
+    );
+    expect(parseStageScore(withOptics).score?.optics?.defaultDof).toBe('medium');
+
+    const withMeta = applyScoreYamlCommand(withOptics, {
+      type: 'add-field',
+      parentPath: ['metadata'],
+      key: 'director',
+      value: 'Taruma',
+    });
+    expect(withMeta.indexOf('metadata:')).toBeLessThan(
+      withMeta.indexOf('optics:')
+    );
+
+    const bareNullOptics = `${SAMPLE_YAML.replace('entities:', 'optics:\nentities:')}`;
+    const healed = applyScoreYamlCommand(bareNullOptics, {
+      type: 'add-field',
+      parentPath: ['optics'],
+      key: 'dof',
+      value: 'shallow',
+    });
+    expect(parseStageScore(healed).score?.optics?.defaultDof).toBe('shallow');
+
+    const removedOptics = applyScoreYamlCommand(withOptics, {
+      type: 'remove-field',
+      path: ['optics'],
+    });
+    expect(removedOptics).not.toContain('optics:');
+    expect(parseStageScore(removedOptics).score?.optics).toBeUndefined();
+  });
+
+  it('supports append-seq-item block lists, list item deletion, and YAML literal block formatting for multiline strings', () => {
+    let next = applyScoreYamlCommand(SAMPLE_YAML, {
+      type: 'add-field',
+      parentPath: ['metadata'],
+      key: 'production_notes',
+      value: ['First note'],
+      format: 'plain',
+    });
+    next = applyScoreYamlCommand(next, {
+      type: 'append-seq-item',
+      path: ['metadata', 'production_notes'],
+      value: 'Second note',
+    });
+    expect(next).toContain('- First note');
+    expect(next).toContain('- Second note');
+
+    next = applyScoreYamlCommand(next, {
+      type: 'remove-field',
+      path: ['metadata', 'production_notes', 0],
+    });
+    expect(next).not.toContain('First note');
+    expect(next).toContain('- Second note');
+
+    let multi = applyScoreYamlCommand(SAMPLE_YAML, {
+      type: 'add-field',
+      parentPath: [],
+      key: 'description',
+      value: 'Line 1\nLine 2',
+    });
+    expect(multi).toContain('description: |');
+    expect(parseStageScore(multi).error).toBeNull();
+
+    multi = applyScoreYamlCommand(multi, {
+      type: 'set-field',
+      path: ['description'],
+      value: 'Single line summary',
+    });
+    expect(multi).not.toContain('description: |');
+    expect(multi).toContain('Single line summary');
+  });
 });
