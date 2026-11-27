@@ -17,7 +17,7 @@ import { SortableFieldList } from '../SortableFieldList';
 import { AddPropertyPopover } from '../AddPropertyPopover';
 import { CardReorderActions } from '../CardReorderActions';
 import { EntityOverridesBlock } from '../EntityOverridesBlock';
-import { CameraBlockCard } from './CameraBlockCard';
+import { CameraBlockCard, RigBlockSubpanel } from './CameraBlockCard';
 import { ShotTimingBar } from './ShotTimingBar';
 
 export interface ShotCardProps {
@@ -220,6 +220,10 @@ export const ShotCard: React.FC<ShotCardProps> = React.memo(
                 removable
                 defaultExpanded={false}
               />
+            )}
+
+            {shot.flatRig && !shot.stageCamera?.rig && (
+              <RigBlockSubpanel rig={shot.flatRig} callbacks={callbacks} />
             )}
 
             <EntityOverridesBlock

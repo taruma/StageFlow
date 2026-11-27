@@ -404,7 +404,10 @@ export function normalizeParsedStageScore(
             easing: normalizeCameraEasing(ov.easing),
             highlighted: Boolean(ov.highlighted ?? ov.highlight),
             visible: ov.visible !== false,
-            note: typeof ov.note === 'string' ? ov.note : undefined,
+            note:
+              typeof (ov.note ?? ov.description) === 'string'
+                ? String(ov.note ?? ov.description)
+                : undefined,
             cut: isCut,
             continuous: ovContinuous,
           };

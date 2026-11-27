@@ -3,7 +3,6 @@
  * Pure Layer 1 module: zero React, DOM, or Three.js dependencies.
  */
 
-import { CAMERA_LIMITS } from '../constants';
 import {
   ASPECT_RATIO_PRESETS,
   CAMERA_EASINGS,
@@ -444,6 +443,17 @@ export const ENTITY_SCHEMA_FIELDS: readonly FieldDescriptor[] = [
     defaultOnAdd: 0.35,
   },
   {
+    key: 'scale',
+    label: 'Scale',
+    kind: 'number',
+    min: 0.05,
+    max: 20,
+    step: 0.05,
+    group: 'staging',
+    hint: 'Uniform dimension multiplier (supports scalar or [sx, sy, sz] in YAML)',
+    defaultOnAdd: 1.0,
+  },
+  {
     key: 'color',
     label: 'Color',
     kind: 'color',
@@ -637,7 +647,7 @@ export const BLOCKING_ENTITY_SCHEMA_FIELDS: readonly FieldDescriptor[] = [
   },
   {
     key: 'depth',
-    aliases: ['depth_end', 'depthEnd'],
+    aliases: ['depth_end', 'depthEnd', 'length'],
     label: 'Depth',
     kind: 'number',
     unit: 'm',
@@ -778,7 +788,7 @@ export const BLOCKING_CUE_SCHEMA_FIELDS: readonly FieldDescriptor[] = [
     kind: 'timestamp',
     unit: 's',
     min: 0,
-    max: CAMERA_LIMITS.MAX_DISTANCE_M * 36,
+    max: 3600,
     step: 0.05,
     group: 'timing',
     hint: 'Cue start timestamp in seconds',
@@ -791,7 +801,7 @@ export const BLOCKING_CUE_SCHEMA_FIELDS: readonly FieldDescriptor[] = [
     kind: 'timestamp',
     unit: 's',
     min: 0.016,
-    max: CAMERA_LIMITS.MAX_DISTANCE_M * 36,
+    max: 3600,
     step: 0.05,
     group: 'timing',
     hint: 'Cue end timestamp in seconds',

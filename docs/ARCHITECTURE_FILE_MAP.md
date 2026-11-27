@@ -78,7 +78,7 @@ stageflow/
 │   │   ├── schema/                  # Single-Source YAML Schema Registry submodules
 │   │   │   ├── scoreSchemaTypes.ts  # Runtime enum constants (`CAMERA_MANEUVERS`, `CAMERA_EASINGS`, etc.) & `FieldDescriptor` types
 │   │   │   ├── scoreSchemaRegistry.ts # Field descriptors for root, optics, stage, entity & blocking sections
-│   │   │   └── scoreCameraSchemaRegistry.ts # Field descriptors for shot, cameraCue, rig, waypoint & observerShot sections
+│   │   │   └── scoreCameraSchemaRegistry.ts # Field descriptors for stageBaseCamera, shot, cameraCue, observerCameraCue, rig, waypoint & observerShot sections
 │   │   ├── scoreSchema.ts           # Unified SSOT facade (`SCORE_SCHEMA_REGISTRY`, `lookupFieldDescriptor`, `getAvailableAddFields`)
 │   │   ├── scoreHistory.ts          # Pure document-level Undo/Redo history engine over `rawYaml` (`coalesce` / `checkpoint` + `revision`)
 │   │   ├── scoreYamlProjectionHelpers.ts # Read-only `VisualScoreIR` node types & YAML AST projection helpers

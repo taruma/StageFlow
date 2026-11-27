@@ -5,13 +5,51 @@
 
 import React, { useState, useCallback } from 'react';
 import { ChevronDown, ChevronRight, Video } from 'lucide-react';
-import type { VisualCameraBlockNode } from '../../../../core/scoreYamlProjectionHelpers';
+import type {
+  VisualBlockNode,
+  VisualCameraBlockNode,
+} from '../../../../core/scoreYamlProjectionHelpers';
 import type { VisualEditorCallbacks } from '../visualEditorTypes';
 import { UI_TOKENS } from '../../../tokens/ui';
 import { ConfirmDeleteButton } from '../ConfirmDeleteButton';
 import { SortableFieldList } from '../SortableFieldList';
 import { AddPropertyPopover } from '../AddPropertyPopover';
 import { WaypointsBlock } from '../WaypointsBlock';
+
+export interface RigBlockSubpanelProps {
+  rig: VisualBlockNode & { points?: unknown[] };
+  callbacks: VisualEditorCallbacks;
+}
+
+export const RigBlockSubpanel: React.FC<RigBlockSubpanelProps> = React.memo(
+  ({ rig, callbacks }) => (
+    <div className="mt-1.5 pl-2.5 border-l-2 border-amber-500/40 space-y-0.5">
+      <div className="flex items-center justify-between gap-2 py-0.5">
+        <span className="text-[10px] font-mono font-bold text-amber-600 dark:text-amber-400">
+          rig:
+        </span>
+        <AddPropertyPopover
+          section="rig"
+          parentPath={rig.yamlPath}
+          authoredRawKeys={rig.fields.map((f) => f.key)}
+          label="+ Rig"
+          disabled={callbacks.disabled}
+          onCommand={callbacks.onCommand}
+        />
+      </div>
+      <SortableFieldList
+        parentPath={rig.yamlPath}
+        fields={rig.fields}
+        callbacks={callbacks}
+      />
+      {rig.points && (
+        <div className="px-1.5 py-0.5 text-[10px] font-mono text-text-muted">
+          points: {rig.points.length} spline rail pts
+        </div>
+      )}
+    </div>
+  )
+);
 
 export interface CameraBlockCardProps {
   block: VisualCameraBlockNode;
@@ -53,7 +91,7 @@ export const CameraBlockCard: React.FC<CameraBlockCardProps> = React.memo(
 
           <div className="flex items-center gap-1">
             <AddPropertyPopover
-              section="cameraCue"
+              section={block.section}
               parentPath={block.yamlPath}
               authoredRawKeys={block.fields.map((f) => f.key)}
               label="+ Key"
@@ -84,33 +122,7 @@ export const CameraBlockCard: React.FC<CameraBlockCardProps> = React.memo(
               callbacks={callbacks}
             />
 
-            {block.rig && (
-              <div className="mt-1.5 pl-2.5 border-l-2 border-amber-500/40 space-y-0.5">
-                <div className="flex items-center justify-between gap-2 py-0.5">
-                  <span className="text-[10px] font-mono font-bold text-amber-600 dark:text-amber-400">
-                    rig:
-                  </span>
-                  <AddPropertyPopover
-                    section="rig"
-                    parentPath={block.rig.yamlPath}
-                    authoredRawKeys={block.rig.fields.map((f) => f.key)}
-                    label="+ Rig"
-                    disabled={callbacks.disabled}
-                    onCommand={callbacks.onCommand}
-                  />
-                </div>
-                <SortableFieldList
-                  parentPath={block.rig.yamlPath}
-                  fields={block.rig.fields}
-                  callbacks={callbacks}
-                />
-                {block.rig.points && (
-                  <div className="px-1.5 py-0.5 text-[10px] font-mono text-text-muted">
-                    points: {block.rig.points.length} spline rail pts
-                  </div>
-                )}
-              </div>
-            )}
+            {block.rig && <RigBlockSubpanel rig={block.rig} callbacks={callbacks} />}
 
             <WaypointsBlock waypoints={block.waypoints} callbacks={callbacks} />
           </div>

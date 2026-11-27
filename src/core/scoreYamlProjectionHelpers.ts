@@ -49,7 +49,13 @@ export interface VisualWaypointItem {
   fields: VisualFieldNode[];
 }
 
+export type CameraBlockSection =
+  | 'stageBaseCamera'
+  | 'cameraCue'
+  | 'observerCameraCue';
+
 export interface VisualCameraBlockNode extends VisualBlockNode {
+  section: CameraBlockSection;
   rig?: VisualBlockNode & { points?: unknown[] };
   waypoints: VisualWaypointItem[];
   waypointsContainerPath?: YamlPath;
@@ -102,6 +108,7 @@ export interface VisualShotItem {
   fields: VisualFieldNode[];
   stageCamera?: VisualCameraBlockNode;
   observerCamera?: VisualCameraBlockNode;
+  flatRig?: VisualBlockNode & { points?: unknown[] };
   entityOverrides: VisualNamedBlockNode[];
   entitiesContainerPath?: YamlPath;
 }
@@ -263,66 +270,73 @@ export function projectMapFields(
   return fields;
 }
 
+export function projectRigBlockNode(
+  rigMap: YAMLMap,
+  rigPath: YamlPath,
+  lineCounter?: LineCounter
+): VisualBlockNode & { points?: unknown[] } {
+  const rigFields = projectMapFields(rigMap, rigPath, 'rig', lineCounter);
+  const ptsPair = findMapPairByKeys(rigMap, ['points', 'waypoints']);
+  const points =
+    ptsPair && isSeq(ptsPair.node)
+      ? (ptsPair.node.toJSON() as unknown[])
+      : undefined;
+  return {
+    key: 'rig',
+    yamlPath: rigPath,
+    lineRange: getNodeLineRange(rigMap, lineCounter),
+    fields: rigFields,
+    ...(points ? { points } : {}),
+  };
+}
+
 export function projectCameraBlockNode(
   map: YAMLMap,
   key: string,
   basePath: YamlPath,
   lineCounter?: LineCounter,
-  inheritedHints?: Record<string, string>
+  inheritedHints?: Record<string, string>,
+  section: CameraBlockSection = 'cameraCue'
 ): VisualCameraBlockNode {
   const blockPath: YamlPath = [...basePath, key];
   const fields = projectMapFields(
     map,
     blockPath,
-    'cameraCue',
+    section,
     lineCounter,
     inheritedHints
   );
 
   let rig: (VisualBlockNode & { points?: unknown[] }) | undefined;
-  const rigPair = findMapPairByKeys(map, ['rig']);
-  if (rigPair && isMap(rigPair.node)) {
-    const rigPath: YamlPath = [...blockPath, 'rig'];
-    const rigFields = projectMapFields(
-      rigPair.node,
-      rigPath,
-      'rig',
-      lineCounter
-    );
-    const ptsPair = findMapPairByKeys(rigPair.node, ['points', 'waypoints']);
-    const points =
-      ptsPair && isSeq(ptsPair.node)
-        ? (ptsPair.node.toJSON() as unknown[])
-        : undefined;
-    rig = {
-      key: 'rig',
-      yamlPath: rigPath,
-      lineRange: getNodeLineRange(rigPair.node, lineCounter),
-      fields: rigFields,
-      ...(points ? { points } : {}),
-    };
-  }
-
   const waypoints: VisualWaypointItem[] = [];
-  const wpPair = findMapPairByKeys(map, ['waypoints']);
   let waypointsContainerPath: YamlPath | undefined;
-  if (wpPair && isSeq(wpPair.node)) {
-    waypointsContainerPath = [...blockPath, 'waypoints'];
-    wpPair.node.items.forEach((wpNode, wpIdx) => {
-      if (!isMap(wpNode as Node)) return;
-      const wpMap = wpNode as YAMLMap;
-      const wpPath: YamlPath = [...waypointsContainerPath!, wpIdx];
-      waypoints.push({
-        index: wpIdx,
-        yamlPath: wpPath,
-        lineRange: getNodeLineRange(wpMap, lineCounter),
-        fields: projectMapFields(wpMap, wpPath, 'waypoint', lineCounter),
+
+  if (section !== 'stageBaseCamera') {
+    const rigPair = findMapPairByKeys(map, ['rig']);
+    if (rigPair && isMap(rigPair.node)) {
+      rig = projectRigBlockNode(rigPair.node, [...blockPath, 'rig'], lineCounter);
+    }
+
+    const wpPair = findMapPairByKeys(map, ['waypoints']);
+    if (wpPair && isSeq(wpPair.node)) {
+      waypointsContainerPath = [...blockPath, 'waypoints'];
+      wpPair.node.items.forEach((wpNode, wpIdx) => {
+        if (!isMap(wpNode as Node)) return;
+        const wpMap = wpNode as YAMLMap;
+        const wpPath: YamlPath = [...waypointsContainerPath!, wpIdx];
+        waypoints.push({
+          index: wpIdx,
+          yamlPath: wpPath,
+          lineRange: getNodeLineRange(wpMap, lineCounter),
+          fields: projectMapFields(wpMap, wpPath, 'waypoint', lineCounter),
+        });
       });
-    });
+    }
   }
 
   return {
     key,
+    section,
     yamlPath: blockPath,
     lineRange: getNodeLineRange(map, lineCounter),
     fields,

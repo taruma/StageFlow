@@ -44,7 +44,7 @@ flowchart TD
 | :--- | :--- | :--- |
 | **Layer 1** | [`src/core/schema/scoreSchemaTypes.ts`](../src/core/schema/scoreSchemaTypes.ts) | Runtime `as const` enum presets, `SchemaSectionName`, `FieldKind`, `FieldGroup`, `FieldDescriptor` types (`description`, `multiline`). |
 | **Layer 1** | [`src/core/schema/scoreSchemaRegistry.ts`](../src/core/schema/scoreSchemaRegistry.ts) | `FieldDescriptor` catalogs for `root`, `optics`, `stage`, `entity`, `blockingCue`, `blockingEntity`. |
-| **Layer 1** | [`src/core/schema/scoreCameraSchemaRegistry.ts`](../src/core/schema/scoreCameraSchemaRegistry.ts) | `FieldDescriptor` catalogs for `shot`, `cameraCue`, `rig`, `waypoint`, `observerShot`. |
+| **Layer 1** | [`src/core/schema/scoreCameraSchemaRegistry.ts`](../src/core/schema/scoreCameraSchemaRegistry.ts) | `FieldDescriptor` catalogs for `stageBaseCamera`, `shot`, `cameraCue`, `observerCameraCue`, `rig`, `waypoint`, `observerShot`. |
 | **Layer 1** | [`src/core/scoreSchema.ts`](../src/core/scoreSchema.ts) | SSOT facade exporting `SCORE_SCHEMA_REGISTRY`, `SECTION_STRUCTURAL_KEYS`, alias resolver `lookupFieldDescriptor`, and `+ Key` filtering. |
 | **Layer 1** | [`src/core/scoreYamlProjectionHelpers.ts`](../src/core/scoreYamlProjectionHelpers.ts) | `VisualScoreIR` node types, `readPairKey()`, `projectMetadataBlock()`, `projectMapFields()`, `stabilizeVisualScoreIR()`. |
 | **Layer 1** | [`src/core/scoreYamlProjection.ts`](../src/core/scoreYamlProjection.ts) | Single-parse `projectVisualScoreIRWithDoc()` / `projectVisualScoreIRFromDoc()` projection. |
@@ -68,11 +68,11 @@ flowchart TD
 
 ## 3. Schema Registry Contract (`scoreSchema.ts`)
 
-Every YAML property known to the Visual Editor is declared once in `SCORE_SCHEMA_REGISTRY` across 11 section scopes:
+Every YAML property known to the Visual Editor is declared once in `SCORE_SCHEMA_REGISTRY` across 13 parser-aligned section scopes:
 
-- `root` · `optics` · `stage` · `entity` · `blockingCue` · `blockingEntity` · `shot` · `cameraCue` · `rig` · `waypoint` · `observerShot`
+- `root` · `optics` · `stage` · `stageBaseCamera` · `entity` · `blockingCue` · `blockingEntity` · `shot` · `cameraCue` · `observerCameraCue` · `rig` · `waypoint` · `observerShot`
 
-`SECTION_STRUCTURAL_KEYS` reserves child containers (`metadata`, `optics`, `stage`, `entities`, `blocking`, `shots`, `score`, `observer_shots`, `stage_camera`, `observer_camera`, `camera`, `rig`, `waypoints`, `points`) so `projectMapFields()` renders them as specialized structural cards instead of scalar rows.
+`SECTION_STRUCTURAL_KEYS` reserves child containers (`metadata`, `optics`, `stage`, `entities`, `blocking`, `shots`, `score`, `observer_shots`, `stage_camera`, `observer_camera`, `camera`, `rig`, `waypoints`, `points`) so `projectMapFields()` renders them as specialized structural cards instead of scalar rows (`stageBaseCamera` holds strictly the 7 fields read by `parseBaseSphericalPose`; `observerCameraCue`/`observerShot` exclude Stage Cam-only optics/frustum keys; `shot` flat keys scope strictly to `applyFlatShotCameraOverrides`).
 
 ### Adding a New Schema Field
 1. Register the `FieldDescriptor` in `scoreSchemaRegistry.ts` or `scoreCameraSchemaRegistry.ts` (`key`, optional `aliases`, `label`, `kind`, `group`, concise `hint`, detailed `description`, optional `multiline: true`, and `defaultOnAdd`).

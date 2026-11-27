@@ -34,9 +34,6 @@ stage:
     pitch: 14
     yaw: 90
     lens: 35mm
-    focus: "frank"
-    dof: "shallow"
-    aperture: "f/2.8"
 
 entities:
   - id: "frank"

@@ -22,6 +22,7 @@ import {
   projectEntityOverrideMap,
   projectMapFields,
   projectMetadataBlock,
+  projectRigBlockNode,
   type VisualBlockingItem,
   type VisualEntityItem,
   type VisualObserverShotItem,
@@ -135,7 +136,9 @@ export function projectVisualScoreIRFromDoc(
             stageObsPair.node,
             stageObsPair.key,
             ['stage'],
-            lineCounter
+            lineCounter,
+            undefined,
+            'stageBaseCamera'
           )
         : undefined,
     stageCamera:
@@ -144,7 +147,9 @@ export function projectVisualScoreIRFromDoc(
             stageCamPair.node,
             stageCamPair.key,
             ['stage'],
-            lineCounter
+            lineCounter,
+            undefined,
+            'stageBaseCamera'
           )
         : undefined,
   };
@@ -249,6 +254,7 @@ export function projectVisualScoreIRFromDoc(
         'observer_camera',
         'observerCamera',
       ]);
+      const flatRigPair = findMapPairByKeys(shotMap, ['rig']);
       const entMapPair = findMapPairByKeys(shotMap, ['entities']);
 
       const stageCamera =
@@ -258,7 +264,8 @@ export function projectVisualScoreIRFromDoc(
               stageCamPair.key,
               shotPath,
               lineCounter,
-              hints
+              hints,
+              'cameraCue'
             )
           : undefined;
 
@@ -268,8 +275,15 @@ export function projectVisualScoreIRFromDoc(
               obsCamPair.node,
               obsCamPair.key,
               shotPath,
-              lineCounter
+              lineCounter,
+              undefined,
+              'observerCameraCue'
             )
+          : undefined;
+
+      const flatRig =
+        flatRigPair && isMap(flatRigPair.node)
+          ? projectRigBlockNode(flatRigPair.node, [...shotPath, 'rig'], lineCounter)
           : undefined;
 
       const entitiesContainerPath =
@@ -321,7 +335,7 @@ export function projectVisualScoreIRFromDoc(
           lensMm,
           maneuver,
           targetLabel,
-          hasRig: Boolean(parsedShot?.stageCamera?.rig || stageCamera?.rig),
+          hasRig: Boolean(parsedShot?.stageCamera?.rig || stageCamera?.rig || flatRig),
           hasObserver: Boolean(observerCamera),
           hasEntities: entityOverrides.length > 0,
         },
@@ -330,6 +344,7 @@ export function projectVisualScoreIRFromDoc(
         fields: projectMapFields(shotMap, shotPath, 'shot', lineCounter, hints),
         ...(stageCamera ? { stageCamera } : {}),
         ...(observerCamera ? { observerCamera } : {}),
+        ...(flatRig ? { flatRig } : {}),
         entityOverrides,
         ...(entitiesContainerPath ? { entitiesContainerPath } : {}),
       });
@@ -397,7 +412,9 @@ export function projectVisualScoreIRFromDoc(
                 camPair.node,
                 camPair.key,
                 osPath,
-                lineCounter
+                lineCounter,
+                undefined,
+                'observerCameraCue'
               ),
             }
           : {}),

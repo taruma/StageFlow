@@ -718,6 +718,51 @@ export const WAYPOINT_SCHEMA_FIELDS: readonly FieldDescriptor[] = [
   },
 ];
 
+const STAGE_BASE_CAMERA_KEY_SET = new Set([
+  'target',
+  'target_offset',
+  'distance',
+  'pitch',
+  'yaw',
+  'roll',
+  'lens',
+]);
+
+const STAGE_ONLY_OPTICS_KEY_SET = new Set([
+  'focus',
+  'focus_start',
+  'focus_end',
+  'focus_distance',
+  'focus_distance_start',
+  'focus_distance_end',
+  'dof',
+  'aperture',
+  'aperture_start',
+  'aperture_end',
+]);
+
+const STAGE_ONLY_CAMERA_KEY_SET = new Set([
+  ...STAGE_ONLY_OPTICS_KEY_SET,
+  'show_path',
+  'frustum_depth',
+  'frustum_color',
+]);
+
+export const OBSERVER_CAMERA_CUE_SCHEMA_FIELDS: readonly FieldDescriptor[] =
+  CAMERA_CUE_SCHEMA_FIELDS.filter(
+    (f) => !STAGE_ONLY_CAMERA_KEY_SET.has(f.key)
+  );
+
+export const STAGE_BASE_CAMERA_SCHEMA_FIELDS: readonly FieldDescriptor[] =
+  OBSERVER_CAMERA_CUE_SCHEMA_FIELDS.filter((f) =>
+    STAGE_BASE_CAMERA_KEY_SET.has(f.key)
+  );
+
+const SHOT_FLAT_CAMERA_FIELDS: readonly FieldDescriptor[] =
+  CAMERA_CUE_SCHEMA_FIELDS.filter(
+    (f) => STAGE_ONLY_OPTICS_KEY_SET.has(f.key) || f.key === 'show_rig'
+  );
+
 export const SHOT_SCHEMA_FIELDS: readonly FieldDescriptor[] = [
   {
     key: 'id',
@@ -792,10 +837,8 @@ export const SHOT_SCHEMA_FIELDS: readonly FieldDescriptor[] = [
     hint: 'Auto-chain start time and camera pose from previous shot',
     defaultOnAdd: true,
   },
-  // Flat polymorphic optics/rig fields supported at shot root
-  ...CAMERA_CUE_SCHEMA_FIELDS.filter(
-    (f) => f.key !== 'continuous'
-  ),
+  // Flat polymorphic optical & rig fields merged by applyFlatShotCameraOverrides()
+  ...SHOT_FLAT_CAMERA_FIELDS,
 ];
 
 export const OBSERVER_SHOT_SCHEMA_FIELDS: readonly FieldDescriptor[] = [
@@ -851,5 +894,5 @@ export const OBSERVER_SHOT_SCHEMA_FIELDS: readonly FieldDescriptor[] = [
     hint: 'Auto-chain observer pose and start time from preceding observer cue',
     defaultOnAdd: true,
   },
-  ...CAMERA_CUE_SCHEMA_FIELDS.filter((f) => f.key !== 'continuous'),
+  ...OBSERVER_CAMERA_CUE_SCHEMA_FIELDS.filter((f) => f.key !== 'continuous'),
 ];

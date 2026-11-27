@@ -92,6 +92,9 @@ describe('scoreSchemaContract', () => {
         for (const f of shot.stageCamera?.rig?.fields ?? []) {
           if (!f.descriptor) unregistered.push(`${rel} -> shot[${shot.id}].rig.${f.key}`);
         }
+        for (const f of shot.flatRig?.fields ?? []) {
+          if (!f.descriptor) unregistered.push(`${rel} -> shot[${shot.id}].flatRig.${f.key}`);
+        }
         for (const wp of shot.stageCamera?.waypoints ?? []) {
           for (const f of wp.fields) {
             if (!f.descriptor) unregistered.push(`${rel} -> shot[${shot.id}].waypoint.${f.key}`);
@@ -150,5 +153,27 @@ describe('scoreSchemaContract', () => {
     expect(lookupFieldDescriptor('entity', 'yaw')?.key).toBe('rotation');
     expect(lookupFieldDescriptor('shot', '_start')?.key).toBe('start');
     expect(lookupFieldDescriptor('blockingCue', 'actor')?.key).toBe('entity');
+    expect(lookupFieldDescriptor('blockingEntity', 'length')?.key).toBe('depth');
+    expect(lookupFieldDescriptor('entity', 'scale')?.key).toBe('scale');
+  });
+
+  it('scopes stageBaseCamera, observerCameraCue, observerShot, and shot root strictly to parser-supported keys', () => {
+    expect(lookupFieldDescriptor('stageBaseCamera', 'target')?.key).toBe('target');
+    expect(lookupFieldDescriptor('stageBaseCamera', 'lens')?.key).toBe('lens');
+    expect(lookupFieldDescriptor('stageBaseCamera', 'maneuver')).toBeNull();
+    expect(lookupFieldDescriptor('stageBaseCamera', 'focus')).toBeNull();
+
+    expect(lookupFieldDescriptor('observerCameraCue', 'maneuver')?.key).toBe('maneuver');
+    expect(lookupFieldDescriptor('observerCameraCue', 'focus')).toBeNull();
+    expect(lookupFieldDescriptor('observerCameraCue', 'frustum_depth')).toBeNull();
+    expect(lookupFieldDescriptor('observerShot', 'dof')).toBeNull();
+    expect(lookupFieldDescriptor('observerShot', 'aperture')).toBeNull();
+
+    expect(lookupFieldDescriptor('shot', 'focus')?.key).toBe('focus');
+    expect(lookupFieldDescriptor('shot', 'dof')?.key).toBe('dof');
+    expect(lookupFieldDescriptor('shot', 'show_rig')?.key).toBe('show_rig');
+    expect(lookupFieldDescriptor('shot', 'distance')).toBeNull();
+    expect(lookupFieldDescriptor('shot', 'maneuver')).toBeNull();
+    expect(lookupFieldDescriptor('shot', 'target')).toBeNull();
   });
 });

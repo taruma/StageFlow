@@ -63,11 +63,13 @@ export type SchemaSectionName =
   | 'root'
   | 'optics'
   | 'stage'
+  | 'stageBaseCamera'
   | 'entity'
   | 'blockingCue'
   | 'blockingEntity'
   | 'shot'
   | 'cameraCue'
+  | 'observerCameraCue'
   | 'rig'
   | 'waypoint'
   | 'observerShot';
