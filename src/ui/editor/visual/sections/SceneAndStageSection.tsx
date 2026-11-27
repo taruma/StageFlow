@@ -3,17 +3,20 @@
  */
 
 import React, { useCallback } from 'react';
-import { X } from 'lucide-react';
 import type { VisualScoreIR } from '../../../../core/scoreYamlProjectionHelpers';
 import type { VisualEditorCallbacks } from '../visualEditorTypes';
 import { CollapsibleYamlSection } from '../CollapsibleYamlSection';
+import { ConfirmDeleteButton } from '../ConfirmDeleteButton';
 import { SortableFieldList } from '../SortableFieldList';
 import { AddPropertyPopover } from '../AddPropertyPopover';
 import { CameraBlockCard } from './CameraBlockCard';
 import { SceneMetadataBlock } from './SceneMetadataBlock';
 
 export interface SceneAndStageSectionProps {
-  ir: VisualScoreIR;
+  rootFields: VisualScoreIR['rootFields'];
+  metadata: VisualScoreIR['metadata'];
+  optics: VisualScoreIR['optics'];
+  stage: VisualScoreIR['stage'];
   isSceneExpanded: boolean;
   isStageExpanded: boolean;
   onToggleScene: () => void;
@@ -24,7 +27,10 @@ export interface SceneAndStageSectionProps {
 export const SceneAndStageSection: React.FC<SceneAndStageSectionProps> =
   React.memo(
     ({
-      ir,
+      rootFields,
+      metadata,
+      optics,
+      stage,
       isSceneExpanded,
       isStageExpanded,
       onToggleScene,
@@ -51,7 +57,7 @@ export const SceneAndStageSection: React.FC<SceneAndStageSectionProps> =
               <AddPropertyPopover
                 section="root"
                 parentPath={[]}
-                authoredRawKeys={ir.rootFields.map((f) => f.key)}
+                authoredRawKeys={rootFields.map((f) => f.key)}
                 label="+ Key"
                 disabled={callbacks.disabled}
                 onCommand={callbacks.onCommand}
@@ -61,17 +67,17 @@ export const SceneAndStageSection: React.FC<SceneAndStageSectionProps> =
           >
             <SortableFieldList
               parentPath={[]}
-              fields={ir.rootFields}
+              fields={rootFields}
               callbacks={callbacks}
             />
 
             <SceneMetadataBlock
-              metadata={ir.metadata}
+              metadata={metadata}
               disabled={callbacks.disabled}
               onCommand={callbacks.onCommand}
             />
 
-            {ir.optics.exists && (
+            {optics.exists && (
               <div className="mt-2 pl-2.5 border-l-2 border-emerald-500/40 space-y-0.5">
                 <div className="flex items-center justify-between gap-2 py-0.5">
                   <span className="text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400">
@@ -80,41 +86,37 @@ export const SceneAndStageSection: React.FC<SceneAndStageSectionProps> =
                   <div className="flex items-center gap-1">
                     <AddPropertyPopover
                       section="optics"
-                      parentPath={ir.optics.yamlPath}
-                      authoredRawKeys={ir.optics.fields.map((f) => f.key)}
+                      parentPath={optics.yamlPath}
+                      authoredRawKeys={optics.fields.map((f) => f.key)}
                       label="+ Key"
                       disabled={callbacks.disabled}
                       onCommand={callbacks.onCommand}
                     />
                     {!callbacks.disabled && (
-                      <button
-                        type="button"
-                        onClick={() =>
+                      <ConfirmDeleteButton
+                        onConfirm={() =>
                           callbacks.onCommand({
                             type: 'remove-field',
                             path: ['optics'],
                           })
                         }
                         title="Remove optics: block"
-                        aria-label="Remove optics block"
-                        className="p-0.5 rounded text-text-faint opacity-70 hover:opacity-100 hover:text-rose-500 transition-opacity cursor-pointer"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
+                        ariaLabel="Remove optics block"
+                      />
                     )}
                   </div>
                 </div>
                 <SortableFieldList
-                  parentPath={ir.optics.yamlPath}
-                  fields={ir.optics.fields}
+                  parentPath={optics.yamlPath}
+                  fields={optics.fields}
                   callbacks={callbacks}
                 />
               </div>
             )}
 
-            {!callbacks.disabled && (!ir.metadata.exists || !ir.optics.exists) && (
+            {!callbacks.disabled && (!metadata.exists || !optics.exists) && (
               <div className="pt-1.5 flex flex-wrap items-center justify-end gap-3">
-                {!ir.metadata.exists && (
+                {!metadata.exists && (
                   <button
                     type="button"
                     onClick={() =>
@@ -131,7 +133,7 @@ export const SceneAndStageSection: React.FC<SceneAndStageSectionProps> =
                     + Add metadata: block
                   </button>
                 )}
-                {!ir.optics.exists && (
+                {!optics.exists && (
                   <button
                     type="button"
                     onClick={() =>
@@ -160,8 +162,8 @@ export const SceneAndStageSection: React.FC<SceneAndStageSectionProps> =
             actionSlot={
               <AddPropertyPopover
                 section="stage"
-                parentPath={ir.stage.yamlPath}
-                authoredRawKeys={ir.stage.fields.map((f) => f.key)}
+                parentPath={stage.yamlPath}
+                authoredRawKeys={stage.fields.map((f) => f.key)}
                 label="+ Key"
                 disabled={callbacks.disabled}
                 onCommand={callbacks.onCommand}
@@ -169,24 +171,24 @@ export const SceneAndStageSection: React.FC<SceneAndStageSectionProps> =
               />
             }
           >
-            {ir.stage.fields.length === 0 &&
-              !ir.stage.observerCamera &&
-              !ir.stage.stageCamera && (
+            {stage.fields.length === 0 &&
+              !stage.observerCamera &&
+              !stage.stageCamera && (
                 <p className="text-[11px] font-mono text-text-faint px-1.5 py-1">
                   Using default 10m × 10m stage floor.
                 </p>
               )}
 
             <SortableFieldList
-              parentPath={ir.stage.yamlPath}
-              fields={ir.stage.fields}
+              parentPath={stage.yamlPath}
+              fields={stage.fields}
               callbacks={callbacks}
             />
 
-            {ir.stage.observerCamera && (
+            {stage.observerCamera && (
               <div className="mt-1.5">
                 <CameraBlockCard
-                  block={ir.stage.observerCamera}
+                  block={stage.observerCamera}
                   accentClass="text-sky-600 dark:text-sky-400"
                   callbacks={callbacks}
                   defaultExpanded={false}
@@ -194,10 +196,10 @@ export const SceneAndStageSection: React.FC<SceneAndStageSectionProps> =
               </div>
             )}
 
-            {ir.stage.stageCamera && (
+            {stage.stageCamera && (
               <div className="mt-1.5">
                 <CameraBlockCard
-                  block={ir.stage.stageCamera}
+                  block={stage.stageCamera}
                   accentClass="text-amber-600 dark:text-amber-400"
                   callbacks={callbacks}
                   defaultExpanded={false}

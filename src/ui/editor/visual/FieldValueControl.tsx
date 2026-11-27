@@ -3,7 +3,14 @@
  * (Figma scrubbers, lens presets, aperture, vec3, enum select, target anchor, toggle, color, or raw text).
  */
 
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+  startTransition,
+} from 'react';
 import type { VisualFieldNode } from '../../../core/scoreYamlProjectionHelpers';
 import { STANDARD_LENS_PRESETS_MM } from '../../../core/schema/scoreSchemaTypes';
 import type { VisualEditorCallbacks } from './visualEditorTypes';
@@ -69,10 +76,33 @@ export const FieldValueControl: React.FC<FieldValueControlProps> = React.memo(
       formatFieldText(field.value)
     );
     const skipNextBlurRef = useRef(false);
+    const [optimisticChecked, setOptimisticChecked] = useState<boolean | null>(
+      null
+    );
+    const pendingBoolRafRef = useRef<number | null>(null);
+    const pendingBoolTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+      null
+    );
 
     useEffect(() => {
       setTextDraft(formatFieldText(field.value));
     }, [field.value]);
+
+    useEffect(() => {
+      setOptimisticChecked(null);
+    }, [field.value]);
+
+    useEffect(
+      () => () => {
+        if (pendingBoolRafRef.current !== null) {
+          cancelAnimationFrame(pendingBoolRafRef.current);
+        }
+        if (pendingBoolTimerRef.current !== null) {
+          clearTimeout(pendingBoolTimerRef.current);
+        }
+      },
+      []
+    );
 
     const handleCommitPlain = useCallback(
       (val: unknown) => {
@@ -246,28 +276,47 @@ export const FieldValueControl: React.FC<FieldValueControlProps> = React.memo(
     }
 
     if (kind === 'boolean') {
-      const checked =
+      const serverChecked =
         field.value === true ||
         field.value === 'true' ||
         field.value === 'yes';
+      const checked = optimisticChecked ?? serverChecked;
       return (
         <button
           type="button"
           role="switch"
           aria-checked={checked}
           disabled={disabled}
-          onClick={() => handleCommitPlain(!checked)}
+          onClick={() => {
+            const nextChecked = !checked;
+            setOptimisticChecked(nextChecked);
+            if (pendingBoolRafRef.current !== null) {
+              cancelAnimationFrame(pendingBoolRafRef.current);
+            }
+            if (pendingBoolTimerRef.current !== null) {
+              clearTimeout(pendingBoolTimerRef.current);
+            }
+            pendingBoolRafRef.current = requestAnimationFrame(() => {
+              pendingBoolRafRef.current = null;
+              pendingBoolTimerRef.current = setTimeout(() => {
+                pendingBoolTimerRef.current = null;
+                startTransition(() => {
+                  handleCommitPlain(nextChecked);
+                });
+              }, 0);
+            });
+          }}
           className="inline-flex items-center gap-1.5 group/sw cursor-pointer disabled:opacity-60 disabled:cursor-default"
         >
           <span
-            className={`relative inline-flex items-center w-7 h-4 rounded-full border p-0.5 transition-colors duration-150 ${
+            className={`relative inline-flex items-center w-7 h-4 rounded-full border p-0.5 transition-colors duration-100 ${
               checked
                 ? 'bg-emerald-500/25 border-emerald-500/60'
                 : 'bg-surface-muted border-border-main'
             }`}
           >
             <span
-              className={`w-2.5 h-2.5 rounded-full shadow-xs transition-transform duration-150 ${
+              className={`w-2.5 h-2.5 rounded-full shadow-xs transition-transform duration-100 ${
                 checked
                   ? 'translate-x-3 bg-emerald-500 dark:bg-emerald-400'
                   : 'translate-x-0 bg-text-faint'

@@ -424,6 +424,23 @@ export function projectVisualScoreIRFromDoc(
   return { ir, error: null };
 }
 
+export function projectVisualScoreIRWithDoc(
+  rawYaml: string,
+  score: StageScore | null
+): VisualScoreIRResult & { doc: Document | null } {
+  if (!rawYaml || rawYaml.trim().length === 0) {
+    return { ir: null, error: 'Score content is empty.', doc: null };
+  }
+
+  const lineCounter = new LineCounter();
+  const doc = parseDocument(rawYaml, { lineCounter });
+  const result = projectVisualScoreIRFromDoc(doc, score, lineCounter);
+  return {
+    ...result,
+    doc: doc.errors.length === 0 ? doc : null,
+  };
+}
+
 /**
  * Projects a raw YAML string into a read-only `VisualScoreIR` using a single
  * `yaml.parseDocument()` pass paired with optional `StageScore` telemetry.
@@ -432,11 +449,6 @@ export function projectVisualScoreIR(
   rawYaml: string,
   score: StageScore | null
 ): VisualScoreIRResult {
-  if (!rawYaml || rawYaml.trim().length === 0) {
-    return { ir: null, error: 'Score content is empty.' };
-  }
-
-  const lineCounter = new LineCounter();
-  const doc = parseDocument(rawYaml, { lineCounter });
-  return projectVisualScoreIRFromDoc(doc, score, lineCounter);
+  const { ir, error } = projectVisualScoreIRWithDoc(rawYaml, score);
+  return { ir, error };
 }

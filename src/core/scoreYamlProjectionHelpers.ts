@@ -200,13 +200,19 @@ export function getNodeLineRange(
   return [start, Math.max(start, end)];
 }
 
+export function readPairKey(key: unknown): string | null {
+  if (isScalar(key)) return String(key.value);
+  if (typeof key === 'string' || typeof key === 'number') return String(key);
+  return null;
+}
+
 export function findMapPairByKeys(
   map: YAMLMap,
   candidateKeys: readonly string[]
 ): { key: string; node: Node } | null {
   for (const candidate of candidateKeys) {
     for (const pair of map.items) {
-      const k = isScalar(pair.key) ? String(pair.key.value) : '';
+      const k = readPairKey(pair.key);
       if (k === candidate && pair.value) {
         return { key: k, node: pair.value as Node };
       }
@@ -226,8 +232,8 @@ export function projectMapFields(
   const fields: VisualFieldNode[] = [];
 
   for (const pair of map.items) {
-    if (!isScalar(pair.key)) continue;
-    const rawKey = String(pair.key.value);
+    const rawKey = readPairKey(pair.key);
+    if (!rawKey) continue;
     if (structural.has(rawKey)) continue;
 
     const valNode = pair.value as Node | null | undefined;
@@ -235,7 +241,10 @@ export function projectMapFields(
     const canonicalKey = descriptor ? descriptor.key : rawKey;
     const value = valNode ? valNode.toJSON() : null;
     const isFlowSeq = isSeq(valNode) ? Boolean(valNode.flow) : undefined;
-    const lineRange = getNodeLineRange(valNode ?? pair.key, lineCounter);
+    const lineRange = getNodeLineRange(
+      valNode ?? (isScalar(pair.key) ? pair.key : undefined),
+      lineCounter
+    );
 
     fields.push({
       key: rawKey,
@@ -330,10 +339,10 @@ export function projectEntityOverrideMap(
 ): VisualNamedBlockNode[] {
   const list: VisualNamedBlockNode[] = [];
   for (const pair of entitiesMap.items) {
-    if (!isScalar(pair.key) || !pair.value || !isMap(pair.value as Node)) {
+    const name = readPairKey(pair.key);
+    if (!name || !pair.value || !isMap(pair.value as Node)) {
       continue;
     }
-    const name = String(pair.key.value);
     const ovMap = pair.value as YAMLMap;
     const ovPath: YamlPath = [...containerPath, name];
     list.push({
@@ -364,11 +373,14 @@ export function projectMetadataBlock(
   const entries: VisualMetadataEntry[] = [];
 
   for (const item of metadataMap.items) {
-    if (!isScalar(item.key)) continue;
-    const key = String(item.key.value);
+    const key = readPairKey(item.key);
+    if (!key) continue;
     const entryPath: YamlPath = ['metadata', key];
     const valNode = item.value as Node | null | undefined;
-    const lineRange = getNodeLineRange(valNode ?? item.key, lineCounter);
+    const lineRange = getNodeLineRange(
+      valNode ?? (isScalar(item.key) ? item.key : undefined),
+      lineCounter
+    );
 
     if (isSeq(valNode)) {
       entries.push({
@@ -401,8 +413,8 @@ export function projectMetadataBlock(
         value: string | number | boolean | null;
       }> = [];
       for (const childPair of valNode.items) {
-        if (!isScalar(childPair.key)) continue;
-        const childKey = String(childPair.key.value);
+        const childKey = readPairKey(childPair.key);
+        if (!childKey) continue;
         const childVal = childPair.value as Node | null | undefined;
         let value: string | number | boolean | null = '';
         if (isScalar(childVal)) {
@@ -459,4 +471,102 @@ export function projectMetadataBlock(
 
 export function seqItems(seq: YAMLSeq): Node[] {
   return seq.items.filter((item): item is Node => Boolean(item));
+}
+
+function areIrValuesEqual(a: unknown, b: unknown): boolean {
+  if (Object.is(a, b)) return true;
+  if (typeof a !== typeof b || a === null || b === null) return false;
+  if (typeof a !== 'object') return false;
+
+  if (Array.isArray(a) || Array.isArray(b)) {
+    if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) {
+      return false;
+    }
+    for (let i = 0; i < a.length; i++) {
+      if (!areIrValuesEqual(a[i], b[i])) return false;
+    }
+    return true;
+  }
+
+  const recA = a as Record<string, unknown>;
+  const recB = b as Record<string, unknown>;
+  for (const key of Object.keys(recA)) {
+    if (key === 'lineRange') continue;
+    if (!areIrValuesEqual(recA[key], recB[key])) return false;
+  }
+  for (const key of Object.keys(recB)) {
+    if (key === 'lineRange') continue;
+    if (!(key in recA) && recB[key] !== undefined) return false;
+  }
+  return true;
+}
+
+function stabilizeArray<T>(prevArr: T[], nextArr: T[]): T[] {
+  let allSame = prevArr.length === nextArr.length;
+  const stabilized = nextArr.map((item, idx) => {
+    if (idx < prevArr.length && areIrValuesEqual(prevArr[idx], item)) {
+      return prevArr[idx];
+    }
+    allSame = false;
+    return item;
+  });
+  return allSame ? prevArr : stabilized;
+}
+
+/**
+ * Reuses exact `===` sub-tree and array item references from `prev` across edits
+ * so `React.memo` skips untouched sections and cards during visual updates.
+ */
+export function stabilizeVisualScoreIR(
+  prev: VisualScoreIR | null,
+  next: VisualScoreIR
+): VisualScoreIR {
+  if (!prev) return next;
+
+  const rootFields = stabilizeArray(prev.rootFields, next.rootFields);
+  const metadata = areIrValuesEqual(prev.metadata, next.metadata)
+    ? prev.metadata
+    : next.metadata;
+  const optics = areIrValuesEqual(prev.optics, next.optics)
+    ? prev.optics
+    : next.optics;
+  const stage = areIrValuesEqual(prev.stage, next.stage)
+    ? prev.stage
+    : next.stage;
+  const entities = stabilizeArray(prev.entities, next.entities);
+  const blocking = stabilizeArray(prev.blocking, next.blocking);
+  const shots = stabilizeArray(prev.shots, next.shots);
+  const observerShots = stabilizeArray(prev.observerShots, next.observerShots);
+
+  if (
+    rootFields === prev.rootFields &&
+    metadata === prev.metadata &&
+    optics === prev.optics &&
+    stage === prev.stage &&
+    entities === prev.entities &&
+    blocking === prev.blocking &&
+    shots === prev.shots &&
+    observerShots === prev.observerShots &&
+    prev.entitiesKey === next.entitiesKey &&
+    prev.blockingKey === next.blockingKey &&
+    prev.shotsKey === next.shotsKey &&
+    prev.observerShotsKey === next.observerShotsKey
+  ) {
+    return prev;
+  }
+
+  return {
+    rootFields,
+    metadata,
+    optics,
+    stage,
+    entities,
+    entitiesKey: next.entitiesKey,
+    blocking,
+    blockingKey: next.blockingKey,
+    shots,
+    shotsKey: next.shotsKey,
+    observerShots,
+    observerShotsKey: next.observerShotsKey,
+  };
 }

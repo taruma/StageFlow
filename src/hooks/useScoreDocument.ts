@@ -7,6 +7,7 @@
  */
 
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import type { Document } from 'yaml';
 import type {
   ParseScoreResult,
   ScoreDiagnostic,
@@ -29,8 +30,9 @@ import {
   parseStageScore,
 } from '../core/scoreParser';
 import {
-  projectVisualScoreIR,
   projectVisualScoreIRFromDoc,
+  projectVisualScoreIRWithDoc,
+  stabilizeVisualScoreIR,
   type VisualScoreIRResult,
 } from '../core/scoreYamlProjection';
 import {
@@ -102,6 +104,8 @@ export function useScoreDocument({
     result: VisualScoreIRResult;
   } | null>(null);
 
+  const cachedDocRef = useRef<{ yaml: string; doc: Document } | null>(null);
+
   const lastFallbackScrubMsRef = useRef(0);
 
   const applyParsedYamlResult = useCallback(
@@ -142,6 +146,7 @@ export function useScoreDocument({
    */
   const resetDocument = useCallback(
     (nextYaml: string, nextScore?: StageScore | null) => {
+      cachedDocRef.current = null;
       setPreviewScore(null);
       const nextHistory = createScoreHistory(nextYaml);
       historyRef.current = nextHistory;
@@ -163,6 +168,7 @@ export function useScoreDocument({
    * Compatibility setter for `useScorePersistence` external YAML updates (resets history).
    */
   const setRawYamlExternal = useCallback((nextYaml: string) => {
+    cachedDocRef.current = null;
     setPreviewScore(null);
     const nextHistory = createScoreHistory(nextYaml);
     historyRef.current = nextHistory;
@@ -204,11 +210,20 @@ export function useScoreDocument({
     (command: ScoreYamlCommand) => {
       if (isBundledRef.current) return;
       const currentYaml = historyRef.current.present;
+      const cachedDoc =
+        cachedDocRef.current && cachedDocRef.current.yaml === currentYaml
+          ? cachedDocRef.current.doc
+          : undefined;
       const { nextYaml, doc, changed } = applyScoreYamlCommandDetailed(
         currentYaml,
-        command
+        command,
+        cachedDoc
       );
       if (!changed) return;
+
+      if (doc) {
+        cachedDocRef.current = { yaml: nextYaml, doc };
+      }
 
       setPreviewScore(null);
       const nextHistory = commitScoreHistory(historyRef.current, nextYaml, {
@@ -224,10 +239,20 @@ export function useScoreDocument({
         : parseStageScore(nextYaml, activeSceneIdRef.current);
 
       if (parsedResult.score && doc && isVisualModeActiveRef.current) {
+        const rawResult = projectVisualScoreIRFromDoc(doc, parsedResult.score);
+        const stabilizedResult: VisualScoreIRResult = rawResult.ir
+          ? {
+              ir: stabilizeVisualScoreIR(
+                precomputedIrRef.current?.result.ir ?? null,
+                rawResult.ir
+              ),
+              error: rawResult.error,
+            }
+          : rawResult;
         precomputedIrRef.current = {
           yaml: nextYaml,
           score: parsedResult.score,
-          result: projectVisualScoreIRFromDoc(doc, parsedResult.score),
+          result: stabilizedResult,
         };
       }
 
@@ -397,13 +422,22 @@ export function useScoreDocument({
     ) {
       return cached.result;
     }
-    const projected = projectVisualScoreIR(history.present, activeScore);
+    const projected = projectVisualScoreIRWithDoc(history.present, activeScore);
+    if (projected.doc) {
+      cachedDocRef.current = { yaml: history.present, doc: projected.doc };
+    }
+    const result: VisualScoreIRResult = {
+      ir: projected.ir
+        ? stabilizeVisualScoreIR(cached?.result.ir ?? null, projected.ir)
+        : null,
+      error: projected.error,
+    };
     precomputedIrRef.current = {
       yaml: history.present,
       score: activeScore,
-      result: projected,
+      result,
     };
-    return projected;
+    return result;
   }, [isVisualModeActive, history.present, activeScore]);
 
   return {

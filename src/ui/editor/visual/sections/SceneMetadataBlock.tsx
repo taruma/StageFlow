@@ -5,7 +5,7 @@
  */
 
 import React, { useState } from 'react';
-import { ChevronDown, ChevronRight, Plus, X } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus } from 'lucide-react';
 import type {
   VisualMetadataBlock,
   VisualMetadataEntry,
@@ -13,6 +13,7 @@ import type {
 import type { YamlPath } from '../../../../core/schema/scoreSchemaTypes';
 import type { ScoreYamlCommand } from '../../../../core/scoreYamlMutator';
 import { UI_TOKENS } from '../../../tokens/ui';
+import { ConfirmDeleteButton } from '../ConfirmDeleteButton';
 import {
   AddMetadataKeyPopover,
   MetadataScalarInput,
@@ -33,19 +34,12 @@ export const SceneMetadataBlock: React.FC<SceneMetadataBlockProps> = React.memo(
 
     const removeBtn = (path: YamlPath, title: string, alwaysVisible = false) =>
       !disabled && (
-        <button
-          type="button"
-          onClick={() => onCommand({ type: 'remove-field', path })}
+        <ConfirmDeleteButton
+          onConfirm={() => onCommand({ type: 'remove-field', path })}
           title={title}
-          aria-label={title}
-          className={`${
-            alwaysVisible
-              ? 'opacity-70 hover:opacity-100'
-              : 'opacity-0 group-hover:opacity-100 focus:opacity-100'
-          } p-0.5 rounded text-text-faint hover:text-rose-500 transition-opacity cursor-pointer shrink-0`}
-        >
-          <X className="w-3 h-3" />
-        </button>
+          ariaLabel={title}
+          revealOnGroupHover={!alwaysVisible}
+        />
       );
 
     const renderEntry = (entry: VisualMetadataEntry) => {

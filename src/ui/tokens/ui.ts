@@ -119,9 +119,9 @@ export const UI_TOKENS = {
     fieldRow:
       'group grid grid-cols-[minmax(92px,116px)_minmax(0,1fr)] items-start gap-2 py-1 px-1.5 rounded-md hover:bg-surface-subtle/75 transition-colors',
     scrubPill:
-      'inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[11px] font-mono tabular-nums select-none transition-colors',
+      'group/pill inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[11px] font-mono tabular-nums select-none transition-colors',
     scrubPillIdle:
-      'bg-surface-subtle hover:bg-surface-hover border-border-main text-text-main cursor-ew-resize',
+      'bg-surface-subtle hover:bg-surface-hover border-border-main text-text-main cursor-ns-resize',
     scrubPillActive:
       'bg-amber-500/15 border-amber-500/60 text-text-main shadow-2xs',
     scrubPillDisabled:

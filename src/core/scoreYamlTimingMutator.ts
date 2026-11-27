@@ -6,6 +6,7 @@
 
 import {
   Document,
+  Pair,
   isMap,
   isScalar,
   isSeq,
@@ -14,6 +15,7 @@ import {
   type Node,
 } from 'yaml';
 import type { ShotTimingEditMode } from './types';
+import { readPairKey } from './scoreYamlProjectionHelpers';
 
 export function roundSec(val: number): number {
   return Math.round(val * 1000) / 1000;
@@ -27,6 +29,27 @@ export function getMapNumericField(map: YAMLMap, key: string): number | undefine
   return undefined;
 }
 
+/**
+ * Sets `key` on `map` ensuring `pair.key` is always wrapped as a `yaml` `Scalar` node
+ * so immediate live-AST projections (`projectVisualScoreIRFromDoc`) never skip newly added keys.
+ */
+export function setMapNode(
+  doc: Document,
+  map: YAMLMap,
+  key: string,
+  valueNode: Node
+): void {
+  const existingPair = map.items.find((pair) => readPairKey(pair.key) === key);
+  if (existingPair) {
+    if (!isScalar(existingPair.key)) {
+      existingPair.key = doc.createNode(key);
+    }
+    existingPair.value = valueNode;
+  } else {
+    map.items.push(new Pair(doc.createNode(key), valueNode));
+  }
+}
+
 export function setMapScalarValue(
   doc: Document,
   map: YAMLMap,
@@ -37,7 +60,7 @@ export function setMapScalarValue(
   if (isScalar(existing)) {
     existing.value = value;
   } else {
-    map.set(key, doc.createNode(value));
+    setMapNode(doc, map, key, doc.createNode(value));
   }
 }
 
@@ -53,7 +76,7 @@ export function getOrCreateRootSeq(doc: Document, key: string): YAMLSeq {
   const existing = root.get(key, true);
   if (isSeq(existing)) return existing;
   const seq = new YAMLSeq();
-  root.set(key, seq);
+  setMapNode(doc, root, key, seq);
   return seq;
 }
 
@@ -110,13 +133,13 @@ function buildNewShotNode(
   templateShot?: YAMLMap
 ): YAMLMap {
   const newMap = new YAMLMap();
-  newMap.set('id', doc.createNode(id));
+  setMapNode(doc, newMap, 'id', doc.createNode(id));
   if (shotNum !== undefined) {
-    newMap.set('shot', doc.createNode(shotNum));
+    setMapNode(doc, newMap, 'shot', doc.createNode(shotNum));
   }
-  newMap.set('label', doc.createNode(label));
-  newMap.set('start', doc.createNode(roundSec(startSec)));
-  newMap.set('end', doc.createNode(roundSec(endSec)));
+  setMapNode(doc, newMap, 'label', doc.createNode(label));
+  setMapNode(doc, newMap, 'start', doc.createNode(roundSec(startSec)));
+  setMapNode(doc, newMap, 'end', doc.createNode(roundSec(endSec)));
 
   let targetVal: unknown = [0, 1.25, 0];
   let lensVal: unknown = '50mm';
@@ -146,14 +169,14 @@ function buildNewShotNode(
   if (isSeq(targetNode) && Array.isArray(targetVal)) {
     targetNode.flow = true;
   }
-  camMap.set('target', targetNode);
-  camMap.set('maneuver', doc.createNode('cut'));
-  camMap.set('distance', doc.createNode(distanceVal));
-  camMap.set('pitch', doc.createNode(pitchVal));
-  camMap.set('yaw', doc.createNode(yawVal));
-  camMap.set('lens', doc.createNode(lensVal));
+  setMapNode(doc, camMap, 'target', targetNode);
+  setMapNode(doc, camMap, 'maneuver', doc.createNode('cut'));
+  setMapNode(doc, camMap, 'distance', doc.createNode(distanceVal));
+  setMapNode(doc, camMap, 'pitch', doc.createNode(pitchVal));
+  setMapNode(doc, camMap, 'yaw', doc.createNode(yawVal));
+  setMapNode(doc, camMap, 'lens', doc.createNode(lensVal));
 
-  newMap.set('stage_camera', camMap);
+  setMapNode(doc, newMap, 'stage_camera', camMap);
   return newMap;
 }
 

@@ -40,6 +40,7 @@ stageflow/
 │   ├── STAGEFLOW_SCRIPT_SPECIFICATION.md # Engine SSOT: mathematical model, optics & AST contract
 │   ├── YAML_AUTHORING_GUIDE.md      # Authoring SSOT: quickstart, YAML schema, aliases & cookbook
 │   ├── CORE_MATH_AND_SCORE_SPECIFICATIONS.md
+│   ├── VISUAL_YAML_EDITOR_SPECIFICATION.md # Plain-Text-as-Truth Visual Editor architecture, AST contract, perf & troubleshooting SSOT
 │   ├── MEDIA_CLOCK_AND_SYNC_SPECIFICATIONS.md
 │   ├── DIORAMA_3D_AND_UI_SPECIFICATIONS.md
 │   ├── VISUAL_DESIGN_SYSTEM.md      # SSOT for typography, theme engine, UI_TOKENS & palettes
@@ -191,11 +192,12 @@ stageflow/
 │   │   │       ├── VisualScoreEditor.tsx # Top-to-bottom YAML-mirrored collapsible score editor
 │   │   │       ├── dnd/             # `@dnd-kit` drag-reordering primitives (SortableList, SortableItem)
 │   │   │       ├── SortableFieldList.tsx # Reusable `@dnd-kit` sortable YAML key wrapper dispatching `reorder-map-key`
-│   │   │       ├── FigmaNumberPill.tsx # Horizontal pointer-capture numeric scrubber + click-to-type pill
+│   │   │       ├── FigmaNumberPill.tsx # Vertical (`ns-resize`) pointer-capture numeric scrubber + click-to-type pill
 │   │   │       ├── Vec3ScrubRow.tsx # Single-row X/Y/Z triplet of FigmaNumberPill scrubbers
 │   │   │       ├── TargetAnchorControl.tsx # Entity ID, multi-entity & [x, y, z] target selector
 │   │   │       ├── FieldValueControl.tsx # Schema-typed value control dispatcher (scrubber, presets, switch, enum, color, multiline, raw)
 │   │   │       ├── AutoSizeTextarea.tsx # Auto-growing multi-line textarea control for prose & block-literal YAML fields
+│   │   │       ├── ConfirmDeleteButton.tsx # Two-click inline delete button (`Del?` confirm pill with 2.6s auto-disarm)
 │   │   │       ├── FieldInfoPopover.tsx # Lazy Radix `(?)` info popover displaying description, constraints, options & aliases
 │   │   │       ├── InspectorSelect.tsx # Theme-native headless dropdown wrapper (`@radix-ui/react-select`)
 │   │   │       ├── SchemaFieldRow.tsx # Key label row shell delegating input rendering to FieldValueControl

@@ -5,10 +5,10 @@
  */
 
 import React, { useCallback } from 'react';
-import { X } from 'lucide-react';
 import type { VisualFieldNode } from '../../../core/scoreYamlProjectionHelpers';
 import type { VisualEditorCallbacks } from './visualEditorTypes';
 import { UI_TOKENS } from '../../tokens/ui';
+import { ConfirmDeleteButton } from './ConfirmDeleteButton';
 import { FieldInfoPopover } from './FieldInfoPopover';
 import { FieldValueControl, isMultilineTextField } from './FieldValueControl';
 
@@ -51,15 +51,12 @@ export const SchemaFieldRow: React.FC<SchemaFieldRowProps> = React.memo(
     );
 
     const removeButton = !disabled && !desc?.required && (
-      <button
-        type="button"
-        onClick={handleRemove}
-        className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-0.5 rounded text-text-faint hover:text-rose-500 transition-opacity cursor-pointer shrink-0"
+      <ConfirmDeleteButton
+        onConfirm={handleRemove}
         title={`Remove "${field.key}"`}
-        aria-label={`Remove ${field.key}`}
-      >
-        <X className="w-3 h-3" />
-      </button>
+        ariaLabel={`Remove ${field.key}`}
+        revealOnGroupHover
+      />
     );
 
     if (multiline) {

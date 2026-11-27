@@ -191,10 +191,29 @@ export const VisualScoreEditor = React.memo(
         []
       );
 
+      const stableEntitiesRef = useRef<readonly SceneEntityDef[]>(entities);
+      const stableEntities = useMemo(() => {
+        const prev = stableEntitiesRef.current;
+        if (
+          prev.length === entities.length &&
+          prev.every(
+            (e, i) =>
+              e.id === entities[i].id &&
+              e.label === entities[i].label &&
+              e.kind === entities[i].kind &&
+              e.color === entities[i].color
+          )
+        ) {
+          return prev;
+        }
+        stableEntitiesRef.current = entities;
+        return entities;
+      }, [entities]);
+
       const callbacks: VisualEditorCallbacks = useMemo(
         () => ({
           disabled: isBundled,
-          entities,
+          entities: stableEntities,
           onCommand,
           onScrubPreview,
           onCommitScrub,
@@ -203,7 +222,7 @@ export const VisualScoreEditor = React.memo(
         }),
         [
           isBundled,
-          entities,
+          stableEntities,
           onCommand,
           onScrubPreview,
           onCommitScrub,
@@ -248,7 +267,10 @@ export const VisualScoreEditor = React.memo(
           className="flex-1 min-h-0 overflow-y-auto custom-scrollbar bg-app p-3 space-y-2.5 select-none text-left"
         >
           <SceneAndStageSection
-            ir={ir}
+            rootFields={ir.rootFields}
+            metadata={ir.metadata}
+            optics={ir.optics}
+            stage={ir.stage}
             isSceneExpanded={expandedSections.scene}
             isStageExpanded={expandedSections.stage}
             onToggleScene={toggleScene}

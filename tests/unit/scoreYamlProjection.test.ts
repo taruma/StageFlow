@@ -9,6 +9,7 @@ import {
 import {
   projectVisualScoreIR,
   projectVisualScoreIRFromDoc,
+  stabilizeVisualScoreIR,
 } from '../../src/core/scoreYamlProjection';
 
 const SCORES_ROOT = path.resolve(__dirname, '../../src/scores');
@@ -151,5 +152,24 @@ shots:
     const descField = irTyl.rootFields.find((f) => f.canonicalKey === 'description');
     expect(descField?.descriptor?.multiline).toBe(true);
     expect(String(descField?.value)).toContain('\n');
+  });
+
+  it('reuses exact untouched section and card references via stabilizeVisualScoreIR', () => {
+    const bp06 = readScoreFile('blueprints/blueprint_06_optics_dof.yaml');
+    const scoreA = parseStageScore(bp06, 'bp06').score!;
+    const irA = projectVisualScoreIR(bp06, scoreA).ir!;
+
+    const editedYaml = bp06.replace('aspect_ratio: "2.39:1"', 'aspect_ratio: "16:9"');
+    const scoreB = parseStageScore(editedYaml, 'bp06').score!;
+    const irB = stabilizeVisualScoreIR(irA, projectVisualScoreIR(editedYaml, scoreB).ir!);
+
+    expect(irB.rootFields).not.toBe(irA.rootFields);
+    expect(irB.metadata).toBe(irA.metadata);
+    expect(irB.optics).toBe(irA.optics);
+    expect(irB.stage).toBe(irA.stage);
+    expect(irB.entities).toBe(irA.entities);
+    expect(irB.blocking).toBe(irA.blocking);
+    expect(irB.shots).toBe(irA.shots);
+    expect(irB.observerShots).toBe(irA.observerShots);
   });
 });

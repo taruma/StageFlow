@@ -4,10 +4,11 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import { ChevronDown, ChevronRight, Video, X } from 'lucide-react';
+import { ChevronDown, ChevronRight, Video } from 'lucide-react';
 import type { VisualCameraBlockNode } from '../../../../core/scoreYamlProjectionHelpers';
 import type { VisualEditorCallbacks } from '../visualEditorTypes';
 import { UI_TOKENS } from '../../../tokens/ui';
+import { ConfirmDeleteButton } from '../ConfirmDeleteButton';
 import { SortableFieldList } from '../SortableFieldList';
 import { AddPropertyPopover } from '../AddPropertyPopover';
 import { WaypointsBlock } from '../WaypointsBlock';
@@ -61,19 +62,16 @@ export const CameraBlockCard: React.FC<CameraBlockCardProps> = React.memo(
               onAfterAdd={handleExpandOnAdd}
             />
             {removable && !callbacks.disabled && (
-              <button
-                type="button"
-                onClick={() =>
+              <ConfirmDeleteButton
+                onConfirm={() =>
                   callbacks.onCommand({
                     type: 'remove-field',
                     path: block.yamlPath,
                   })
                 }
-                className="p-0.5 rounded text-text-faint hover:text-rose-500 cursor-pointer"
                 title={`Remove ${block.key}`}
-              >
-                <X className="w-3 h-3" />
-              </button>
+                ariaLabel={`Remove ${block.key}`}
+              />
             )}
           </div>
         </div>

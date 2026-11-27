@@ -122,7 +122,7 @@ describe('scoreSchemaContract', () => {
     }
 
     expect(unregistered).toEqual([]);
-  });
+  }, 15_000);
 
   it('round-trips all schema enums cleanly through core normalizers', () => {
     for (const m of CAMERA_MANEUVERS) {

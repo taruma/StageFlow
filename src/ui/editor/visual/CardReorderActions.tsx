@@ -3,7 +3,8 @@
  */
 
 import React from 'react';
-import { ArrowDown, ArrowUp, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp } from 'lucide-react';
+import { ConfirmDeleteButton } from './ConfirmDeleteButton';
 
 export interface CardReorderActionsProps {
   disabled?: boolean;
@@ -57,14 +58,12 @@ export const CardReorderActions: React.FC<CardReorderActionsProps> =
             </button>
           )}
           {canDelete && (
-            <button
-              type="button"
-              onClick={onDelete}
-              className="p-0.5 rounded text-text-faint hover:text-rose-500 cursor-pointer"
+            <ConfirmDeleteButton
+              icon="trash"
+              onConfirm={onDelete}
               title={deleteTitle}
-            >
-              <Trash2 className="w-3 h-3" />
-            </button>
+              ariaLabel={deleteTitle}
+            />
           )}
         </div>
       );

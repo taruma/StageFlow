@@ -6,6 +6,7 @@ import {
   applyScoreYamlCommand,
   applyScoreYamlCommandDetailed,
 } from '../../src/core/scoreYamlMutator';
+import { projectVisualScoreIRFromDoc } from '../../src/core/scoreYamlProjection';
 
 const SAMPLE_YAML = `# ==============================================================================
 # TEST SCORE BANNER
@@ -337,5 +338,96 @@ describe('scoreYamlMutator', () => {
     });
     expect(multi).not.toContain('description: |');
     expect(multi).toContain('Single line summary');
+  });
+
+  it('produces identical YAML output when reusing a cached existingDoc AST across sequential edits', () => {
+    const step1Cached = applyScoreYamlCommandDetailed(SAMPLE_YAML, {
+      type: 'set-field',
+      path: ['continuous'],
+      value: true,
+    });
+    const step2Cached = applyScoreYamlCommandDetailed(
+      step1Cached.nextYaml,
+      {
+        type: 'set-field',
+        path: ['shots', 0, 'stage_camera', 'distance'],
+        value: 5.5,
+      },
+      step1Cached.doc ?? undefined
+    );
+    const step2Fresh = applyScoreYamlCommand(step1Cached.nextYaml, {
+      type: 'set-field',
+      path: ['shots', 0, 'stage_camera', 'distance'],
+      value: 5.5,
+    });
+    expect(step2Cached.nextYaml).toBe(step2Fresh);
+    expect(step2Cached.nextYaml).toContain('# Normal lens');
+  });
+
+  it('keeps every added metadata, optics, entity, blocking, and shot key visible via immediate live-AST projectVisualScoreIRFromDoc', () => {
+    let res = applyScoreYamlCommandDetailed(SAMPLE_YAML, {
+      type: 'add-field',
+      parentPath: ['metadata'],
+      key: 'director',
+      value: 'Taruma',
+      format: 'plain',
+    });
+    res = applyScoreYamlCommandDetailed(
+      res.nextYaml,
+      { type: 'add-field', parentPath: ['metadata'], key: 'music', value: 'Theme', format: 'plain' },
+      res.doc ?? undefined
+    );
+    res = applyScoreYamlCommandDetailed(
+      res.nextYaml,
+      { type: 'add-field', parentPath: ['metadata'], key: 'camera_package', value: { body: 'Alexa' }, format: 'plain' },
+      res.doc ?? undefined
+    );
+    res = applyScoreYamlCommandDetailed(
+      res.nextYaml,
+      { type: 'add-field', parentPath: ['metadata'], key: 'production_notes', value: ['Wide'], format: 'plain' },
+      res.doc ?? undefined
+    );
+    res = applyScoreYamlCommandDetailed(
+      res.nextYaml,
+      { type: 'add-field', parentPath: ['optics'], key: 'dof', value: 'medium' },
+      res.doc ?? undefined
+    );
+    res = applyScoreYamlCommandDetailed(
+      res.nextYaml,
+      { type: 'insert-entity', afterIndex: 0 },
+      res.doc ?? undefined
+    );
+    res = applyScoreYamlCommandDetailed(
+      res.nextYaml,
+      { type: 'insert-blocking', afterIndex: -1 },
+      res.doc ?? undefined
+    );
+    res = applyScoreYamlCommandDetailed(
+      res.nextYaml,
+      { type: 'insert-shot-split', afterIndex: 0 },
+      res.doc ?? undefined
+    );
+    res = applyScoreYamlCommandDetailed(
+      res.nextYaml,
+      { type: 'reorder-map-key', parentPath: ['metadata'], fromKey: 'music', toKey: 'director' },
+      res.doc ?? undefined
+    );
+
+    const parsed = parseStageScore(res.nextYaml, 'live-ast');
+    const liveIr = projectVisualScoreIRFromDoc(res.doc!, parsed.score).ir!;
+
+    expect(liveIr.metadata.entries.map((e) => e.key)).toEqual([
+      'music',
+      'director',
+      'camera_package',
+      'production_notes',
+    ]);
+    expect(liveIr.optics.fields.map((f) => f.key)).toEqual(['dof']);
+    expect(liveIr.entities).toHaveLength(2);
+    expect(liveIr.entities[1].fields.map((f) => f.key)).toContain('label');
+    expect(liveIr.blocking).toHaveLength(1);
+    expect(liveIr.blocking[0].fields.map((f) => f.key)).toContain('entity');
+    expect(liveIr.shots).toHaveLength(4);
+    expect(liveIr.shots[1].stageCamera?.fields.map((f) => f.key)).toContain('lens');
   });
 });

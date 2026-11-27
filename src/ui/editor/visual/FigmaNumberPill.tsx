@@ -1,12 +1,13 @@
 /**
  * Figma-style inline scrubbable number pill.
- * - Drag horizontally on the label/pill (`ew-resize`) for live 60fps 3D scrubbing
- *   (`Shift` = 10x coarse, `Alt` = 0.1x fine, `Esc` = cancel back to baseline).
+ * - Drag vertically on the label/pill (`ns-resize`: drag up to increase, down to decrease)
+ *   for live 60fps 3D scrubbing (`Shift` = 10x coarse, `Alt` = 0.1x fine, `Esc` = cancel back to baseline).
  * - Click the numeric readout to enter exact inline text editing (`data-native-undo`).
  * - Supports ArrowUp / ArrowDown step nudging while editing.
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { ChevronsUpDown } from 'lucide-react';
 import { UI_TOKENS } from '../../tokens/ui';
 
 export interface FigmaNumberPillProps {
@@ -64,13 +65,13 @@ export const FigmaNumberPill: React.FC<FigmaNumberPillProps> = React.memo(
     const dragStateRef = useRef<{
       active: boolean;
       moved: boolean;
-      startX: number;
+      startY: number;
       startVal: number;
       latestVal: number;
     }>({
       active: false,
       moved: false,
-      startX: 0,
+      startY: 0,
       startVal: value,
       latestVal: value,
     });
@@ -120,7 +121,7 @@ export const FigmaNumberPill: React.FC<FigmaNumberPillProps> = React.memo(
         dragStateRef.current = {
           active: true,
           moved: false,
-          startX: e.clientX,
+          startY: e.clientY,
           startVal: value,
           latestVal: value,
         };
@@ -133,12 +134,12 @@ export const FigmaNumberPill: React.FC<FigmaNumberPillProps> = React.memo(
         const st = dragStateRef.current;
         if (!st.active) return;
 
-        const dx = e.clientX - st.startX;
-        if (!st.moved && Math.abs(dx) < 3) return;
+        const dy = st.startY - e.clientY;
+        if (!st.moved && Math.abs(dy) < 3) return;
         st.moved = true;
 
         const mult = e.shiftKey ? 10 : e.altKey ? 0.1 : 1;
-        const deltaUnits = (dx / 6) * step * mult;
+        const deltaUnits = (dy / 5) * step * mult;
         const next = clampAndRound(
           st.startVal + deltaUnits,
           min,
@@ -263,7 +264,7 @@ export const FigmaNumberPill: React.FC<FigmaNumberPillProps> = React.memo(
         title={
           disabled
             ? `${formatted}${unit ?? ''} (Fork to edit)`
-            : title ?? 'Drag horizontally to scrub (Shift = fast, Alt = fine), or click to type'
+            : title ?? 'Drag vertically to scrub (Shift = fast, Alt = fine), or click to type'
         }
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
@@ -289,6 +290,12 @@ export const FigmaNumberPill: React.FC<FigmaNumberPillProps> = React.memo(
             <span className="text-[10px] text-text-muted ml-0.5">{unit}</span>
           ) : null}
         </span>
+        {!disabled && (
+          <ChevronsUpDown
+            className="w-2.5 h-2.5 shrink-0 text-text-faint/65 group-hover/pill:text-text-muted transition-colors"
+            aria-hidden="true"
+          />
+        )}
       </div>
     );
   }

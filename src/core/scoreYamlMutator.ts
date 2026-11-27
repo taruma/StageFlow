@@ -19,12 +19,14 @@ import {
 } from 'yaml';
 import type { ShotTimingEditMode } from './types';
 import type { YamlPath } from './schema/scoreSchemaTypes';
+import { readPairKey } from './scoreYamlProjectionHelpers';
 import {
   applyAdjustShotTiming,
   applyInsertShotSplit,
   findSeqKey,
   getOrCreateRootSeq,
   roundSec,
+  setMapNode,
   setMapScalarValue,
 } from './scoreYamlTimingMutator';
 
@@ -140,14 +142,14 @@ function ensureMapAtPath(doc: Document, path: YamlPath): YAMLMap | null {
       (next.value === null || next.value === undefined || next.value === '')
     ) {
       const created = new YAMLMap();
-      curr.set(seg, created);
+      setMapNode(doc, curr, seg, created);
       curr = created;
     } else if (next === undefined) {
       const created = new YAMLMap();
       if (curr === doc.contents && (seg === 'metadata' || seg === 'optics')) {
         const insertIdx = curr.items.findIndex((pair) => {
-          if (!isScalar(pair.key)) return false;
-          const k = String(pair.key.value);
+          const k = readPairKey(pair.key);
+          if (!k) return false;
           return (
             ROOT_BODY_SECTION_KEYS.has(k) ||
             (seg === 'metadata' && k === 'optics')
@@ -156,10 +158,10 @@ function ensureMapAtPath(doc: Document, path: YamlPath): YAMLMap | null {
         if (insertIdx >= 0) {
           curr.items.splice(insertIdx, 0, new Pair(doc.createNode(seg), created));
         } else {
-          curr.set(seg, created);
+          setMapNode(doc, curr, seg, created);
         }
       } else {
-        curr.set(seg, created);
+        setMapNode(doc, curr, seg, created);
       }
       curr = created;
     } else {
@@ -205,7 +207,7 @@ function applySetField(
   const key = path[path.length - 1];
   const parent = parentPath.length === 0 ? doc.contents : doc.getIn(parentPath, true);
   if (isMap(parent) && typeof key === 'string') {
-    parent.set(key, createFormattedNode(doc, formatted, format));
+    setMapNode(doc, parent, key, createFormattedNode(doc, formatted, format));
   } else {
     doc.setIn(path, createFormattedNode(doc, formatted, format));
   }
@@ -247,17 +249,18 @@ function applyAddField(
   const valueNode = createFormattedNode(doc, formatted, format);
 
   if (targetMap.has(key) || STRUCTURAL_BLOCK_KEYS.has(key)) {
-    targetMap.set(key, valueNode);
+    setMapNode(doc, targetMap, key, valueNode);
     return;
   }
 
-  const insertIdx = targetMap.items.findIndex(
-    (pair) => isScalar(pair.key) && STRUCTURAL_BLOCK_KEYS.has(String(pair.key.value))
-  );
+  const insertIdx = targetMap.items.findIndex((pair) => {
+    const k = readPairKey(pair.key);
+    return Boolean(k && STRUCTURAL_BLOCK_KEYS.has(k));
+  });
   if (insertIdx >= 0) {
     targetMap.items.splice(insertIdx, 0, new Pair(doc.createNode(key), valueNode));
   } else {
-    targetMap.set(key, valueNode);
+    setMapNode(doc, targetMap, key, valueNode);
   }
 }
 
@@ -306,10 +309,10 @@ function applyReorderMapKey(
   if (!isMap(target) || fromKey === toKey) return;
 
   const fromIdx = target.items.findIndex(
-    (pair) => isScalar(pair.key) && String(pair.key.value) === fromKey
+    (pair) => readPairKey(pair.key) === fromKey
   );
   const toIdx = target.items.findIndex(
-    (pair) => isScalar(pair.key) && String(pair.key.value) === toKey
+    (pair) => readPairKey(pair.key) === toKey
   );
   if (fromIdx < 0 || toIdx < 0 || fromIdx === toIdx) return;
 
@@ -329,9 +332,10 @@ export interface ScoreYamlMutationResult {
  */
 export function applyScoreYamlCommandDetailed(
   rawYaml: string,
-  command: ScoreYamlCommand
+  command: ScoreYamlCommand,
+  existingDoc?: Document
 ): ScoreYamlMutationResult {
-  const doc = parseDocument(rawYaml);
+  const doc = existingDoc ?? parseDocument(rawYaml);
   if (doc.errors.length > 0 || !isMap(doc.contents)) {
     return { nextYaml: rawYaml, doc: null, changed: false };
   }
@@ -372,7 +376,7 @@ export function applyScoreYamlCommandDetailed(
         if (targetMap && typeof key === 'string') {
           const seq = new YAMLSeq();
           seq.items.push(createFormattedNode(doc, command.value, 'plain'));
-          targetMap.set(key, seq);
+          setMapNode(doc, targetMap, key, seq);
         }
       }
       break;
@@ -391,14 +395,14 @@ export function applyScoreYamlCommandDetailed(
       const seq = getOrCreateRootSeq(doc, 'entities');
       const id = generateUniqueItemId(seq, 'entity');
       const entMap = new YAMLMap();
-      entMap.set('id', doc.createNode(id));
-      entMap.set('label', doc.createNode('New Actor'));
-      entMap.set('kind', doc.createNode('character'));
+      setMapNode(doc, entMap, 'id', doc.createNode(id));
+      setMapNode(doc, entMap, 'label', doc.createNode('New Actor'));
+      setMapNode(doc, entMap, 'kind', doc.createNode('character'));
       const pos = doc.createNode([0, 0, 0]);
       if (isSeq(pos)) pos.flow = true;
-      entMap.set('position', pos);
-      entMap.set('rotation', doc.createNode(0));
-      entMap.set('color', doc.createNode('#38bdf8'));
+      setMapNode(doc, entMap, 'position', pos);
+      setMapNode(doc, entMap, 'rotation', doc.createNode(0));
+      setMapNode(doc, entMap, 'color', doc.createNode('#38bdf8'));
       const insertAt = Math.max(
         0,
         Math.min(seq.items.length, command.afterIndex + 1)
@@ -423,7 +427,7 @@ export function applyScoreYamlCommandDetailed(
       const seq = getOrCreateRootSeq(doc, 'blocking');
       const id = generateUniqueItemId(seq, 'cue');
       const blkMap = new YAMLMap();
-      blkMap.set('id', doc.createNode(id));
+      setMapNode(doc, blkMap, 'id', doc.createNode(id));
       let entityId = command.defaultEntityId;
       if (!entityId) {
         const entSeq = root.get('entities', true);
@@ -432,7 +436,7 @@ export function applyScoreYamlCommandDetailed(
           if (typeof firstId === 'string') entityId = firstId;
         }
       }
-      blkMap.set('entity', doc.createNode(entityId || 'hero'));
+      setMapNode(doc, blkMap, 'entity', doc.createNode(entityId || 'hero'));
       let start = 0;
       if (command.afterIndex >= 0 && command.afterIndex < seq.items.length) {
         const prev = seq.items[command.afterIndex];
@@ -441,12 +445,12 @@ export function applyScoreYamlCommandDetailed(
           if (typeof prevEnd === 'number') start = prevEnd;
         }
       }
-      blkMap.set('start', doc.createNode(roundSec(start)));
-      blkMap.set('end', doc.createNode(roundSec(start + 4)));
+      setMapNode(doc, blkMap, 'start', doc.createNode(roundSec(start)));
+      setMapNode(doc, blkMap, 'end', doc.createNode(roundSec(start + 4)));
       const pos = doc.createNode([0, 0, 0]);
       if (isSeq(pos)) pos.flow = true;
-      blkMap.set('position', pos);
-      blkMap.set('easing', doc.createNode('smooth'));
+      setMapNode(doc, blkMap, 'position', pos);
+      setMapNode(doc, blkMap, 'easing', doc.createNode('smooth'));
       const insertAt = Math.max(
         0,
         Math.min(seq.items.length, command.afterIndex + 1)
@@ -519,7 +523,7 @@ export function applyScoreYamlCommandDetailed(
       const seq = getOrCreateRootSeq(doc, obsKey);
       const id = generateUniqueItemId(seq, 'obs-shot');
       const osMap = new YAMLMap();
-      osMap.set('id', doc.createNode(id));
+      setMapNode(doc, osMap, 'id', doc.createNode(id));
       let start = 0;
       if (command.afterIndex >= 0 && command.afterIndex < seq.items.length) {
         const prev = seq.items[command.afterIndex];
@@ -528,18 +532,18 @@ export function applyScoreYamlCommandDetailed(
           if (typeof prevEnd === 'number') start = prevEnd;
         }
       }
-      osMap.set('start', doc.createNode(roundSec(start)));
-      osMap.set('end', doc.createNode(roundSec(start + 5)));
+      setMapNode(doc, osMap, 'start', doc.createNode(roundSec(start)));
+      setMapNode(doc, osMap, 'end', doc.createNode(roundSec(start + 5)));
       const cam = new YAMLMap();
       const tgt = doc.createNode([0, 1.1, 0]);
       if (isSeq(tgt)) tgt.flow = true;
-      cam.set('target', tgt);
-      cam.set('maneuver', doc.createNode('orbit'));
-      cam.set('distance', doc.createNode(14));
-      cam.set('pitch', doc.createNode(26));
-      cam.set('yaw', doc.createNode(35));
-      cam.set('lens', doc.createNode('35mm'));
-      osMap.set('observer_camera', cam);
+      setMapNode(doc, cam, 'target', tgt);
+      setMapNode(doc, cam, 'maneuver', doc.createNode('orbit'));
+      setMapNode(doc, cam, 'distance', doc.createNode(14));
+      setMapNode(doc, cam, 'pitch', doc.createNode(26));
+      setMapNode(doc, cam, 'yaw', doc.createNode(35));
+      setMapNode(doc, cam, 'lens', doc.createNode('35mm'));
+      setMapNode(doc, osMap, 'observer_camera', cam);
       const insertAt = Math.max(
         0,
         Math.min(seq.items.length, command.afterIndex + 1)
