@@ -200,16 +200,23 @@ function deleteSeqItem(seq: YAMLSeq, index: number): void {
   seq.items.splice(index, 1);
 }
 
+export interface ScoreYamlMutationResult {
+  nextYaml: string;
+  doc: Document | null;
+  changed: boolean;
+}
+
 /**
- * Applies a pure structural or field command to `rawYaml` while preserving comments and formatting.
+ * Applies a pure structural or field command to `rawYaml` while preserving comments and formatting,
+ * returning the updated YAML string and parsed AST Document for downstream single-parse reuse.
  */
-export function applyScoreYamlCommand(
+export function applyScoreYamlCommandDetailed(
   rawYaml: string,
   command: ScoreYamlCommand
-): string {
-  const doc = parseDocument(rawYaml, { keepSourceTokens: true });
+): ScoreYamlMutationResult {
+  const doc = parseDocument(rawYaml);
   if (doc.errors.length > 0 || !isMap(doc.contents)) {
-    return rawYaml;
+    return { nextYaml: rawYaml, doc: null, changed: false };
   }
   const root = doc.contents as YAMLMap;
 
@@ -408,5 +415,20 @@ export function applyScoreYamlCommand(
     }
   }
 
-  return doc.toString();
+  const nextYaml = doc.toString();
+  return {
+    nextYaml,
+    doc,
+    changed: nextYaml !== rawYaml,
+  };
+}
+
+/**
+ * Applies a pure structural or field command to `rawYaml` while preserving comments and formatting.
+ */
+export function applyScoreYamlCommand(
+  rawYaml: string,
+  command: ScoreYamlCommand
+): string {
+  return applyScoreYamlCommandDetailed(rawYaml, command).nextYaml;
 }

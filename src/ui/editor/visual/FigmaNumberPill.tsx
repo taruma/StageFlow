@@ -73,6 +73,25 @@ export const FigmaNumberPill: React.FC<FigmaNumberPillProps> = React.memo(
       startVal: value,
       latestVal: value,
     });
+    const pendingRafRef = useRef<number | null>(null);
+    const pendingScrubValRef = useRef<number | null>(null);
+
+    const cancelPendingRaf = useCallback(() => {
+      if (pendingRafRef.current !== null) {
+        cancelAnimationFrame(pendingRafRef.current);
+        pendingRafRef.current = null;
+      }
+      pendingScrubValRef.current = null;
+    }, []);
+
+    useEffect(() => {
+      return () => {
+        if (pendingRafRef.current !== null) {
+          cancelAnimationFrame(pendingRafRef.current);
+          pendingRafRef.current = null;
+        }
+      };
+    }, []);
 
     useEffect(() => {
       if (isEditingText) {
@@ -96,6 +115,7 @@ export const FigmaNumberPill: React.FC<FigmaNumberPillProps> = React.memo(
       (e: React.PointerEvent<HTMLDivElement>) => {
         if (disabled || isEditingText || e.button !== 0) return;
         e.currentTarget.setPointerCapture(e.pointerId);
+        cancelPendingRaf();
         dragStateRef.current = {
           active: true,
           moved: false,
@@ -104,7 +124,7 @@ export const FigmaNumberPill: React.FC<FigmaNumberPillProps> = React.memo(
           latestVal: value,
         };
       },
-      [disabled, isEditingText, value]
+      [cancelPendingRaf, disabled, isEditingText, value]
     );
 
     const handlePointerMove = useCallback(
@@ -127,7 +147,18 @@ export const FigmaNumberPill: React.FC<FigmaNumberPillProps> = React.memo(
         if (next !== st.latestVal) {
           st.latestVal = next;
           setDragPreviewVal(next);
-          onScrubPreview(next);
+          pendingScrubValRef.current = next;
+          if (pendingRafRef.current === null) {
+            pendingRafRef.current = requestAnimationFrame(() => {
+              pendingRafRef.current = null;
+              if (!dragStateRef.current.active) return;
+              const valToScrub = pendingScrubValRef.current;
+              pendingScrubValRef.current = null;
+              if (valToScrub !== null) {
+                onScrubPreview(valToScrub);
+              }
+            });
+          }
         }
       },
       [max, min, onScrubPreview, precision, step]
@@ -138,6 +169,7 @@ export const FigmaNumberPill: React.FC<FigmaNumberPillProps> = React.memo(
         const st = dragStateRef.current;
         if (!st.active) return;
         st.active = false;
+        cancelPendingRaf();
         setDragPreviewVal(null);
 
         if (cancelled) {
@@ -156,7 +188,7 @@ export const FigmaNumberPill: React.FC<FigmaNumberPillProps> = React.memo(
           onCancelScrub?.();
         }
       },
-      [onCancelScrub, onCommit, precision, value]
+      [cancelPendingRaf, onCancelScrub, onCommit, precision, value]
     );
 
     useEffect(() => {

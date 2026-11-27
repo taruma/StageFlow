@@ -14,9 +14,11 @@ export interface ShotsSectionProps {
   shots: VisualShotItem[];
   activeShotId: string | null;
   isSectionExpanded: boolean;
-  expandedIds: ReadonlySet<string>;
+  bulkExpandSeq: number;
+  bulkExpandMode: 'expand' | 'collapse';
+  focusedShotId: string | null;
+  focusedShotSeq: number;
   onToggleSection: () => void;
-  onToggleItem: (key: string) => void;
   callbacks: VisualEditorCallbacks;
 }
 
@@ -25,9 +27,11 @@ export const ShotsSection: React.FC<ShotsSectionProps> = React.memo(
     shots,
     activeShotId,
     isSectionExpanded,
-    expandedIds,
+    bulkExpandSeq,
+    bulkExpandMode,
+    focusedShotId,
+    focusedShotSeq,
     onToggleSection,
-    onToggleItem,
     callbacks,
   }) => {
     const { disabled, onCommand } = callbacks;
@@ -75,9 +79,10 @@ export const ShotsSection: React.FC<ShotsSectionProps> = React.memo(
                   shot={shot}
                   index={idx}
                   totalShots={shots.length}
-                  isExpanded={expandedIds.has(itemKey)}
+                  bulkExpandSeq={bulkExpandSeq}
+                  bulkExpandMode={bulkExpandMode}
+                  focusExpandSeq={focusedShotId === shot.id ? focusedShotSeq : 0}
                   isActiveShot={activeShotId === shot.id}
-                  onToggleExpand={() => onToggleItem(itemKey)}
                   callbacks={callbacks}
                 />
                 <InsertBetweenSeam

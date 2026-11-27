@@ -5,7 +5,15 @@
  * Pure Layer 1 module: zero React, DOM, or Three.js dependencies.
  */
 
-import { LineCounter, isMap, isSeq, parseDocument, type Node, type YAMLMap } from 'yaml';
+import {
+  Document,
+  LineCounter,
+  isMap,
+  isSeq,
+  parseDocument,
+  type Node,
+  type YAMLMap,
+} from 'yaml';
 import type { StageScore } from './types';
 import {
   findMapPairByKeys,
@@ -68,19 +76,13 @@ function buildShotInheritedHints(
 }
 
 /**
- * Projects a raw YAML string into a read-only `VisualScoreIR` using a single
- * `yaml.parseDocument()` pass paired with optional `StageScore` telemetry.
+ * Projects a parsed `yaml.Document` AST into a read-only `VisualScoreIR` without re-parsing YAML text.
  */
-export function projectVisualScoreIR(
-  rawYaml: string,
-  score: StageScore | null
+export function projectVisualScoreIRFromDoc(
+  doc: Document,
+  score: StageScore | null,
+  lineCounter?: LineCounter
 ): VisualScoreIRResult {
-  if (!rawYaml || rawYaml.trim().length === 0) {
-    return { ir: null, error: 'Score content is empty.' };
-  }
-
-  const lineCounter = new LineCounter();
-  const doc = parseDocument(rawYaml, { lineCounter, keepSourceTokens: true });
   if (doc.errors.length > 0) {
     return { ir: null, error: doc.errors[0].message };
   }
@@ -417,4 +419,21 @@ export function projectVisualScoreIR(
   };
 
   return { ir, error: null };
+}
+
+/**
+ * Projects a raw YAML string into a read-only `VisualScoreIR` using a single
+ * `yaml.parseDocument()` pass paired with optional `StageScore` telemetry.
+ */
+export function projectVisualScoreIR(
+  rawYaml: string,
+  score: StageScore | null
+): VisualScoreIRResult {
+  if (!rawYaml || rawYaml.trim().length === 0) {
+    return { ir: null, error: 'Score content is empty.' };
+  }
+
+  const lineCounter = new LineCounter();
+  const doc = parseDocument(rawYaml, { lineCounter });
+  return projectVisualScoreIRFromDoc(doc, score, lineCounter);
 }

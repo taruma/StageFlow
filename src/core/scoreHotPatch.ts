@@ -8,6 +8,7 @@
 
 import type {
   CameraCueSpec,
+  ShotTimingEditMode,
   SphericalPose,
   StageScore,
   Vec3,
@@ -342,4 +343,106 @@ export function applyScoreHotPatch(
   }
 
   return null;
+}
+
+function roundSec(val: number): number {
+  return Math.round(val * 1000) / 1000;
+}
+
+/**
+ * Applies an ephemeral shot timing adjustment (`'free' | 'roll' | 'ripple'`) on a shallowly cloned `StageScore`
+ * for 60fps timestamp Figma-pill scrubbing without YAML AST parsing.
+ */
+export function applyShotTimingHotPatch(
+  score: StageScore,
+  shotIndex: number,
+  edge: 'start' | 'end',
+  nextValueSec: number,
+  mode: ShotTimingEditMode
+): StageScore | null {
+  if (
+    shotIndex < 0 ||
+    shotIndex >= score.shots.length ||
+    !Number.isFinite(nextValueSec)
+  ) {
+    return null;
+  }
+
+  const curr = score.shots[shotIndex];
+  const minDur = 0.1;
+
+  if (mode === 'free') {
+    const clamped =
+      edge === 'start'
+        ? Math.max(0, Math.min(curr.endSec - minDur, nextValueSec))
+        : Math.max(curr.startSec + minDur, nextValueSec);
+    const rounded = roundSec(clamped);
+    const nextShots = [...score.shots];
+    nextShots[shotIndex] =
+      edge === 'start'
+        ? { ...curr, startSec: rounded }
+        : { ...curr, endSec: rounded };
+    return { ...score, shots: nextShots };
+  }
+
+  if (mode === 'roll') {
+    const nextShots = [...score.shots];
+    if (edge === 'end') {
+      const nextShot =
+        shotIndex + 1 < score.shots.length ? score.shots[shotIndex + 1] : null;
+      const maxEnd = nextShot ? nextShot.endSec - minDur : Infinity;
+      const clamped = roundSec(
+        Math.max(curr.startSec + minDur, Math.min(maxEnd, nextValueSec))
+      );
+      nextShots[shotIndex] = { ...curr, endSec: clamped };
+      if (nextShot) {
+        nextShots[shotIndex + 1] = { ...nextShot, startSec: clamped };
+      }
+    } else {
+      const prevShot = shotIndex - 1 >= 0 ? score.shots[shotIndex - 1] : null;
+      const minStart = prevShot ? prevShot.startSec + minDur : 0;
+      const clamped = roundSec(
+        Math.max(minStart, Math.min(curr.endSec - minDur, nextValueSec))
+      );
+      nextShots[shotIndex] = { ...curr, startSec: clamped };
+      if (prevShot) {
+        nextShots[shotIndex - 1] = { ...prevShot, endSec: clamped };
+      }
+    }
+    return { ...score, shots: nextShots };
+  }
+
+  // 'ripple': shift downstream shots & update scene duration
+  const prevEdgeVal = edge === 'start' ? curr.startSec : curr.endSec;
+  const clamped = roundSec(
+    edge === 'start'
+      ? Math.max(0, Math.min(curr.endSec - minDur, nextValueSec))
+      : Math.max(curr.startSec + minDur, nextValueSec)
+  );
+  const delta = clamped - prevEdgeVal;
+
+  const nextShots = [...score.shots];
+  nextShots[shotIndex] =
+    edge === 'start'
+      ? { ...curr, startSec: clamped }
+      : { ...curr, endSec: clamped };
+
+  if (Math.abs(delta) < 1e-6) {
+    return { ...score, shots: nextShots };
+  }
+
+  for (let i = shotIndex + 1; i < nextShots.length; i++) {
+    const item = nextShots[i];
+    nextShots[i] = {
+      ...item,
+      startSec: roundSec(Math.max(0, item.startSec + delta)),
+      endSec: roundSec(Math.max(0.1, item.endSec + delta)),
+    };
+  }
+
+  return {
+    ...score,
+    durationSec: roundSec(Math.max(0.1, score.durationSec + delta)),
+    shots: nextShots,
+  };
 }

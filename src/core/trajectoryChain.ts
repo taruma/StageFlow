@@ -101,6 +101,9 @@ interface CueTrackCache {
   cueBaseStartPoses: Map<string, SphericalPose>;
   cueEndPoses: Map<string, SphericalPose>;
   cuePrevEndEyes: Map<string, Vec3>;
+  cuePrevEndPoses: Map<string, SphericalPose>;
+  cuePrevEndOffsets: Map<string, Vec3>;
+  cueIndices: Map<string, number>;
   cueTrajectoryPoints: Map<string, Vec3[]>;
   cueRailPoints: Map<string, Vec3[]>;
 }
@@ -239,6 +242,9 @@ function getOrCreateCueTrackCache(
   const cueBaseStartPoses = new Map<string, SphericalPose>();
   const cueEndPoses = new Map<string, SphericalPose>();
   const cuePrevEndEyes = new Map<string, Vec3>();
+  const cuePrevEndPoses = new Map<string, SphericalPose>();
+  const cuePrevEndOffsets = new Map<string, Vec3>();
+  const cueIndices = new Map<string, number>();
   const cueTrajectoryPoints = new Map<string, Vec3[]>();
   const cueRailPoints = new Map<string, Vec3[]>();
 
@@ -253,16 +259,9 @@ function getOrCreateCueTrackCache(
       cue.spec.maneuver !== 'cut';
     const prevEndEye = sphericalToCartesian(runningPose).position;
     cuePrevEndEyes.set(cue.id, prevEndEye);
-
-    const points = sampleCueTrajectoryPoints(
-      cue,
-      score,
-      runningPose,
-      baselinePose,
-      runningOffset,
-      i === 0
-    );
-    cueTrajectoryPoints.set(cue.id, points);
+    cuePrevEndPoses.set(cue.id, runningPose);
+    cuePrevEndOffsets.set(cue.id, runningOffset);
+    cueIndices.set(cue.id, i);
 
     // Advance runningPose and runningOffset for contiguous chaining
     const prevEndOffset = runningOffset;
@@ -271,26 +270,6 @@ function getOrCreateCueTrackCache(
     cueStartOffsets.set(cue.id, startOffset);
     cueEndOffsets.set(cue.id, endOffset);
     runningOffset = endOffset;
-
-    if (cue.spec.rig) {
-      let railFallbackEye = prevEndEye;
-      if (!isContinuous) {
-        const { entitiesById: startEntities } = evaluateEntitiesAtTime(cue.startSec, score);
-        const startPoseAtCueStart = resolveCueStartPose(
-          cue.spec,
-          runningPose,
-          baselinePose,
-          prevEndOffset,
-          startOffset,
-          startEntities,
-          false
-        );
-        railFallbackEye = sphericalToCartesian(startPoseAtCueStart).position;
-      }
-      cueRailPoints.set(cue.id, sampleRigRailPoints(cue.spec.rig, railFallbackEye));
-    } else {
-      cueRailPoints.set(cue.id, []);
-    }
 
     const { entitiesById: endEntities } = evaluateEntitiesAtTime(cue.endSec, score);
     const pStart = resolveCueStartPose(
@@ -328,12 +307,86 @@ function getOrCreateCueTrackCache(
     cueBaseStartPoses,
     cueEndPoses,
     cuePrevEndEyes,
+    cuePrevEndPoses,
+    cuePrevEndOffsets,
+    cueIndices,
     cueTrajectoryPoints,
     cueRailPoints,
   };
 
   scoreMap.set(cacheKey, data);
   return data;
+}
+
+function getOrSampleCueTrajectoryPoints(
+  cache: CueTrackCache,
+  cue: NormalizedCameraCue,
+  score: StageScore,
+  baselinePose: SphericalPose
+): Vec3[] {
+  const cached = cache.cueTrajectoryPoints.get(cue.id);
+  if (cached) return cached;
+
+  const prevEndPose = cache.cuePrevEndPoses.get(cue.id) ?? baselinePose;
+  const prevEndOffset = cache.cuePrevEndOffsets.get(cue.id) ?? ZERO_OFFSET;
+  const cueIndex = cache.cueIndices.get(cue.id) ?? 0;
+
+  const points = sampleCueTrajectoryPoints(
+    cue,
+    score,
+    prevEndPose,
+    baselinePose,
+    prevEndOffset,
+    cueIndex === 0
+  );
+  cache.cueTrajectoryPoints.set(cue.id, points);
+  return points;
+}
+
+function getOrSampleCueRailPoints(
+  cache: CueTrackCache,
+  cue: NormalizedCameraCue,
+  score: StageScore,
+  baselinePose: SphericalPose
+): Vec3[] {
+  const cached = cache.cueRailPoints.get(cue.id);
+  if (cached) return cached;
+
+  if (!cue.spec.rig) {
+    cache.cueRailPoints.set(cue.id, []);
+    return [];
+  }
+
+  const cueIndex = cache.cueIndices.get(cue.id) ?? 0;
+  const isContinuous =
+    Boolean(cue.continuous ?? score.continuous) &&
+    cueIndex > 0 &&
+    cue.spec.maneuver !== 'cut';
+  const prevEndEye =
+    cache.cuePrevEndEyes.get(cue.id) ??
+    sphericalToCartesian(baselinePose).position;
+
+  let railFallbackEye = prevEndEye;
+  if (!isContinuous) {
+    const prevEndPose = cache.cuePrevEndPoses.get(cue.id) ?? baselinePose;
+    const prevEndOffset = cache.cuePrevEndOffsets.get(cue.id) ?? ZERO_OFFSET;
+    const startOffset = cache.cueStartOffsets.get(cue.id) ?? ZERO_OFFSET;
+    const { entitiesById: startEntities } = evaluateEntitiesAtTime(cue.startSec, score);
+    const startPoseAtCueStart = resolveCueStartPose(
+      cue.spec,
+      prevEndPose,
+      baselinePose,
+      prevEndOffset,
+      startOffset,
+      startEntities,
+      false
+    );
+    railFallbackEye = sphericalToCartesian(startPoseAtCueStart).position;
+  }
+
+  const points = sampleRigRailPoints(cue.spec.rig, railFallbackEye);
+  cache.cueRailPoints.set(cue.id, points);
+  return points;
 }
 
 /**
@@ -446,8 +499,12 @@ export function evaluateCameraTrack(
       isContinuous,
       prevEndEye
     );
-    const trajectoryPoints =
-      trackCacheData.cueTrajectoryPoints.get(activeCue.id) ?? [];
+    const trajectoryPoints = getOrSampleCueTrajectoryPoints(
+      trackCacheData,
+      activeCue,
+      score,
+      baselinePose
+    );
 
     const u = evaluateCameraEasing(spec.easing, tRaw);
     const liveOffset: Vec3 = {
@@ -467,7 +524,12 @@ export function evaluateCameraTrack(
           type: spec.rig.type,
           progress: u,
           eyePosition: transform.position,
-          railPoints: trackCacheData.cueRailPoints.get(activeCue.id) ?? [],
+          railPoints: getOrSampleCueRailPoints(
+            trackCacheData,
+            activeCue,
+            score,
+            baselinePose
+          ),
           hasTargetLock:
             spec.target !== undefined || spec.from !== undefined,
         }
@@ -526,7 +588,12 @@ export function evaluateCameraTrack(
     ? trackCacheData.cueEndOffsets.get(lastFinished.id) ?? ZERO_OFFSET
     : ZERO_OFFSET;
   const heldTrajectoryPoints = lastFinished
-    ? trackCacheData.cueTrajectoryPoints.get(lastFinished.id) ?? []
+    ? getOrSampleCueTrajectoryPoints(
+        trackCacheData,
+        lastFinished,
+        score,
+        baselinePose
+      )
     : [];
   const heldTransform = sphericalToCartesian(heldPose, score.aspectRatio);
   const heldRigState: EvaluatedCameraRigState | undefined = heldSpec?.rig
@@ -535,7 +602,12 @@ export function evaluateCameraTrack(
         progress: 1,
         eyePosition: heldTransform.position,
         railPoints: lastFinished
-          ? trackCacheData.cueRailPoints.get(lastFinished.id) ?? []
+          ? getOrSampleCueRailPoints(
+              trackCacheData,
+              lastFinished,
+              score,
+              baselinePose
+            )
           : [],
         hasTargetLock:
           heldSpec.target !== undefined || heldSpec.from !== undefined,

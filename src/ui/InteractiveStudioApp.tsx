@@ -221,6 +221,7 @@ export const InteractiveStudioApp: React.FC = () => {
     initialScore: initialItem.score,
     activeSceneId,
     isBundled: isBundledSceneId(activeSceneId),
+    isVisualModeActive: layout.isEditMode && layout.editorMode === 'visual',
     onSaveDraftDebounced: handleSaveDraftProxy,
     onVideoUrlActive: handleClearVideoOverride,
   });
@@ -363,7 +364,7 @@ export const InteractiveStudioApp: React.FC = () => {
 
   // 1. Universal Media Clock (Local HTML5 Video, YouTube IFrame, or Procedural Slate)
   const mediaClock = useMediaClock(
-    doc.effectiveScore,
+    doc.activeScore,
     videoOverrideUrl,
     handleStageTimeJump,
     sceneResetSeq
@@ -376,7 +377,8 @@ export const InteractiveStudioApp: React.FC = () => {
     mediaClock.loopActiveShot,
     mediaClock.isPlaying,
     mediaClock.lastManualSeekIdRef,
-    sceneResetSeq
+    sceneResetSeq,
+    doc.isScrubbing
   );
 
   const { evaluateTick60fps, forceSyncUi } = stageLoop;
@@ -971,12 +973,13 @@ export const InteractiveStudioApp: React.FC = () => {
     [mediaClock]
   );
 
+  const { pause: pauseMediaClock, seek: seekMediaClock } = mediaClock;
   const handleVisualSeekToTime = useCallback(
     (targetSec: number) => {
-      mediaClock.pause();
-      mediaClock.seek(targetSec);
+      pauseMediaClock();
+      seekMediaClock(targetSec);
     },
-    [mediaClock]
+    [pauseMediaClock, seekMediaClock]
   );
 
   const getCurrentTimeSec = useCallback(() => {
@@ -1065,7 +1068,7 @@ export const InteractiveStudioApp: React.FC = () => {
 
       {/* Main Resizable Split Workspace (Video Panel + 3D Blueprint Diorama + YAML Studio) */}
       <ResizableSplitWorkspace
-        aspectRatio={doc.effectiveScore.aspectRatio}
+        aspectRatio={doc.activeScore.aspectRatio}
         splitPreset={layout.splitPreset}
         isEditMode={layout.isEditMode}
         leftSplitPct={layout.leftSplitPct}
@@ -1125,7 +1128,7 @@ export const InteractiveStudioApp: React.FC = () => {
           <VideoWorkspaceSubpanel
             isCollapsed={layout.isSubpanelCollapsed}
             onToggleCollapse={layout.handleToggleSubpanelCollapse}
-            score={doc.effectiveScore}
+            score={doc.activeScore}
             activeShot={stageLoop.uiSnapshot.frame.activeShot}
             shotIndex={stageLoop.uiSnapshot.frame.shotIndex}
             hasVideoAttached={mediaClock.sourceInfo.kind !== 'procedural'}
@@ -1154,7 +1157,7 @@ export const InteractiveStudioApp: React.FC = () => {
             mapSlot={
               <DioramaMinimap
                 variant="panel"
-                score={doc.effectiveScore}
+                score={doc.activeScore}
                 frameRef={stageLoop.frameRef}
                 liveViewportPoseRef={stageLoop.liveViewportPoseRef}
                 uiFrame={stageLoop.uiSnapshot.frame}
@@ -1285,7 +1288,7 @@ export const InteractiveStudioApp: React.FC = () => {
 
       {/* Bottom Directorial Transport Deck (Streamlined Timeline Controls) */}
       <DirectorialTransportBar
-        score={doc.effectiveScore}
+        score={doc.activeScore}
         frame={stageLoop.uiSnapshot.frame}
         durationSec={mediaClock.durationSec}
         isPlaying={mediaClock.isPlaying}

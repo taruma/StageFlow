@@ -5,7 +5,7 @@
  * - Indented child blocks (stage_camera, observer_camera, entities overrides)
  */
 
-import React from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   ArrowDown,
   ArrowUp,
@@ -26,9 +26,10 @@ export interface ShotCardProps {
   shot: VisualShotItem;
   index: number;
   totalShots: number;
-  isExpanded: boolean;
+  bulkExpandSeq: number;
+  bulkExpandMode: 'expand' | 'collapse';
+  focusExpandSeq: number;
   isActiveShot: boolean;
-  onToggleExpand: () => void;
   callbacks: VisualEditorCallbacks;
 }
 
@@ -43,11 +44,26 @@ export const ShotCard: React.FC<ShotCardProps> = React.memo(
     shot,
     index,
     totalShots,
-    isExpanded,
+    bulkExpandSeq,
+    bulkExpandMode,
+    focusExpandSeq,
     isActiveShot,
-    onToggleExpand,
     callbacks,
   }) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+
+    useEffect(() => {
+      if (bulkExpandSeq > 0) {
+        setIsExpanded(bulkExpandMode === 'expand');
+      }
+    }, [bulkExpandSeq, bulkExpandMode]);
+
+    useEffect(() => {
+      if (focusExpandSeq > 0) {
+        setIsExpanded(true);
+      }
+    }, [focusExpandSeq]);
+
     const {
       disabled,
       timingMode,
@@ -59,28 +75,65 @@ export const ShotCard: React.FC<ShotCardProps> = React.memo(
       getCurrentTimeSec,
     } = callbacks;
 
-    const scalarFields = shot.fields.filter(
-      (f) => f.canonicalKey !== 'start' && f.canonicalKey !== 'end'
+    const scalarFields = useMemo(
+      () =>
+        shot.fields.filter(
+          (f) => f.canonicalKey !== 'start' && f.canonicalKey !== 'end'
+        ),
+      [shot.fields]
     );
 
-    const handleTimingScrub = (edge: 'start' | 'end', nextVal: number) => {
-      onTimingScrubPreview(index, edge, nextVal, timingMode);
-    };
+    const handleScrubStart = useCallback(
+      (nextVal: number) => {
+        onTimingScrubPreview(index, 'start', nextVal, timingMode);
+      },
+      [index, onTimingScrubPreview, timingMode]
+    );
 
-    const handleTimingCommit = (edge: 'start' | 'end', nextVal: number) => {
-      onCommand({
-        type: 'adjust-shot-timing',
-        shotIndex: index,
-        edge,
-        nextValueSec: nextVal,
-        mode: timingMode,
-      });
-    };
+    const handleScrubEnd = useCallback(
+      (nextVal: number) => {
+        onTimingScrubPreview(index, 'end', nextVal, timingMode);
+      },
+      [index, onTimingScrubPreview, timingMode]
+    );
 
-    const handleStampPlayhead = (edge: 'start' | 'end') => {
+    const handleTimingCommit = useCallback(
+      (edge: 'start' | 'end', nextVal: number) => {
+        onCommand({
+          type: 'adjust-shot-timing',
+          shotIndex: index,
+          edge,
+          nextValueSec: nextVal,
+          mode: timingMode,
+        });
+      },
+      [index, onCommand, timingMode]
+    );
+
+    const handleCommitStart = useCallback(
+      (nextVal: number) => handleTimingCommit('start', nextVal),
+      [handleTimingCommit]
+    );
+
+    const handleCommitEnd = useCallback(
+      (nextVal: number) => handleTimingCommit('end', nextVal),
+      [handleTimingCommit]
+    );
+
+    const handleToggleHeader = useCallback(() => {
+      onSeekToTime(shot.startSec);
+      setIsExpanded((prev) => !prev);
+    }, [onSeekToTime, shot.startSec]);
+
+    const handleStampStart = useCallback(() => {
       const t = Math.round(getCurrentTimeSec() * 1000) / 1000;
-      handleTimingCommit(edge, t);
-    };
+      handleTimingCommit('start', t);
+    }, [getCurrentTimeSec, handleTimingCommit]);
+
+    const handleStampEnd = useCallback(() => {
+      const t = Math.round(getCurrentTimeSec() * 1000) / 1000;
+      handleTimingCommit('end', t);
+    }, [getCurrentTimeSec, handleTimingCommit]);
 
     return (
       <div
@@ -95,10 +148,7 @@ export const ShotCard: React.FC<ShotCardProps> = React.memo(
         <div className="flex items-center justify-between gap-2 px-2.5 py-1.5">
           <button
             type="button"
-            onClick={() => {
-              onSeekToTime(shot.startSec);
-              onToggleExpand();
-            }}
+            onClick={handleToggleHeader}
             className="flex items-center gap-1.5 min-w-0 flex-1 text-left cursor-pointer"
             title="Click to jump playhead to shot & toggle details"
           >
@@ -238,14 +288,14 @@ export const ShotCard: React.FC<ShotCardProps> = React.memo(
                     step={0.05}
                     precision={3}
                     disabled={disabled}
-                    onScrubPreview={(v) => handleTimingScrub('start', v)}
-                    onCommit={(v) => handleTimingCommit('start', v)}
+                    onScrubPreview={handleScrubStart}
+                    onCommit={handleCommitStart}
                     onCancelScrub={onCancelScrub}
                   />
                   {!disabled && (
                     <button
                       type="button"
-                      onClick={() => handleStampPlayhead('start')}
+                      onClick={handleStampStart}
                       className="p-1 rounded bg-surface hover:bg-surface-hover border border-border-main text-text-muted hover:text-amber-500 cursor-pointer"
                       title="Set Start to current playhead time"
                     >
@@ -264,14 +314,14 @@ export const ShotCard: React.FC<ShotCardProps> = React.memo(
                     step={0.05}
                     precision={3}
                     disabled={disabled}
-                    onScrubPreview={(v) => handleTimingScrub('end', v)}
-                    onCommit={(v) => handleTimingCommit('end', v)}
+                    onScrubPreview={handleScrubEnd}
+                    onCommit={handleCommitEnd}
                     onCancelScrub={onCancelScrub}
                   />
                   {!disabled && (
                     <button
                       type="button"
-                      onClick={() => handleStampPlayhead('end')}
+                      onClick={handleStampEnd}
                       className="p-1 rounded bg-surface hover:bg-surface-hover border border-border-main text-text-muted hover:text-amber-500 cursor-pointer"
                       title="Set End to current playhead time"
                     >

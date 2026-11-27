@@ -152,9 +152,9 @@ export interface VisualScoreIRResult {
 
 export function getNodeLineRange(
   node: Node | null | undefined,
-  lineCounter: LineCounter
+  lineCounter?: LineCounter
 ): [number, number] | undefined {
-  if (!node || !node.range) return undefined;
+  if (!lineCounter || !node || !node.range) return undefined;
   const start = lineCounter.linePos(node.range[0]).line;
   const endOffset = Math.max(node.range[0], node.range[1] - 1);
   const end = lineCounter.linePos(endOffset).line;
@@ -180,7 +180,7 @@ export function projectMapFields(
   map: YAMLMap,
   basePath: YamlPath,
   section: SchemaSectionName,
-  lineCounter: LineCounter,
+  lineCounter?: LineCounter,
   inheritedHints?: Record<string, string>
 ): VisualFieldNode[] {
   const structural = new Set(SECTION_STRUCTURAL_KEYS[section]);
@@ -219,7 +219,7 @@ export function projectCameraBlockNode(
   map: YAMLMap,
   key: string,
   basePath: YamlPath,
-  lineCounter: LineCounter,
+  lineCounter?: LineCounter,
   inheritedHints?: Record<string, string>
 ): VisualCameraBlockNode {
   const blockPath: YamlPath = [...basePath, key];
@@ -287,7 +287,7 @@ export function projectCameraBlockNode(
 export function projectEntityOverrideMap(
   entitiesMap: YAMLMap,
   containerPath: YamlPath,
-  lineCounter: LineCounter
+  lineCounter?: LineCounter
 ): VisualNamedBlockNode[] {
   const list: VisualNamedBlockNode[] = [];
   for (const pair of entitiesMap.items) {

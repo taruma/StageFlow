@@ -97,7 +97,8 @@ export function useStageFrameLoop(
   loopActiveShot: boolean,
   isPlaying: boolean,
   lastManualSeekIdRef?: React.RefObject<number>,
-  sceneResetSeq = 0
+  sceneResetSeq = 0,
+  isScrubbing = false
 ): UseStageFrameLoopResult {
   const [cameraMode, setCameraModeState] = useState<CameraViewMode>('scripted');
 
@@ -114,6 +115,7 @@ export function useStageFrameLoop(
   );
   const lastUiSyncPerfMsRef = useRef<number>(0);
   const trailingSyncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scoreSyncTrailingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastHandledSeekIdRef = useRef<number>(-1);
   const lastHandledResetSeqRef = useRef<number>(sceneResetSeq);
   const lastEvaluatedResetSeqRef = useRef<number>(sceneResetSeq);
@@ -160,8 +162,37 @@ export function useStageFrameLoop(
     frameRef.current = nextFrame;
     lastEvaluatedScoreRef.current = score;
     liveViewportPoseRef.current = nextViewportPose;
-    forceSyncUi();
-  }, [score, isPlaying, cameraMode, driverRef, forceSyncUi, sceneResetSeq]);
+
+    if (isScrubbing && !resetOccurred) {
+      const now = performance.now();
+      if (now - lastUiSyncPerfMsRef.current >= 80) {
+        if (scoreSyncTrailingTimerRef.current) {
+          clearTimeout(scoreSyncTrailingTimerRef.current);
+          scoreSyncTrailingTimerRef.current = null;
+        }
+        forceSyncUi();
+      } else if (!scoreSyncTrailingTimerRef.current) {
+        scoreSyncTrailingTimerRef.current = setTimeout(() => {
+          scoreSyncTrailingTimerRef.current = null;
+          forceSyncUi();
+        }, 85);
+      }
+    } else {
+      if (scoreSyncTrailingTimerRef.current) {
+        clearTimeout(scoreSyncTrailingTimerRef.current);
+        scoreSyncTrailingTimerRef.current = null;
+      }
+      forceSyncUi();
+    }
+  }, [
+    score,
+    isPlaying,
+    cameraMode,
+    driverRef,
+    forceSyncUi,
+    sceneResetSeq,
+    isScrubbing,
+  ]);
 
   const setCameraMode = useCallback(
     (mode: CameraViewMode) => {
@@ -191,6 +222,10 @@ export function useStageFrameLoop(
       if (trailingSyncTimeoutRef.current) {
         clearTimeout(trailingSyncTimeoutRef.current);
         trailingSyncTimeoutRef.current = null;
+      }
+      if (scoreSyncTrailingTimerRef.current) {
+        clearTimeout(scoreSyncTrailingTimerRef.current);
+        scoreSyncTrailingTimerRef.current = null;
       }
     };
   }, []);

@@ -114,6 +114,13 @@ export function parseStageScore(
     };
   }
 
+  return normalizeParsedStageScore(parsed, fallbackId);
+}
+
+export function normalizeParsedStageScore(
+  parsed: unknown,
+  fallbackId = 'custom-scene'
+): ParseScoreResult {
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
     return {
       score: null,

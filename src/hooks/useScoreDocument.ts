@@ -8,6 +8,7 @@
 
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import type {
+  ParseScoreResult,
   ScoreDiagnostic,
   ShotTimingEditMode,
   StageScore,
@@ -21,17 +22,25 @@ import {
   undoScoreHistory,
   type ScoreHistoryState,
 } from '../core/scoreHistory';
-import { parseStageScore } from '../core/scoreParser';
+import {
+  normalizeParsedStageScore,
+  parseStageScore,
+} from '../core/scoreParser';
 import {
   projectVisualScoreIR,
+  projectVisualScoreIRFromDoc,
   type VisualScoreIRResult,
 } from '../core/scoreYamlProjection';
 import {
   applyScoreYamlCommand,
+  applyScoreYamlCommandDetailed,
   type ScalarFormatHint,
   type ScoreYamlCommand,
 } from '../core/scoreYamlMutator';
-import { applyScoreHotPatch } from '../core/scoreHotPatch';
+import {
+  applyScoreHotPatch,
+  applyShotTimingHotPatch,
+} from '../core/scoreHotPatch';
 import type { YamlPath } from '../core/schema/scoreSchemaTypes';
 
 export interface UseScoreDocumentOptions {
@@ -39,6 +48,7 @@ export interface UseScoreDocumentOptions {
   initialScore: StageScore;
   activeSceneId: string;
   isBundled: boolean;
+  isVisualModeActive?: boolean;
   onSaveDraftDebounced?: (nextYaml: string, parsedScore: StageScore) => void;
   onVideoUrlActive?: () => void;
 }
@@ -48,6 +58,7 @@ export function useScoreDocument({
   initialScore,
   activeSceneId,
   isBundled,
+  isVisualModeActive = true,
   onSaveDraftDebounced,
   onVideoUrlActive,
 }: UseScoreDocumentOptions) {
@@ -80,31 +91,49 @@ export function useScoreDocument({
   const onVideoUrlActiveRef = useRef(onVideoUrlActive);
   onVideoUrlActiveRef.current = onVideoUrlActive;
 
+  const isVisualModeActiveRef = useRef(isVisualModeActive);
+  isVisualModeActiveRef.current = isVisualModeActive;
+
+  const precomputedIrRef = useRef<{
+    yaml: string;
+    score: StageScore;
+    result: VisualScoreIRResult;
+  } | null>(null);
+
   const lastFallbackScrubMsRef = useRef(0);
 
-  const applyParsedYamlResult = useCallback((nextYaml: string, persistDraft: boolean) => {
-    const result = parseStageScore(nextYaml, activeSceneIdRef.current);
-    if (result.score) {
-      setActiveScore(result.score);
-      setParseError(null);
-      setParseWarning(result.warning ?? null);
-      setParseDiagnostics(undefined);
+  const applyParsedYamlResult = useCallback(
+    (
+      nextYaml: string,
+      persistDraft: boolean,
+      preParsedResult?: ParseScoreResult
+    ) => {
+      const result =
+        preParsedResult ?? parseStageScore(nextYaml, activeSceneIdRef.current);
+      if (result.score) {
+        activeScoreRef.current = result.score;
+        setActiveScore(result.score);
+        setParseError(null);
+        setParseWarning(result.warning ?? null);
+        setParseDiagnostics(undefined);
 
-      if (
-        result.score.videoUrl &&
-        result.score.videoUrl !== 'procedural://demo'
-      ) {
-        onVideoUrlActiveRef.current?.();
+        if (
+          result.score.videoUrl &&
+          result.score.videoUrl !== 'procedural://demo'
+        ) {
+          onVideoUrlActiveRef.current?.();
+        }
+        if (persistDraft) {
+          onSaveDraftRef.current?.(nextYaml, result.score);
+        }
+      } else {
+        setParseError(result.error);
+        setParseWarning(null);
+        setParseDiagnostics(result.diagnostics);
       }
-      if (persistDraft) {
-        onSaveDraftRef.current?.(nextYaml, result.score);
-      }
-    } else {
-      setParseError(result.error);
-      setParseWarning(null);
-      setParseDiagnostics(result.diagnostics);
-    }
-  }, []);
+    },
+    []
+  );
 
   /**
    * Resets canonical YAML & history stack for scene switches, forks, imports, and hydration.
@@ -173,8 +202,11 @@ export function useScoreDocument({
     (command: ScoreYamlCommand) => {
       if (isBundledRef.current) return;
       const currentYaml = historyRef.current.present;
-      const nextYaml = applyScoreYamlCommand(currentYaml, command);
-      if (nextYaml === currentYaml) return;
+      const { nextYaml, doc, changed } = applyScoreYamlCommandDetailed(
+        currentYaml,
+        command
+      );
+      if (!changed) return;
 
       setPreviewScore(null);
       const nextHistory = commitScoreHistory(historyRef.current, nextYaml, {
@@ -184,7 +216,20 @@ export function useScoreDocument({
       });
       historyRef.current = nextHistory;
       setHistory(nextHistory);
-      applyParsedYamlResult(nextYaml, true);
+
+      const parsedResult = doc
+        ? normalizeParsedStageScore(doc.toJS(), activeSceneIdRef.current)
+        : parseStageScore(nextYaml, activeSceneIdRef.current);
+
+      if (parsedResult.score && doc && isVisualModeActiveRef.current) {
+        precomputedIrRef.current = {
+          yaml: nextYaml,
+          score: parsedResult.score,
+          result: projectVisualScoreIRFromDoc(doc, parsedResult.score),
+        };
+      }
+
+      applyParsedYamlResult(nextYaml, true, parsedResult);
     },
     [applyParsedYamlResult]
   );
@@ -205,9 +250,9 @@ export function useScoreDocument({
         return;
       }
 
-      // Fallback for fields not directly hot-patched (e.g. blocking cues): throttle AST preview to ~30Hz
+      // Fallback for fields not directly hot-patched (e.g. blocking cues): throttle AST preview
       const now = performance.now();
-      if (now - lastFallbackScrubMsRef.current < 33) return;
+      if (now - lastFallbackScrubMsRef.current < 120) return;
       lastFallbackScrubMsRef.current = now;
 
       const candidateYaml = applyScoreYamlCommand(historyRef.current.present, {
@@ -232,20 +277,15 @@ export function useScoreDocument({
       mode: ShotTimingEditMode
     ) => {
       if (isBundledRef.current) return;
-      const now = performance.now();
-      if (now - lastFallbackScrubMsRef.current < 33) return;
-      lastFallbackScrubMsRef.current = now;
-
-      const candidateYaml = applyScoreYamlCommand(historyRef.current.present, {
-        type: 'adjust-shot-timing',
+      const hot = applyShotTimingHotPatch(
+        activeScoreRef.current,
         shotIndex,
         edge,
         nextValueSec,
-        mode,
-      });
-      const parsed = parseStageScore(candidateYaml, activeSceneIdRef.current);
-      if (parsed.score) {
-        setPreviewScore(parsed.score);
+        mode
+      );
+      if (hot) {
+        setPreviewScore(hot);
       }
     },
     []
@@ -332,10 +372,26 @@ export function useScoreDocument({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [undo, redo]);
 
-  const visualIRResult: VisualScoreIRResult = useMemo(
-    () => projectVisualScoreIR(history.present, activeScore),
-    [history.present, activeScore]
-  );
+  const visualIRResult: VisualScoreIRResult = useMemo(() => {
+    if (!isVisualModeActive) {
+      return { ir: null, error: null };
+    }
+    const cached = precomputedIrRef.current;
+    if (
+      cached &&
+      cached.yaml === history.present &&
+      cached.score === activeScore
+    ) {
+      return cached.result;
+    }
+    const projected = projectVisualScoreIR(history.present, activeScore);
+    precomputedIrRef.current = {
+      yaml: history.present,
+      score: activeScore,
+      result: projected,
+    };
+    return projected;
+  }, [isVisualModeActive, history.present, activeScore]);
 
   return {
     rawYaml: history.present,

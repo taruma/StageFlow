@@ -2,7 +2,10 @@ import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import { parseStageScore } from '../../src/core/scoreParser';
-import { applyScoreYamlCommand } from '../../src/core/scoreYamlMutator';
+import {
+  applyScoreYamlCommand,
+  applyScoreYamlCommandDetailed,
+} from '../../src/core/scoreYamlMutator';
 
 const SAMPLE_YAML = `# ==============================================================================
 # TEST SCORE BANNER
@@ -170,5 +173,24 @@ describe('scoreYamlMutator', () => {
       expect(parsed.error).toBeNull();
       expect(parsed.score?.title).toBe(`Modified ${file}`);
     }
+  });
+
+  it('returns changed status and reusable Document AST from applyScoreYamlCommandDetailed', () => {
+    const res = applyScoreYamlCommandDetailed(SAMPLE_YAML, {
+      type: 'set-field',
+      path: ['shots', 0, 'stage_camera', 'distance'],
+      value: 5.5,
+    });
+    expect(res.changed).toBe(true);
+    expect(res.doc).not.toBeNull();
+    expect(res.nextYaml).toContain('# Inline floor comment');
+    expect(res.nextYaml).toMatch(/position:\s*\[\s*0,\s*0,\s*0\s*\]/);
+
+    const noop = applyScoreYamlCommandDetailed(res.nextYaml, {
+      type: 'set-field',
+      path: ['shots', 0, 'stage_camera', 'distance'],
+      value: 5.5,
+    });
+    expect(noop.changed).toBe(false);
   });
 });

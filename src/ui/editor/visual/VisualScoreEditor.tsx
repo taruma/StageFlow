@@ -97,24 +97,49 @@ export const VisualScoreEditor = React.memo(
       }>({
         scene: false,
         stage: false,
-        entities: true,
-        blocking: true,
+        entities: false,
+        blocking: false,
         shots: true,
         observerShots: false,
       });
 
-      const [expandedItems, setExpandedItems] = useState<Set<string>>(
-        () => new Set()
-      );
+      const [bulkExpand, setBulkExpand] = useState<{
+        mode: 'expand' | 'collapse';
+        seq: number;
+      }>({ mode: 'collapse', seq: 0 });
+      const [focusedShot, setFocusedShot] = useState<{
+        shotId: string;
+        seq: number;
+      } | null>(null);
 
-      const toggleItem = useCallback((key: string) => {
-        setExpandedItems((prev) => {
-          const next = new Set(prev);
-          if (next.has(key)) next.delete(key);
-          else next.add(key);
-          return next;
-        });
-      }, []);
+      const toggleScene = useCallback(
+        () => setExpandedSections((p) => ({ ...p, scene: !p.scene })),
+        []
+      );
+      const toggleStage = useCallback(
+        () => setExpandedSections((p) => ({ ...p, stage: !p.stage })),
+        []
+      );
+      const toggleEntities = useCallback(
+        () => setExpandedSections((p) => ({ ...p, entities: !p.entities })),
+        []
+      );
+      const toggleBlocking = useCallback(
+        () => setExpandedSections((p) => ({ ...p, blocking: !p.blocking })),
+        []
+      );
+      const toggleShots = useCallback(
+        () => setExpandedSections((p) => ({ ...p, shots: !p.shots })),
+        []
+      );
+      const toggleObserverShots = useCallback(
+        () =>
+          setExpandedSections((p) => ({
+            ...p,
+            observerShots: !p.observerShots,
+          })),
+        []
+      );
 
       useImperativeHandle(
         ref,
@@ -128,7 +153,7 @@ export const VisualScoreEditor = React.memo(
               shots: false,
               observerShots: false,
             });
-            setExpandedItems(new Set());
+            setBulkExpand((prev) => ({ mode: 'collapse', seq: prev.seq + 1 }));
           },
           expandAll: () => {
             setExpandedSections({
@@ -139,26 +164,13 @@ export const VisualScoreEditor = React.memo(
               shots: true,
               observerShots: true,
             });
-            if (!ir) return;
-            const next = new Set<string>();
-            ir.entities.forEach((e, i) => next.add(`entity:${i}:${e.id}`));
-            ir.blocking.forEach((b, i) => next.add(`blocking:${i}:${b.id}`));
-            ir.shots.forEach((s, i) => next.add(`shot:${i}:${s.id}`));
-            ir.observerShots.forEach((o, i) => next.add(`obs:${i}:${o.id}`));
-            setExpandedItems(next);
+            setBulkExpand((prev) => ({ mode: 'expand', seq: prev.seq + 1 }));
           },
           scrollToShotId: (shotId: string) => {
-            setExpandedSections((prev) => ({ ...prev, shots: true }));
-            if (ir) {
-              const idx = ir.shots.findIndex((s) => s.id === shotId);
-              if (idx >= 0) {
-                setExpandedItems((prev) => {
-                  const next = new Set(prev);
-                  next.add(`shot:${idx}:${shotId}`);
-                  return next;
-                });
-              }
-            }
+            setExpandedSections((prev) =>
+              prev.shots ? prev : { ...prev, shots: true }
+            );
+            setFocusedShot((prev) => ({ shotId, seq: (prev?.seq ?? 0) + 1 }));
             requestAnimationFrame(() => {
               const el = scrollContainerRef.current?.querySelector(
                 `[data-shot-id="${CSS.escape(shotId)}"]`
@@ -167,7 +179,7 @@ export const VisualScoreEditor = React.memo(
             });
           },
         }),
-        [ir]
+        []
       );
 
       const callbacks: VisualEditorCallbacks = useMemo(
@@ -237,34 +249,26 @@ export const VisualScoreEditor = React.memo(
             ir={ir}
             isSceneExpanded={expandedSections.scene}
             isStageExpanded={expandedSections.stage}
-            onToggleScene={() =>
-              setExpandedSections((p) => ({ ...p, scene: !p.scene }))
-            }
-            onToggleStage={() =>
-              setExpandedSections((p) => ({ ...p, stage: !p.stage }))
-            }
+            onToggleScene={toggleScene}
+            onToggleStage={toggleStage}
             callbacks={callbacks}
           />
 
           <EntitiesSection
             entities={ir.entities}
             isSectionExpanded={expandedSections.entities}
-            expandedIds={expandedItems}
-            onToggleSection={() =>
-              setExpandedSections((p) => ({ ...p, entities: !p.entities }))
-            }
-            onToggleItem={toggleItem}
+            bulkExpandSeq={bulkExpand.seq}
+            bulkExpandMode={bulkExpand.mode}
+            onToggleSection={toggleEntities}
             callbacks={callbacks}
           />
 
           <BlockingSection
             blocking={ir.blocking}
             isSectionExpanded={expandedSections.blocking}
-            expandedIds={expandedItems}
-            onToggleSection={() =>
-              setExpandedSections((p) => ({ ...p, blocking: !p.blocking }))
-            }
-            onToggleItem={toggleItem}
+            bulkExpandSeq={bulkExpand.seq}
+            bulkExpandMode={bulkExpand.mode}
+            onToggleSection={toggleBlocking}
             callbacks={callbacks}
           />
 
@@ -272,25 +276,20 @@ export const VisualScoreEditor = React.memo(
             shots={ir.shots}
             activeShotId={activeShotId}
             isSectionExpanded={expandedSections.shots}
-            expandedIds={expandedItems}
-            onToggleSection={() =>
-              setExpandedSections((p) => ({ ...p, shots: !p.shots }))
-            }
-            onToggleItem={toggleItem}
+            bulkExpandSeq={bulkExpand.seq}
+            bulkExpandMode={bulkExpand.mode}
+            focusedShotId={focusedShot?.shotId ?? null}
+            focusedShotSeq={focusedShot?.seq ?? 0}
+            onToggleSection={toggleShots}
             callbacks={callbacks}
           />
 
           <ObserverShotsSection
             observerShots={ir.observerShots}
             isSectionExpanded={expandedSections.observerShots}
-            expandedIds={expandedItems}
-            onToggleSection={() =>
-              setExpandedSections((p) => ({
-                ...p,
-                observerShots: !p.observerShots,
-              }))
-            }
-            onToggleItem={toggleItem}
+            bulkExpandSeq={bulkExpand.seq}
+            bulkExpandMode={bulkExpand.mode}
+            onToggleSection={toggleObserverShots}
             callbacks={callbacks}
           />
         </div>

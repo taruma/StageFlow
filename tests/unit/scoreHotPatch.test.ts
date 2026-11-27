@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { computeStageFrame } from '../../src/core/frameEngine';
-import { applyScoreHotPatch } from '../../src/core/scoreHotPatch';
+import {
+  applyScoreHotPatch,
+  applyShotTimingHotPatch,
+} from '../../src/core/scoreHotPatch';
 import { parseStageScore } from '../../src/core/scoreParser';
 import { applyScoreYamlCommand } from '../../src/core/scoreYamlMutator';
 
@@ -90,5 +93,52 @@ describe('scoreHotPatch', () => {
         6
       );
     }
+  });
+
+  it('hot-patches shot timing in free, roll, and ripple modes identically to AST mutator', () => {
+    const multiShotYaml = `${BASE_YAML}
+  - id: "s2"
+    start: 10.0
+    end: 15.0
+    stage_camera:
+      target: "hero"
+      distance: 2.5
+  - id: "s3"
+    start: 15.0
+    end: 20.0
+    stage_camera:
+      target: "hero"
+      distance: 6.0
+`;
+    const score = parseStageScore(multiShotYaml).score!;
+    const patchedBase = { ...score, durationSec: 20.0 };
+
+    // Free mode
+    const freeHot = applyShotTimingHotPatch(patchedBase, 0, 'end', 8.5, 'free')!;
+    expect(freeHot.shots[0].endSec).toBe(8.5);
+    expect(freeHot.shots[1].startSec).toBe(10.0);
+
+    // Roll mode (end & start boundaries)
+    const rollEndHot = applyShotTimingHotPatch(patchedBase, 0, 'end', 12.25, 'roll')!;
+    expect(rollEndHot.shots[0].endSec).toBe(12.25);
+    expect(rollEndHot.shots[1].startSec).toBe(12.25);
+    expect(rollEndHot.shots[1].endSec).toBe(15.0);
+
+    const rollStartHot = applyShotTimingHotPatch(patchedBase, 1, 'start', 7.5, 'roll')!;
+    expect(rollStartHot.shots[0].endSec).toBe(7.5);
+    expect(rollStartHot.shots[1].startSec).toBe(7.5);
+
+    // Ripple mode: +2s shifts downstream shots & durationSec
+    const rippleHot = applyShotTimingHotPatch(patchedBase, 0, 'end', 12.0, 'ripple')!;
+    expect(rippleHot.shots[0].endSec).toBe(12.0);
+    expect(rippleHot.shots[1].startSec).toBe(12.0);
+    expect(rippleHot.shots[1].endSec).toBe(17.0);
+    expect(rippleHot.shots[2].startSec).toBe(17.0);
+    expect(rippleHot.shots[2].endSec).toBe(22.0);
+    expect(rippleHot.durationSec).toBe(22.0);
+
+    // Out-of-bounds or non-finite returns null
+    expect(applyShotTimingHotPatch(patchedBase, -1, 'end', 5, 'free')).toBeNull();
+    expect(applyShotTimingHotPatch(patchedBase, 0, 'end', NaN, 'free')).toBeNull();
   });
 });

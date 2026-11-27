@@ -1,8 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
-import { parseStageScore } from '../../src/core/scoreParser';
-import { projectVisualScoreIR } from '../../src/core/scoreYamlProjection';
+import { parseDocument } from 'yaml';
+import {
+  normalizeParsedStageScore,
+  parseStageScore,
+} from '../../src/core/scoreParser';
+import {
+  projectVisualScoreIR,
+  projectVisualScoreIRFromDoc,
+} from '../../src/core/scoreYamlProjection';
 
 const SCORES_ROOT = path.resolve(__dirname, '../../src/scores');
 
@@ -94,5 +101,24 @@ shots:
     expect(extra).toBeDefined();
     expect(extra?.descriptor).toBeNull();
     expect(extra?.value).toBe(180);
+  });
+
+  it('produces matching IR from projectVisualScoreIRFromDoc and normalizeParsedStageScore without re-parsing text', () => {
+    const bp06 = readScoreFile('blueprints/blueprint_06_optics_dof.yaml');
+    const doc = parseDocument(bp06);
+    const normalized = normalizeParsedStageScore(doc.toJS(), 'bp06');
+    expect(normalized.error).toBeNull();
+
+    const fullIr = projectVisualScoreIR(bp06, normalized.score).ir!;
+    const fromDocIr = projectVisualScoreIRFromDoc(doc, normalized.score).ir!;
+
+    expect(fromDocIr.shots).toHaveLength(fullIr.shots.length);
+    expect(fromDocIr.shots.map((s) => s.id)).toEqual(
+      fullIr.shots.map((s) => s.id)
+    );
+    expect(fromDocIr.entities.length).toBe(fullIr.entities.length);
+    expect(fromDocIr.optics.fields.map((f) => f.key)).toEqual(
+      fullIr.optics.fields.map((f) => f.key)
+    );
   });
 });

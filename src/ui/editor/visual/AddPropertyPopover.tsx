@@ -3,7 +3,7 @@
  * Exposes all valid unauthored keys for any YAML block with inline descriptions.
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Plus } from 'lucide-react';
 import {
   getAvailableAddFields,
@@ -55,11 +55,13 @@ export const AddPropertyPopover: React.FC<AddPropertyPopoverProps> = React.memo(
       };
     }, [isOpen]);
 
-    if (disabled) return null;
+    const groups = useMemo(() => {
+      if (!isOpen) return [];
+      const available = getAvailableAddFields(section, authoredRawKeys);
+      return available.length > 0 ? groupFieldsByCategory(available) : [];
+    }, [isOpen, section, authoredRawKeys]);
 
-    const available = getAvailableAddFields(section, authoredRawKeys);
-    if (available.length === 0) return null;
-    const groups = groupFieldsByCategory(available);
+    if (disabled) return null;
 
     const handleSelect = (field: FieldDescriptor) => {
       onCommand({
@@ -85,35 +87,41 @@ export const AddPropertyPopover: React.FC<AddPropertyPopoverProps> = React.memo(
 
         {isOpen && (
           <div className="absolute right-0 mt-1 z-40 w-64 max-h-64 overflow-y-auto custom-scrollbar rounded-xl bg-surface border border-border-main shadow-xl p-1.5">
-            {groups.map((grp) => (
-              <div key={grp.group} className="mb-1.5 last:mb-0">
-                <div className="px-2 py-0.5 text-[9px] font-mono font-bold uppercase tracking-wider text-text-faint">
-                  {grp.label}
-                </div>
-                {grp.fields.map((f) => (
-                  <button
-                    key={f.key}
-                    type="button"
-                    onClick={() => handleSelect(f)}
-                    className="w-full text-left px-2 py-1 rounded-lg hover:bg-surface-subtle flex flex-col gap-0.5 cursor-pointer transition-colors"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-[11px] font-mono font-semibold text-text-main">
-                        {f.key}
-                      </span>
-                      {f.unit && (
-                        <span className="text-[9px] font-mono text-text-faint">
-                          {f.unit}
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-[10px] text-text-muted leading-tight">
-                      {f.hint}
-                    </span>
-                  </button>
-                ))}
+            {groups.length === 0 ? (
+              <div className="px-2 py-1.5 text-[10px] font-mono text-text-faint text-center">
+                All properties authored
               </div>
-            ))}
+            ) : (
+              groups.map((grp) => (
+                <div key={grp.group} className="mb-1.5 last:mb-0">
+                  <div className="px-2 py-0.5 text-[9px] font-mono font-bold uppercase tracking-wider text-text-faint">
+                    {grp.label}
+                  </div>
+                  {grp.fields.map((f) => (
+                    <button
+                      key={f.key}
+                      type="button"
+                      onClick={() => handleSelect(f)}
+                      className="w-full text-left px-2 py-1 rounded-lg hover:bg-surface-subtle flex flex-col gap-0.5 cursor-pointer transition-colors"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[11px] font-mono font-semibold text-text-main">
+                          {f.key}
+                        </span>
+                        {f.unit && (
+                          <span className="text-[9px] font-mono text-text-faint">
+                            {f.unit}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[10px] text-text-muted leading-tight">
+                        {f.hint}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ))
+            )}
           </div>
         )}
       </div>
