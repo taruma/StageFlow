@@ -12,6 +12,7 @@ import type {
   ShotTimingCallbacks,
   VisualEditorCallbacks,
 } from '../visualEditorTypes';
+import { UI_TOKENS } from '../../../tokens/ui';
 import { SortableFieldList } from '../SortableFieldList';
 import { AddPropertyPopover } from '../AddPropertyPopover';
 import { CardReorderActions } from '../CardReorderActions';
@@ -79,11 +80,11 @@ export const ShotCard: React.FC<ShotCardProps> = React.memo(
     return (
       <div
         data-shot-id={shot.id}
-        className={`rounded-lg border transition-colors bg-app/50 overflow-visible ${
+        className={
           isActiveShot
-            ? 'border-amber-500/60 ring-1 ring-amber-500/20'
-            : 'border-border-main'
-        }`}
+            ? UI_TOKENS.inspector.itemCardActive
+            : UI_TOKENS.inspector.itemCard
+        }
       >
         {/* Shot Header Row */}
         <div className="flex items-center justify-between gap-2 px-2.5 py-1.5">

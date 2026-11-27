@@ -7,6 +7,7 @@ import React, { useState } from 'react';
 import { ChevronDown, ChevronRight, Video, X } from 'lucide-react';
 import type { VisualCameraBlockNode } from '../../../../core/scoreYamlProjectionHelpers';
 import type { VisualEditorCallbacks } from '../visualEditorTypes';
+import { UI_TOKENS } from '../../../tokens/ui';
 import { SortableFieldList } from '../SortableFieldList';
 import { AddPropertyPopover } from '../AddPropertyPopover';
 import { WaypointsBlock } from '../WaypointsBlock';
@@ -30,7 +31,7 @@ export const CameraBlockCard: React.FC<CameraBlockCardProps> = React.memo(
     const [expanded, setExpanded] = useState(defaultExpanded);
 
     return (
-      <div className="pl-2.5 border-l-2 border-border-main space-y-1">
+      <div className={`${UI_TOKENS.inspector.treeRail} space-y-1`}>
         <div className="flex items-center justify-between gap-2 py-0.5">
           <button
             type="button"

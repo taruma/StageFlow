@@ -195,6 +195,7 @@ stageflow/
 │   │   │       ├── Vec3ScrubRow.tsx # Single-row X/Y/Z triplet of FigmaNumberPill scrubbers
 │   │   │       ├── TargetAnchorControl.tsx # Entity ID, multi-entity & [x, y, z] target selector
 │   │   │       ├── FieldValueControl.tsx # Schema-typed value control dispatcher (scrubber, presets, enum, color, raw)
+│   │   │       ├── InspectorSelect.tsx # Theme-native headless dropdown wrapper (`@radix-ui/react-select`)
 │   │   │       ├── SchemaFieldRow.tsx # Key label row shell delegating input rendering to FieldValueControl
 │   │   │       ├── AddPropertyPopover.tsx # Categorized "+ Property" menu backed by scoreSchema.ts
 │   │   │       ├── CollapsibleYamlSection.tsx # Top-level collapsible YAML block with count pill

@@ -8,6 +8,7 @@ import { Clock } from 'lucide-react';
 import type { ShotTimingEditMode } from '../../../../core/types';
 import type { ScoreYamlCommand } from '../../../../core/scoreYamlMutator';
 import type { ShotTimingCallbacks } from '../visualEditorTypes';
+import { UI_TOKENS } from '../../../tokens/ui';
 import { FigmaNumberPill } from '../FigmaNumberPill';
 
 export interface ShotTimingBarProps {
@@ -99,7 +100,7 @@ export const ShotTimingBar: React.FC<ShotTimingBarProps> = React.memo(
     }, [getCurrentTimeSec, handleTimingCommit]);
 
     return (
-      <div className="rounded-lg bg-surface-subtle/70 border border-border-subtle p-1.5 space-y-1.5">
+      <div className={UI_TOKENS.inspector.timingBar}>
         <div className="flex items-center justify-between gap-2">
           <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-text-muted">
             Timing ({(endSec - startSec).toFixed(2)}s)

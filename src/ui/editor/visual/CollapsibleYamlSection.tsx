@@ -5,6 +5,7 @@
 
 import React from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
+import { UI_TOKENS } from '../../tokens/ui';
 
 export interface CollapsibleYamlSectionProps {
   yamlKey: string;
@@ -30,8 +31,14 @@ export const CollapsibleYamlSection: React.FC<CollapsibleYamlSectionProps> =
       children,
     }) => {
       return (
-        <section className="rounded-xl border border-border-main bg-surface overflow-visible">
-          <div className="flex items-center justify-between gap-2 px-3 py-2 bg-surface-subtle/60 border-b border-border-subtle rounded-t-xl">
+        <section className={UI_TOKENS.inspector.sectionCard}>
+          <div
+            className={
+              isExpanded
+                ? UI_TOKENS.inspector.sectionHeader
+                : UI_TOKENS.inspector.sectionHeaderCollapsed
+            }
+          >
             <button
               type="button"
               onClick={onToggle}

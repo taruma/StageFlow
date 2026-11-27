@@ -7,6 +7,7 @@
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { UI_TOKENS } from '../../tokens/ui';
 
 export interface FigmaNumberPillProps {
   label?: string;
@@ -268,12 +269,12 @@ export const FigmaNumberPill: React.FC<FigmaNumberPillProps> = React.memo(
         onPointerMove={handlePointerMove}
         onPointerUp={() => finishDrag(false)}
         onPointerCancel={() => finishDrag(true)}
-        className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[11px] font-mono tabular-nums select-none transition-colors ${
+        className={`${UI_TOKENS.inspector.scrubPill} ${
           dragPreviewVal !== null
-            ? 'bg-amber-500/15 border-amber-500/60 text-text-main shadow-2xs'
+            ? UI_TOKENS.inspector.scrubPillActive
             : disabled
-            ? 'bg-surface-subtle/60 border-border-subtle text-text-muted cursor-default'
-            : 'bg-surface-subtle hover:bg-surface-hover border-border-main text-text-main cursor-ew-resize'
+            ? UI_TOKENS.inspector.scrubPillDisabled
+            : UI_TOKENS.inspector.scrubPillIdle
         }`}
       >
         {label && (

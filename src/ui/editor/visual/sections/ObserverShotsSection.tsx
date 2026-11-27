@@ -6,6 +6,7 @@ import React, { useState, useCallback } from 'react';
 import { ChevronDown, ChevronRight, Plus } from 'lucide-react';
 import type { VisualObserverShotItem } from '../../../../core/scoreYamlProjectionHelpers';
 import type { VisualEditorCallbacks } from '../visualEditorTypes';
+import { UI_TOKENS } from '../../../tokens/ui';
 import { CollapsibleYamlSection } from '../CollapsibleYamlSection';
 import { SortableFieldList } from '../SortableFieldList';
 import { AddPropertyPopover } from '../AddPropertyPopover';
@@ -36,7 +37,7 @@ const ObserverShotCard: React.FC<{
   }, [onSeekToTime, os.startSec]);
 
   return (
-    <div className="rounded-lg border border-border-main bg-app/50 overflow-visible">
+    <div className={UI_TOKENS.inspector.itemCard}>
       <div className="flex items-center justify-between gap-2 px-2.5 py-1.5">
         <button
           type="button"

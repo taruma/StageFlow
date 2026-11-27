@@ -3,13 +3,18 @@
  * (Figma scrubbers, lens presets, aperture, vec3, enum select, target anchor, toggle, color, or raw text).
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { VisualFieldNode } from '../../../core/scoreYamlProjectionHelpers';
 import { STANDARD_LENS_PRESETS_MM } from '../../../core/schema/scoreSchemaTypes';
 import type { VisualEditorCallbacks } from './visualEditorTypes';
+import { UI_TOKENS } from '../../tokens/ui';
 import { FigmaNumberPill } from './FigmaNumberPill';
 import { Vec3ScrubRow, normalizeVec3Tuple } from './Vec3ScrubRow';
 import { TargetAnchorControl } from './TargetAnchorControl';
+import {
+  InspectorSelect,
+  type InspectorSelectOption,
+} from './InspectorSelect';
 
 export interface FieldValueControlProps {
   field: VisualFieldNode;
@@ -87,6 +92,17 @@ export const FieldValueControl: React.FC<FieldValueControlProps> = React.memo(
       }
       handleCommitPlain(textDraft);
     }, [field.value, handleCommitPlain, kind, textDraft]);
+
+    const enumOptions: InspectorSelectOption[] = useMemo(() => {
+      if (kind !== 'enum' || !desc?.options) return [];
+      const currentVal = String(field.value ?? desc.options[0] ?? '');
+      const opts = desc.options.includes(currentVal)
+        ? desc.options
+        : currentVal !== ''
+        ? [currentVal, ...desc.options]
+        : desc.options;
+      return opts.map((opt) => ({ value: opt, label: opt }));
+    }, [desc?.options, field.value, kind]);
 
     if (kind === 'number' || kind === 'angle-deg' || kind === 'timestamp') {
       return (
@@ -182,22 +198,14 @@ export const FieldValueControl: React.FC<FieldValueControlProps> = React.memo(
 
     if (kind === 'enum' && desc?.options) {
       const currentVal = String(field.value ?? desc.options[0] ?? '');
-      const options = desc.options.includes(currentVal)
-        ? desc.options
-        : [currentVal, ...desc.options];
       return (
-        <select
-          disabled={disabled}
+        <InspectorSelect
           value={currentVal}
-          onChange={(e) => handleCommitPlain(e.target.value)}
-          className="px-2 py-0.5 rounded-md bg-surface-subtle border border-border-main text-[11px] font-mono text-text-main outline-none focus:border-amber-500/60 cursor-pointer"
-        >
-          {options.map((opt) => (
-            <option key={opt} value={opt}>
-              {opt}
-            </option>
-          ))}
-        </select>
+          options={enumOptions}
+          disabled={disabled}
+          ariaLabel={field.key}
+          onValueChange={handleCommitPlain}
+        />
       );
     }
 
@@ -258,7 +266,7 @@ export const FieldValueControl: React.FC<FieldValueControlProps> = React.memo(
             onChange={(e) => setTextDraft(e.target.value)}
             onBlur={commitTextInput}
             onKeyDown={(e) => e.key === 'Enter' && commitTextInput()}
-            className="w-20 px-1.5 py-0.5 rounded bg-surface-subtle border border-border-main text-[11px] font-mono text-text-main outline-none focus:border-amber-500/60"
+            className={`w-20 ${UI_TOKENS.inspector.textInput}`}
           />
         </div>
       );
@@ -273,7 +281,7 @@ export const FieldValueControl: React.FC<FieldValueControlProps> = React.memo(
         onChange={(e) => setTextDraft(e.target.value)}
         onBlur={commitTextInput}
         onKeyDown={(e) => e.key === 'Enter' && commitTextInput()}
-        className="flex-1 min-w-[90px] px-2 py-0.5 rounded-md bg-surface-subtle border border-border-main text-[11px] font-mono text-text-main outline-none focus:border-amber-500/60"
+        className={`flex-1 min-w-[90px] ${UI_TOKENS.inspector.textInput}`}
       />
     );
   }

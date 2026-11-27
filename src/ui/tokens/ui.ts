@@ -103,4 +103,39 @@ export const UI_TOKENS = {
       'text-[10px] font-black uppercase tracking-[0.2em] text-text-faint ml-1',
     labelMini: 'text-[8px] font-black uppercase tracking-widest text-text-faint',
   },
+
+  // Visual Score Editor property inspector surfaces, alignment grids, and headless portal menus
+  inspector: {
+    sectionCard:
+      'rounded-xl border border-border-main bg-surface shadow-2xs overflow-visible',
+    sectionHeader:
+      'flex items-center justify-between gap-2 px-3 py-2 bg-surface-subtle/75 border-b border-border-subtle rounded-t-xl',
+    sectionHeaderCollapsed:
+      'flex items-center justify-between gap-2 px-3 py-2 bg-surface-subtle/50 hover:bg-surface-subtle rounded-xl transition-colors',
+    itemCard:
+      'rounded-lg border border-border-main bg-app/55 transition-colors overflow-visible',
+    itemCardActive:
+      'rounded-lg border border-amber-500/60 ring-1 ring-amber-500/20 bg-surface shadow-2xs transition-colors overflow-visible',
+    fieldRow:
+      'group grid grid-cols-[minmax(92px,116px)_minmax(0,1fr)] items-start gap-2 py-1 px-1.5 rounded-md hover:bg-surface-subtle/75 transition-colors',
+    scrubPill:
+      'inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[11px] font-mono tabular-nums select-none transition-colors',
+    scrubPillIdle:
+      'bg-surface-subtle hover:bg-surface-hover border-border-main text-text-main cursor-ew-resize',
+    scrubPillActive:
+      'bg-amber-500/15 border-amber-500/60 text-text-main shadow-2xs',
+    scrubPillDisabled:
+      'bg-surface-subtle/60 border-border-subtle text-text-muted cursor-default',
+    textInput:
+      'px-2 py-0.5 rounded-md bg-surface-subtle hover:bg-surface border border-border-main text-[11px] font-mono text-text-main outline-none focus:border-amber-500/60 focus:bg-surface transition-colors',
+    selectTrigger:
+      'inline-flex items-center justify-between gap-1.5 px-2 py-0.5 rounded-md bg-surface-subtle hover:bg-surface-hover border border-border-main text-[11px] font-mono text-text-main outline-none focus:border-amber-500/60 disabled:opacity-60 disabled:cursor-default cursor-pointer transition-colors',
+    portalMenu:
+      'z-[70] rounded-xl bg-surface border border-border-main shadow-xl text-text-main p-1 select-none',
+    treeRail: 'pl-2.5 border-l-2 border-border-main/80',
+    timingBar:
+      'rounded-lg bg-surface-subtle/80 border border-border-subtle p-1.5 space-y-1.5',
+    addPropBtn:
+      'inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-surface-subtle hover:bg-surface-hover border border-border-main text-[10px] font-mono text-text-muted hover:text-text-main cursor-pointer transition-colors',
+  },
 } as const;

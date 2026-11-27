@@ -8,6 +8,7 @@ import React, { useCallback } from 'react';
 import { X } from 'lucide-react';
 import type { VisualFieldNode } from '../../../core/scoreYamlProjectionHelpers';
 import type { VisualEditorCallbacks } from './visualEditorTypes';
+import { UI_TOKENS } from '../../tokens/ui';
 import { FieldValueControl } from './FieldValueControl';
 
 export interface SchemaFieldRowProps {
@@ -26,8 +27,8 @@ export const SchemaFieldRow: React.FC<SchemaFieldRowProps> = React.memo(
     }, [field.yamlPath, onCommand]);
 
     return (
-      <div className="group flex items-start justify-between gap-1.5 py-1 px-1.5 rounded-md hover:bg-surface-subtle/70 transition-colors">
-        <div className="flex items-center gap-1 min-w-[96px] max-w-[120px] pt-0.5 shrink-0">
+      <div className={UI_TOKENS.inspector.fieldRow}>
+        <div className="flex items-center gap-1 pt-0.5 min-w-0">
           {dragHandle}
           <span
             className="text-[10px] font-mono text-text-muted truncate"

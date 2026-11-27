@@ -1,9 +1,10 @@
 /**
- * Categorized "+ Add property" popover menu backed by `scoreSchema.ts`.
- * Exposes all valid unauthored keys for any YAML block with inline descriptions.
+ * Categorized "+ Add property" popover menu backed by `scoreSchema.ts` and `@radix-ui/react-popover`.
+ * Portals cleanly above scroll containers with automatic viewport collision flipping.
  */
 
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
+import * as Popover from '@radix-ui/react-popover';
 import { Plus } from 'lucide-react';
 import {
   getAvailableAddFields,
@@ -15,6 +16,7 @@ import type {
   YamlPath,
 } from '../../../core/schema/scoreSchemaTypes';
 import type { ScoreYamlCommand } from '../../../core/scoreYamlMutator';
+import { UI_TOKENS } from '../../tokens/ui';
 
 export interface AddPropertyPopoverProps {
   section: SchemaSectionName;
@@ -35,25 +37,6 @@ export const AddPropertyPopover: React.FC<AddPropertyPopoverProps> = React.memo(
     onCommand,
   }) => {
     const [isOpen, setIsOpen] = useState(false);
-    const rootRef = useRef<HTMLDivElement | null>(null);
-
-    useEffect(() => {
-      if (!isOpen) return;
-      const handleDown = (e: PointerEvent) => {
-        if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
-          setIsOpen(false);
-        }
-      };
-      const handleKey = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') setIsOpen(false);
-      };
-      document.addEventListener('pointerdown', handleDown);
-      document.addEventListener('keydown', handleKey);
-      return () => {
-        document.removeEventListener('pointerdown', handleDown);
-        document.removeEventListener('keydown', handleKey);
-      };
-    }, [isOpen]);
 
     const groups = useMemo(() => {
       if (!isOpen) return [];
@@ -75,18 +58,22 @@ export const AddPropertyPopover: React.FC<AddPropertyPopoverProps> = React.memo(
     };
 
     return (
-      <div ref={rootRef} className="relative inline-block">
-        <button
-          type="button"
-          onClick={() => setIsOpen((v) => !v)}
-          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-surface-subtle hover:bg-surface-hover border border-border-main text-[10px] font-mono text-text-muted hover:text-text-main cursor-pointer transition-colors"
-        >
-          <Plus className="w-2.5 h-2.5" />
-          <span>{label.replace(/^\+\s*/, '')}</span>
-        </button>
+      <Popover.Root open={isOpen} onOpenChange={setIsOpen}>
+        <Popover.Trigger asChild>
+          <button type="button" className={UI_TOKENS.inspector.addPropBtn}>
+            <Plus className="w-2.5 h-2.5" />
+            <span>{label.replace(/^\+\s*/, '')}</span>
+          </button>
+        </Popover.Trigger>
 
-        {isOpen && (
-          <div className="absolute right-0 mt-1 z-40 w-64 max-h-64 overflow-y-auto custom-scrollbar rounded-xl bg-surface border border-border-main shadow-xl p-1.5">
+        <Popover.Portal>
+          <Popover.Content
+            side="bottom"
+            align="end"
+            sideOffset={6}
+            collisionPadding={10}
+            className={`${UI_TOKENS.inspector.portalMenu} w-64 max-h-64 overflow-y-auto custom-scrollbar p-1.5`}
+          >
             {groups.length === 0 ? (
               <div className="px-2 py-1.5 text-[10px] font-mono text-text-faint text-center">
                 All properties authored
@@ -122,9 +109,9 @@ export const AddPropertyPopover: React.FC<AddPropertyPopoverProps> = React.memo(
                 </div>
               ))
             )}
-          </div>
-        )}
-      </div>
+          </Popover.Content>
+        </Popover.Portal>
+      </Popover.Root>
     );
   }
 );

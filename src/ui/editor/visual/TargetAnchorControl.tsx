@@ -5,11 +5,15 @@
  * - 3D [x, y, z] coordinate anchor via Vec3ScrubRow
  */
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import type { SceneEntityDef } from '../../../core/types';
 import type { YamlPath } from '../../../core/schema/scoreSchemaTypes';
 import type { ScalarFormatHint } from '../../../core/scoreYamlMutator';
 import { Vec3ScrubRow, normalizeVec3Tuple } from './Vec3ScrubRow';
+import {
+  InspectorSelect,
+  type InspectorSelectOption,
+} from './InspectorSelect';
 
 export interface TargetAnchorControlProps {
   yamlPath: YamlPath;
@@ -64,6 +68,25 @@ export const TargetAnchorControl: React.FC<TargetAnchorControlProps> = React.mem
       [disabled, entities, onCommit, yamlPath]
     );
 
+    const entitySelectOptions: InspectorSelectOption[] = useMemo(() => {
+      const opts: InspectorSelectOption[] = [
+        { value: 'center', label: 'center (stage)' },
+        ...entities.map((ent) => ({
+          value: ent.id,
+          label: `${ent.id} · ${ent.label}`,
+        })),
+      ];
+      if (
+        typeof value === 'string' &&
+        value !== '' &&
+        value !== 'center' &&
+        !entities.some((e) => e.id === value)
+      ) {
+        opts.unshift({ value, label: value });
+      }
+      return opts;
+    }, [entities, value]);
+
     return (
       <div className="flex flex-wrap items-center gap-1.5">
         {isVec3 ? (
@@ -107,25 +130,15 @@ export const TargetAnchorControl: React.FC<TargetAnchorControlProps> = React.mem
             })}
           </div>
         ) : (
-          <select
-            disabled={disabled}
+          <InspectorSelect
             value={typeof value === 'string' ? value : ''}
-            onChange={(e) => onCommit(yamlPath, e.target.value, 'plain')}
-            className="px-2 py-0.5 rounded-md bg-surface-subtle border border-border-main text-[11px] font-mono text-text-main outline-none focus:border-amber-500/60 max-w-[165px]"
-          >
-            {typeof value === 'string' &&
-              value !== '' &&
-              value !== 'center' &&
-              !entities.some((e) => e.id === value) && (
-                <option value={value}>{value}</option>
-              )}
-            <option value="center">center (stage)</option>
-            {entities.map((ent) => (
-              <option key={ent.id} value={ent.id}>
-                {ent.id} · {ent.label}
-              </option>
-            ))}
-          </select>
+            options={entitySelectOptions}
+            disabled={disabled}
+            placeholder="target…"
+            maxWidthClassName="max-w-[175px]"
+            ariaLabel="Target entity"
+            onValueChange={(nextVal) => onCommit(yamlPath, nextVal, 'plain')}
+          />
         )}
 
         {allowVec3 && !disabled && (

@@ -93,6 +93,10 @@ To prevent inline class duplication and ensure uniform physical stationery styli
 - `UI_TOKENS.button.segmentedGroup`, `.segmentedItem`, `.segmentedItemActive`: Segmented pill containers and items for workspace layout and camera POV switchers.
 - `UI_TOKENS.input.search`, `.numberBox`, `.label`, `.labelMini`: Standardized search inputs, numeric boxes, and uppercase form labels.
 
+### 4.5 Visual Score Editor Inspector Tokens (`UI_TOKENS.inspector`)
+- `sectionCard`, `sectionHeader`, `sectionHeaderCollapsed`, `itemCard`, `itemCardActive`: Theme-adaptive stationery cards for top-level YAML sections and individual shot/entity/blocking/observer items.
+- `fieldRow`, `scrubPill` (`scrubPillIdle` / `scrubPillActive` / `scrubPillDisabled`), `textInput`, `selectTrigger`, `portalMenu`, `treeRail`, `timingBar`, `addPropBtn`: 2-column CSS property-grid rows, `FigmaNumberPill` states, tree indentation rails, and headless `@radix-ui/react-popover` / `@radix-ui/react-select` portal surfaces styled strictly from semantic CSS theme variables across all 4 StageFlow themes.
+
 ---
 
 ## 5. Decoupled 3D Diorama Stage Palette (`src/stage/dioramaTheme.ts`)

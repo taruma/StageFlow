@@ -7,6 +7,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { ChevronDown, ChevronRight, Plus } from 'lucide-react';
 import type { VisualEntityItem } from '../../../../core/scoreYamlProjectionHelpers';
 import type { VisualEditorCallbacks } from '../visualEditorTypes';
+import { UI_TOKENS } from '../../../tokens/ui';
 import { CollapsibleYamlSection } from '../CollapsibleYamlSection';
 import { SortableList } from '../dnd/SortableList';
 import { SortableItem } from '../dnd/SortableItem';
@@ -35,7 +36,7 @@ const EntityCard: React.FC<{
   const { disabled, onCommand } = callbacks;
 
   return (
-    <div className="rounded-lg border border-border-main bg-app/50 overflow-visible">
+    <div className={UI_TOKENS.inspector.itemCard}>
       <div className="flex items-center justify-between gap-2 px-2 py-1.5">
         <div className="flex items-center gap-1 min-w-0 flex-1">
           {dragHandle}
