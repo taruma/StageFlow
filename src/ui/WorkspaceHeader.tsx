@@ -13,7 +13,6 @@ import type {
   AppThemeCategory,
   AppThemeMode,
   DioramaThemeMode,
-  EditorStudioMode,
   SplitPreset,
   StoragePersistenceStatus,
 } from '../core/types';
@@ -31,7 +30,6 @@ export interface WorkspaceHeaderProps {
   activeSceneId: string;
   splitPreset: SplitPreset;
   isEditMode: boolean;
-  editorMode: EditorStudioMode;
   storageStatus?: StoragePersistenceStatus;
   isLibraryOpen?: boolean;
   isInfoOpen?: boolean;
@@ -41,7 +39,7 @@ export interface WorkspaceHeaderProps {
   effectiveDioramaCategory?: AppThemeCategory;
   onSelectScene: (sceneId: string) => void;
   onSelectSplitPreset: (preset: SplitPreset) => void;
-  onSelectEditorMode: (mode: EditorStudioMode) => void;
+  onToggleEditMode: () => void;
   onUploadFiles: (files: FileList) => void;
   activeSkinsCount?: number;
   onClearAllSkins?: () => void;
@@ -61,7 +59,6 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
   activeSceneId,
   splitPreset,
   isEditMode,
-  editorMode,
   storageStatus = 'bundled',
   isLibraryOpen = false,
   isInfoOpen = false,
@@ -70,7 +67,7 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
   dioramaThemeMode = 'match-app',
   effectiveDioramaCategory = 'light',
   onSelectSplitPreset,
-  onSelectEditorMode,
+  onToggleEditMode,
   onUploadFiles,
   activeSkinsCount = 0,
   onClearAllSkins,
@@ -176,8 +173,7 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
           splitPreset={splitPreset}
           onSelectSplitPreset={onSelectSplitPreset}
           isEditMode={isEditMode}
-          editorMode={editorMode}
-          onSelectEditorMode={onSelectEditorMode}
+          onToggleEditMode={onToggleEditMode}
         />
       </div>
 

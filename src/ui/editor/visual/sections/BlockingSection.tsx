@@ -3,12 +3,12 @@
  * (`entities: { ... }`) blocking cues, with click-to-seek playhead sync.
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { ChevronDown, ChevronRight, Plus } from 'lucide-react';
 import type { VisualBlockingItem } from '../../../../core/scoreYamlProjectionHelpers';
 import type { VisualEditorCallbacks } from '../visualEditorTypes';
 import { CollapsibleYamlSection } from '../CollapsibleYamlSection';
-import { SchemaFieldRow } from '../SchemaFieldRow';
+import { SortableFieldList } from '../SortableFieldList';
 import { AddPropertyPopover } from '../AddPropertyPopover';
 import { InsertBetweenSeam } from '../InsertBetweenSeam';
 import { CardReorderActions } from '../CardReorderActions';
@@ -17,8 +17,6 @@ import { EntityOverridesBlock } from '../EntityOverridesBlock';
 export interface BlockingSectionProps {
   blocking: VisualBlockingItem[];
   isSectionExpanded: boolean;
-  bulkExpandSeq: number;
-  bulkExpandMode: 'expand' | 'collapse';
   onToggleSection: () => void;
   callbacks: VisualEditorCallbacks;
 }
@@ -27,17 +25,9 @@ const BlockingCard: React.FC<{
   cue: VisualBlockingItem;
   idx: number;
   total: number;
-  bulkExpandSeq: number;
-  bulkExpandMode: 'expand' | 'collapse';
   callbacks: VisualEditorCallbacks;
-}> = React.memo(({ cue, idx, total, bulkExpandSeq, bulkExpandMode, callbacks }) => {
+}> = React.memo(({ cue, idx, total, callbacks }) => {
   const [isOpen, setIsOpen] = useState(false);
-
-  useEffect(() => {
-    if (bulkExpandSeq > 0) {
-      setIsOpen(bulkExpandMode === 'expand');
-    }
-  }, [bulkExpandSeq, bulkExpandMode]);
 
   const { disabled, onCommand, onSeekToTime } = callbacks;
   const handleHeaderClick = useCallback(() => {
@@ -101,9 +91,11 @@ const BlockingCard: React.FC<{
 
       {isOpen && (
         <div className="px-2.5 pb-2 pt-1 border-t border-border-subtle space-y-1">
-          {cue.fields.map((f) => (
-            <SchemaFieldRow key={f.key} field={f} callbacks={callbacks} />
-          ))}
+          <SortableFieldList
+            parentPath={cue.yamlPath}
+            fields={cue.fields}
+            callbacks={callbacks}
+          />
 
           <EntityOverridesBlock
             overrides={cue.entityOverrides}
@@ -127,14 +119,7 @@ const BlockingCard: React.FC<{
 });
 
 export const BlockingSection: React.FC<BlockingSectionProps> = React.memo(
-  ({
-    blocking,
-    isSectionExpanded,
-    bulkExpandSeq,
-    bulkExpandMode,
-    onToggleSection,
-    callbacks,
-  }) => {
+  ({ blocking, isSectionExpanded, onToggleSection, callbacks }) => {
     const { disabled, onCommand } = callbacks;
 
     return (
@@ -175,8 +160,6 @@ export const BlockingSection: React.FC<BlockingSectionProps> = React.memo(
                   cue={cue}
                   idx={idx}
                   total={blocking.length}
-                  bulkExpandSeq={bulkExpandSeq}
-                  bulkExpandMode={bulkExpandMode}
                   callbacks={callbacks}
                 />
                 <InsertBetweenSeam

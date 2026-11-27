@@ -1025,7 +1025,6 @@ export const InteractiveStudioApp: React.FC = () => {
         activeSceneId={activeSceneId}
         splitPreset={layout.splitPreset}
         isEditMode={layout.isEditMode}
-        editorMode={layout.editorMode}
         storageStatus={scorePersistence.storageStatus}
         isLibraryOpen={isLibraryOpen}
         isInfoOpen={isInfoOpen}
@@ -1035,7 +1034,7 @@ export const InteractiveStudioApp: React.FC = () => {
         effectiveDioramaCategory={theme.effectiveDioramaCategory}
         onSelectScene={handleSelectScene}
         onSelectSplitPreset={layout.handleSelectSplitPreset}
-        onSelectEditorMode={layout.handleSelectEditorMode}
+        onToggleEditMode={layout.handleToggleEditMode}
         onResetLayout={layout.handleResetLayout}
         onUploadFiles={menuFileDrop.processFiles}
         activeSkinsCount={stageSkins.activeSkinsCount}

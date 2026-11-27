@@ -1,6 +1,6 @@
 /**
  * Schema-driven YAML field row shell.
- * Renders the YAML key label, inherited hint badge (for unregistered keys),
+ * Renders an optional drag handle, YAML key label with tooltip/raw badge,
  * delegated `FieldValueControl`, and hover-revealed remove button.
  */
 
@@ -13,10 +13,11 @@ import { FieldValueControl } from './FieldValueControl';
 export interface SchemaFieldRowProps {
   field: VisualFieldNode;
   callbacks: VisualEditorCallbacks;
+  dragHandle?: React.ReactNode;
 }
 
 export const SchemaFieldRow: React.FC<SchemaFieldRowProps> = React.memo(
-  ({ field, callbacks }) => {
+  ({ field, callbacks, dragHandle }) => {
     const { disabled, onCommand } = callbacks;
     const desc = field.descriptor;
 
@@ -25,8 +26,9 @@ export const SchemaFieldRow: React.FC<SchemaFieldRowProps> = React.memo(
     }, [field.yamlPath, onCommand]);
 
     return (
-      <div className="group flex items-start justify-between gap-2 py-1 px-1.5 rounded-md hover:bg-surface-subtle/70 transition-colors">
-        <div className="flex items-center gap-1.5 min-w-[96px] max-w-[115px] pt-0.5 shrink-0">
+      <div className="group flex items-start justify-between gap-1.5 py-1 px-1.5 rounded-md hover:bg-surface-subtle/70 transition-colors">
+        <div className="flex items-center gap-1 min-w-[96px] max-w-[120px] pt-0.5 shrink-0">
+          {dragHandle}
           <span
             className="text-[10px] font-mono text-text-muted truncate"
             title={

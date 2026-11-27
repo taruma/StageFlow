@@ -9,6 +9,7 @@ import React, {
   useRef,
   useMemo,
   useCallback,
+  useEffect,
   useImperativeHandle,
   forwardRef,
 } from 'react';
@@ -28,8 +29,7 @@ import { ShotsSection } from './sections/ShotsSection';
 import { ObserverShotsSection } from './sections/ObserverShotsSection';
 
 export interface VisualScoreEditorHandle {
-  collapseAll: () => void;
-  expandAll: () => void;
+  toggleFoldSections: () => void;
   scrollToShotId: (shotId: string) => void;
 }
 
@@ -61,6 +61,7 @@ export interface VisualScoreEditorProps {
   onSeekToTime: (sec: number) => void;
   getCurrentTimeSec: () => number;
   onSwitchToYamlLine?: (line?: number) => void;
+  onAnySectionExpandedChange?: (anyExpanded: boolean) => void;
 }
 
 export const VisualScoreEditor = React.memo(
@@ -81,6 +82,7 @@ export const VisualScoreEditor = React.memo(
         onSeekToTime,
         getCurrentTimeSec,
         onSwitchToYamlLine,
+        onAnySectionExpandedChange,
       },
       ref
     ) => {
@@ -102,14 +104,37 @@ export const VisualScoreEditor = React.memo(
         observerShots: false,
       });
 
-      const [bulkExpand, setBulkExpand] = useState<{
-        mode: 'expand' | 'collapse';
-        seq: number;
-      }>({ mode: 'collapse', seq: 0 });
       const [focusedShot, setFocusedShot] = useState<{
         shotId: string;
         seq: number;
       } | null>(null);
+
+      const anySectionExpanded = useMemo(
+        () => Object.values(expandedSections).some(Boolean),
+        [expandedSections]
+      );
+
+      useEffect(() => {
+        onAnySectionExpandedChange?.(anySectionExpanded);
+      }, [anySectionExpanded, onAnySectionExpandedChange]);
+
+      useEffect(() => {
+        if (!focusedShot) return;
+        let raf1 = 0;
+        let raf2 = 0;
+        raf1 = requestAnimationFrame(() => {
+          raf2 = requestAnimationFrame(() => {
+            const el = scrollContainerRef.current?.querySelector(
+              `[data-shot-id="${CSS.escape(focusedShot.shotId)}"]`
+            );
+            el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          });
+        });
+        return () => {
+          cancelAnimationFrame(raf1);
+          cancelAnimationFrame(raf2);
+        };
+      }, [focusedShot]);
 
       const toggleScene = useCallback(
         () => setExpandedSections((p) => ({ ...p, scene: !p.scene })),
@@ -143,39 +168,24 @@ export const VisualScoreEditor = React.memo(
       useImperativeHandle(
         ref,
         () => ({
-          collapseAll: () => {
-            setExpandedSections({
-              scene: false,
-              stage: false,
-              entities: false,
-              blocking: false,
-              shots: false,
-              observerShots: false,
+          toggleFoldSections: () => {
+            setExpandedSections((prev) => {
+              const target = !Object.values(prev).some(Boolean);
+              return {
+                scene: target,
+                stage: target,
+                entities: target,
+                blocking: target,
+                shots: target,
+                observerShots: target,
+              };
             });
-            setBulkExpand((prev) => ({ mode: 'collapse', seq: prev.seq + 1 }));
-          },
-          expandAll: () => {
-            setExpandedSections({
-              scene: true,
-              stage: true,
-              entities: true,
-              blocking: true,
-              shots: true,
-              observerShots: true,
-            });
-            setBulkExpand((prev) => ({ mode: 'expand', seq: prev.seq + 1 }));
           },
           scrollToShotId: (shotId: string) => {
             setExpandedSections((prev) =>
               prev.shots ? prev : { ...prev, shots: true }
             );
             setFocusedShot((prev) => ({ shotId, seq: (prev?.seq ?? 0) + 1 }));
-            requestAnimationFrame(() => {
-              const el = scrollContainerRef.current?.querySelector(
-                `[data-shot-id="${CSS.escape(shotId)}"]`
-              );
-              el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            });
           },
         }),
         []
@@ -249,8 +259,6 @@ export const VisualScoreEditor = React.memo(
           <EntitiesSection
             entities={ir.entities}
             isSectionExpanded={expandedSections.entities}
-            bulkExpandSeq={bulkExpand.seq}
-            bulkExpandMode={bulkExpand.mode}
             onToggleSection={toggleEntities}
             callbacks={callbacks}
           />
@@ -258,8 +266,6 @@ export const VisualScoreEditor = React.memo(
           <BlockingSection
             blocking={ir.blocking}
             isSectionExpanded={expandedSections.blocking}
-            bulkExpandSeq={bulkExpand.seq}
-            bulkExpandMode={bulkExpand.mode}
             onToggleSection={toggleBlocking}
             callbacks={callbacks}
           />
@@ -268,8 +274,6 @@ export const VisualScoreEditor = React.memo(
             shots={ir.shots}
             activeShotId={activeShotId}
             isSectionExpanded={expandedSections.shots}
-            bulkExpandSeq={bulkExpand.seq}
-            bulkExpandMode={bulkExpand.mode}
             focusedShotId={focusedShot?.shotId ?? null}
             focusedShotSeq={focusedShot?.seq ?? 0}
             onToggleSection={toggleShots}
@@ -281,8 +285,6 @@ export const VisualScoreEditor = React.memo(
           <ObserverShotsSection
             observerShots={ir.observerShots}
             isSectionExpanded={expandedSections.observerShots}
-            bulkExpandSeq={bulkExpand.seq}
-            bulkExpandMode={bulkExpand.mode}
             onToggleSection={toggleObserverShots}
             callbacks={callbacks}
           />

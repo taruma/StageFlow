@@ -193,4 +193,28 @@ describe('scoreYamlMutator', () => {
     });
     expect(noop.changed).toBe(false);
   });
+
+  it('reorders YAML map keys in-place at root and nested stage_camera levels while preserving comments', () => {
+    const afterRoot = applyScoreYamlCommand(SAMPLE_YAML, {
+      type: 'reorder-map-key',
+      parentPath: [],
+      fromKey: 'duration',
+      toKey: 'version',
+    });
+    const versionIdx = afterRoot.indexOf('version:');
+    const durationIdx = afterRoot.indexOf('duration:');
+    expect(durationIdx).toBeGreaterThan(-1);
+    expect(durationIdx).toBeLessThan(versionIdx);
+    expect(afterRoot).toContain('# TEST SCORE BANNER');
+
+    const afterNested = applyScoreYamlCommand(afterRoot, {
+      type: 'reorder-map-key',
+      parentPath: ['shots', 0, 'stage_camera'],
+      fromKey: 'lens',
+      toKey: 'maneuver',
+    });
+    const shotSection = afterNested.split('- id: "shot-1"')[1].split('- id: "shot-2"')[0];
+    expect(shotSection.indexOf('lens:')).toBeLessThan(shotSection.indexOf('maneuver:'));
+    expect(afterNested).toContain('# Normal lens');
+  });
 });

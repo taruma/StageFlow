@@ -43,6 +43,12 @@ export type ScoreYamlCommand =
       format?: ScalarFormatHint;
     }
   | { type: 'remove-field'; path: YamlPath }
+  | {
+      type: 'reorder-map-key';
+      parentPath: YamlPath;
+      fromKey: string;
+      toKey: string;
+    }
   | { type: 'insert-entity'; afterIndex: number }
   | { type: 'delete-entity'; index: number }
   | { type: 'reorder-entity'; fromIndex: number; toIndex: number }
@@ -200,6 +206,28 @@ function deleteSeqItem(seq: YAMLSeq, index: number): void {
   seq.items.splice(index, 1);
 }
 
+function applyReorderMapKey(
+  doc: Document,
+  parentPath: YamlPath,
+  fromKey: string,
+  toKey: string
+): void {
+  const target =
+    parentPath.length === 0 ? doc.contents : doc.getIn(parentPath, true);
+  if (!isMap(target) || fromKey === toKey) return;
+
+  const fromIdx = target.items.findIndex(
+    (pair) => isScalar(pair.key) && String(pair.key.value) === fromKey
+  );
+  const toIdx = target.items.findIndex(
+    (pair) => isScalar(pair.key) && String(pair.key.value) === toKey
+  );
+  if (fromIdx < 0 || toIdx < 0 || fromIdx === toIdx) return;
+
+  const [moved] = target.items.splice(fromIdx, 1);
+  target.items.splice(toIdx, 0, moved);
+}
+
 export interface ScoreYamlMutationResult {
   nextYaml: string;
   doc: Document | null;
@@ -237,6 +265,15 @@ export function applyScoreYamlCommandDetailed(
 
     case 'remove-field':
       doc.deleteIn(command.path);
+      break;
+
+    case 'reorder-map-key':
+      applyReorderMapKey(
+        doc,
+        command.parentPath,
+        command.fromKey,
+        command.toKey
+      );
       break;
 
     case 'insert-entity': {

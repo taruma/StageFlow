@@ -1,6 +1,6 @@
 /**
- * Top Header Bar for the Dual-Mode Choreography Score Studio ([ Visual | YAML ]).
- * Houses title, active synchronization indicator, Spec/Guide links, and close button.
+ * Top Header Bar for the Dual-Mode Choreography Score Studio.
+ * Houses the compact [ Visual | YAML ] switcher, sync status pill, Spec/Guide links, and close button.
  */
 
 import React, { useCallback } from 'react';
@@ -10,6 +10,7 @@ import { UI_TOKENS } from '../tokens/ui';
 
 export interface YamlEditorHeaderProps {
   editorMode: EditorStudioMode;
+  onChangeEditorMode: (mode: EditorStudioMode) => void;
   isBundled: boolean;
   onOpenSpec?: () => void;
   onOpenGuide?: () => void;
@@ -17,7 +18,14 @@ export interface YamlEditorHeaderProps {
 }
 
 export const YamlEditorHeader: React.FC<YamlEditorHeaderProps> = React.memo(
-  ({ editorMode, isBundled, onOpenSpec, onOpenGuide, onClose }) => {
+  ({
+    editorMode,
+    onChangeEditorMode,
+    isBundled,
+    onOpenSpec,
+    onOpenGuide,
+    onClose,
+  }) => {
     const handleDefaultOpenSpec = useCallback(() => {
       const url = `${window.location.origin}${window.location.pathname}?mode=spec`;
       window.open(url, '_blank', 'noopener,noreferrer');
@@ -32,28 +40,54 @@ export const YamlEditorHeader: React.FC<YamlEditorHeaderProps> = React.memo(
     const handleGuideClick = onOpenGuide ?? handleDefaultOpenGuide;
 
     return (
-      <div className="h-10 px-4 border-b border-border-main flex items-center justify-between gap-2 select-none bg-surface-subtle shrink-0">
+      <div className="h-10 px-3 border-b border-border-main flex items-center justify-between gap-2 select-none bg-surface-subtle shrink-0">
         <div className="flex items-center gap-2 min-w-0">
-          {editorMode === 'visual' ? (
-            <SlidersHorizontal className="w-4 h-4 text-amber-500 shrink-0" />
-          ) : (
-            <Code2 className="w-4 h-4 text-amber-500 shrink-0" />
-          )}
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="text-xs font-mono font-bold text-text-main truncate">
-              {editorMode === 'visual' ? 'Visual Score' : 'Live YAML Score'}
-            </span>
-            {isBundled ? (
-              <span className="px-1.5 py-0.2 rounded text-[9px] font-mono bg-sky-500/15 text-sky-600 dark:text-sky-300 border border-sky-400/30 shrink-0">
-                Read-Only
-              </span>
-            ) : (
-              <span className="flex items-center gap-1.5 px-1.5 py-0.2 rounded text-[9px] font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 font-medium shrink-0">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span>Live Sync</span>
-              </span>
-            )}
+          {/* Inline [ Visual | YAML ] Mode Switcher */}
+          <div
+            role="group"
+            aria-label="Editor View Mode"
+            className="inline-flex items-center p-0.5 rounded-lg bg-surface-muted border border-border-main shrink-0"
+          >
+            <button
+              type="button"
+              aria-pressed={editorMode === 'visual'}
+              onClick={() => onChangeEditorMode('visual')}
+              className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono font-bold transition-colors cursor-pointer ${
+                editorMode === 'visual'
+                  ? 'bg-surface text-amber-600 dark:text-amber-400 shadow-2xs ring-1 ring-amber-500/25'
+                  : 'text-text-muted hover:text-text-main'
+              }`}
+              title="Structured Visual Score Editor"
+            >
+              <SlidersHorizontal className="w-3 h-3" />
+              <span>Visual</span>
+            </button>
+            <button
+              type="button"
+              aria-pressed={editorMode === 'yaml'}
+              onClick={() => onChangeEditorMode('yaml')}
+              className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono font-bold transition-colors cursor-pointer ${
+                editorMode === 'yaml'
+                  ? 'bg-surface text-amber-600 dark:text-amber-400 shadow-2xs ring-1 ring-amber-500/25'
+                  : 'text-text-muted hover:text-text-main'
+              }`}
+              title="Live YAML Source Editor"
+            >
+              <Code2 className="w-3 h-3" />
+              <span>YAML</span>
+            </button>
           </div>
+
+          {isBundled ? (
+            <span className="px-1.5 py-0.2 rounded text-[9px] font-mono bg-sky-500/15 text-sky-600 dark:text-sky-300 border border-sky-400/30 shrink-0">
+              Read-Only
+            </span>
+          ) : (
+            <span className="flex items-center gap-1.5 px-1.5 py-0.2 rounded text-[9px] font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 font-medium shrink-0">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Live Sync</span>
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">

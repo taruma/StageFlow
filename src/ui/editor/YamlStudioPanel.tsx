@@ -113,6 +113,7 @@ export const YamlStudioPanel: React.FC<YamlStudioPanelProps> = React.memo(
   }) => {
     const editorCanvasRef = useRef<YamlEditorHandle | null>(null);
     const visualEditorRef = useRef<VisualScoreEditorHandle | null>(null);
+    const [anySectionExpanded, setAnySectionExpanded] = useState(true);
 
     const [wordWrap, setWordWrap] = useState<boolean>(() => {
       return loadStoredEditorWordWrap() ?? true;
@@ -146,12 +147,8 @@ export const YamlStudioPanel: React.FC<YamlStudioPanelProps> = React.memo(
       [editorMode, onChangeEditorMode]
     );
 
-    const handleCollapseAll = useCallback(() => {
-      visualEditorRef.current?.collapseAll();
-    }, []);
-
-    const handleExpandAll = useCallback(() => {
-      visualEditorRef.current?.expandAll();
+    const handleToggleFoldSections = useCallback(() => {
+      visualEditorRef.current?.toggleFoldSections();
     }, []);
 
     const handleJumpToActiveShot = useCallback(() => {
@@ -170,6 +167,7 @@ export const YamlStudioPanel: React.FC<YamlStudioPanelProps> = React.memo(
         {/* 1. Top Panel Header */}
         <YamlEditorHeader
           editorMode={editorMode}
+          onChangeEditorMode={onChangeEditorMode}
           isBundled={isBundled}
           onClose={onClose}
         />
@@ -182,12 +180,12 @@ export const YamlStudioPanel: React.FC<YamlStudioPanelProps> = React.memo(
           wordWrap={wordWrap}
           canUndo={canUndo}
           canRedo={canRedo}
+          anySectionExpanded={anySectionExpanded}
           hasActiveShot={Boolean(activeShotId)}
           onUndo={onUndo}
           onRedo={onRedo}
           onToggleWordWrap={handleToggleWordWrap}
-          onCollapseAll={handleCollapseAll}
-          onExpandAll={handleExpandAll}
+          onToggleFoldSections={handleToggleFoldSections}
           onJumpToActiveShot={handleJumpToActiveShot}
           onForkScore={onForkScore}
         />
@@ -218,6 +216,7 @@ export const YamlStudioPanel: React.FC<YamlStudioPanelProps> = React.memo(
             onSeekToTime={onSeekToTime}
             getCurrentTimeSec={getCurrentTimeSec}
             onSwitchToYamlLine={handleJumpToLine}
+            onAnySectionExpandedChange={setAnySectionExpanded}
           />
         ) : (
           <YamlEditorCanvas

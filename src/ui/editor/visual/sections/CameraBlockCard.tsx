@@ -7,7 +7,7 @@ import React, { useState } from 'react';
 import { ChevronDown, ChevronRight, Video, X } from 'lucide-react';
 import type { VisualCameraBlockNode } from '../../../../core/scoreYamlProjectionHelpers';
 import type { VisualEditorCallbacks } from '../visualEditorTypes';
-import { SchemaFieldRow } from '../SchemaFieldRow';
+import { SortableFieldList } from '../SortableFieldList';
 import { AddPropertyPopover } from '../AddPropertyPopover';
 import { WaypointsBlock } from '../WaypointsBlock';
 
@@ -77,9 +77,11 @@ export const CameraBlockCard: React.FC<CameraBlockCardProps> = React.memo(
 
         {expanded && (
           <div className="space-y-0.5">
-            {block.fields.map((f) => (
-              <SchemaFieldRow key={f.key} field={f} callbacks={callbacks} />
-            ))}
+            <SortableFieldList
+              parentPath={block.yamlPath}
+              fields={block.fields}
+              callbacks={callbacks}
+            />
 
             {block.rig && (
               <div className="mt-1.5 pl-2.5 border-l-2 border-amber-500/40 space-y-0.5">
@@ -96,13 +98,11 @@ export const CameraBlockCard: React.FC<CameraBlockCardProps> = React.memo(
                     onCommand={callbacks.onCommand}
                   />
                 </div>
-                {block.rig.fields.map((rf) => (
-                  <SchemaFieldRow
-                    key={rf.key}
-                    field={rf}
-                    callbacks={callbacks}
-                  />
-                ))}
+                <SortableFieldList
+                  parentPath={block.rig.yamlPath}
+                  fields={block.rig.fields}
+                  callbacks={callbacks}
+                />
                 {block.rig.points && (
                   <div className="px-1.5 py-0.5 text-[10px] font-mono text-text-muted">
                     points: {block.rig.points.length} spline rail pts

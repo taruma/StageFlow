@@ -12,7 +12,7 @@ import type {
   ShotTimingCallbacks,
   VisualEditorCallbacks,
 } from '../visualEditorTypes';
-import { SchemaFieldRow } from '../SchemaFieldRow';
+import { SortableFieldList } from '../SortableFieldList';
 import { AddPropertyPopover } from '../AddPropertyPopover';
 import { CardReorderActions } from '../CardReorderActions';
 import { EntityOverridesBlock } from '../EntityOverridesBlock';
@@ -23,8 +23,6 @@ export interface ShotCardProps {
   shot: VisualShotItem;
   index: number;
   totalShots: number;
-  bulkExpandSeq: number;
-  bulkExpandMode: 'expand' | 'collapse';
   focusExpandSeq: number;
   isActiveShot: boolean;
   timingCallbacks: ShotTimingCallbacks;
@@ -36,20 +34,14 @@ export const ShotCard: React.FC<ShotCardProps> = React.memo(
     shot,
     index,
     totalShots,
-    bulkExpandSeq,
-    bulkExpandMode,
     focusExpandSeq,
     isActiveShot,
     timingCallbacks,
     callbacks,
   }) => {
-    const [isExpanded, setIsExpanded] = useState(false);
-
-    useEffect(() => {
-      if (bulkExpandSeq > 0) {
-        setIsExpanded(bulkExpandMode === 'expand');
-      }
-    }, [bulkExpandSeq, bulkExpandMode]);
+    const [isExpanded, setIsExpanded] = useState<boolean>(
+      () => focusExpandSeq > 0
+    );
 
     useEffect(() => {
       if (focusExpandSeq > 0) {
@@ -175,11 +167,11 @@ export const ShotCard: React.FC<ShotCardProps> = React.memo(
               onCancelScrub={onCancelScrub}
             />
 
-            <div className="space-y-0.5">
-              {scalarFields.map((f) => (
-                <SchemaFieldRow key={f.key} field={f} callbacks={callbacks} />
-              ))}
-            </div>
+            <SortableFieldList
+              parentPath={shot.yamlPath}
+              fields={scalarFields}
+              callbacks={callbacks}
+            />
 
             {shot.stageCamera && (
               <CameraBlockCard

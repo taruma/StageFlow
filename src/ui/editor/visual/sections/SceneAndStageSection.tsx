@@ -6,7 +6,7 @@ import React from 'react';
 import type { VisualScoreIR } from '../../../../core/scoreYamlProjectionHelpers';
 import type { VisualEditorCallbacks } from '../visualEditorTypes';
 import { CollapsibleYamlSection } from '../CollapsibleYamlSection';
-import { SchemaFieldRow } from '../SchemaFieldRow';
+import { SortableFieldList } from '../SortableFieldList';
 import { AddPropertyPopover } from '../AddPropertyPopover';
 import { CameraBlockCard } from './CameraBlockCard';
 
@@ -48,11 +48,11 @@ export const SceneAndStageSection: React.FC<SceneAndStageSectionProps> =
               />
             }
           >
-            <div className="space-y-0.5">
-              {ir.rootFields.map((f) => (
-                <SchemaFieldRow key={f.key} field={f} callbacks={callbacks} />
-              ))}
-            </div>
+            <SortableFieldList
+              parentPath={[]}
+              fields={ir.rootFields}
+              callbacks={callbacks}
+            />
 
             {ir.optics.exists ? (
               <div className="mt-2 pl-2.5 border-l-2 border-emerald-500/40 space-y-0.5">
@@ -69,9 +69,11 @@ export const SceneAndStageSection: React.FC<SceneAndStageSectionProps> =
                     onCommand={callbacks.onCommand}
                   />
                 </div>
-                {ir.optics.fields.map((f) => (
-                  <SchemaFieldRow key={f.key} field={f} callbacks={callbacks} />
-                ))}
+                <SortableFieldList
+                  parentPath={ir.optics.yamlPath}
+                  fields={ir.optics.fields}
+                  callbacks={callbacks}
+                />
               </div>
             ) : (
               !callbacks.disabled && (
@@ -120,11 +122,11 @@ export const SceneAndStageSection: React.FC<SceneAndStageSectionProps> =
                 </p>
               )}
 
-            <div className="space-y-0.5">
-              {ir.stage.fields.map((f) => (
-                <SchemaFieldRow key={f.key} field={f} callbacks={callbacks} />
-              ))}
-            </div>
+            <SortableFieldList
+              parentPath={ir.stage.yamlPath}
+              fields={ir.stage.fields}
+              callbacks={callbacks}
+            />
 
             {ir.stage.observerCamera && (
               <div className="mt-1.5">

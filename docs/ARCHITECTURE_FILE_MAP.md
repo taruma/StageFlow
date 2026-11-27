@@ -169,7 +169,7 @@ stageflow/
 │   │   │   └── ui.ts                # Centralized UI_TOKENS for layout, pills, buttons & modals
 │   │   ├── header/                  # Modular 3-wing studio header submodules
 │   │   │   ├── FileMenuDropdown.tsx # Tiered File ▾ popover menu (Score & Project, 3D Skins, Export & Storyboard, Documentation)
-│   │   │   ├── LayoutSegmentedControl.tsx # Centered segmented split workspace layout switcher
+│   │   │   ├── LayoutSegmentedControl.tsx # Centered segmented split layout ([Split | Full]) & [Edit] studio toggle
 │   │   │   ├── ActiveScoreIndicator.tsx # Interactive active score context chip with 1-click library open
 │   │   │   └── ThemeSelectorDropdown.tsx # Accessible 4-mode theme switcher (Auto, Dark, Warm, Light)
 │   │   ├── left-panel/              # Modular left column submodules
@@ -180,8 +180,8 @@ stageflow/
 │   │   ├── editor/                  # Modular Dual-Mode Choreography Score Studio ([ Visual | YAML ]) submodules
 │   │   │   ├── index.ts             # Barrel exports for editor studio components
 │   │   │   ├── YamlStudioPanel.tsx  # In-flow right-column dual-mode choreography score studio container
-│   │   │   ├── YamlEditorHeader.tsx # Top header with mode title, sync badge, Spec/Guide triggers & close
-│   │   │   ├── YamlActionBar.tsx    # Directorial action bar (Undo/Redo, Wrap/Collapse/Expand/Active, Copy, Fork)
+│   │   │   ├── YamlEditorHeader.tsx # Top header with [ Visual | YAML ] switcher, sync badge, Spec/Guide triggers & close
+│   │   │   ├── YamlActionBar.tsx    # Directorial action bar (Undo/Redo, Fold/Unfold/Active or Wrap, Copy, Fork)
 │   │   │   ├── YamlDiagnosticsBanner.tsx # Diagnostic alert banner with line/col jump
 │   │   │   ├── YamlEditorCanvas.tsx # CodeMirror 6 DOM mounting & virtualized canvas
 │   │   │   ├── useCodeMirrorTheme.ts # Dynamic theme extension for Dark/Warm/Light/Pure Black
@@ -189,6 +189,8 @@ stageflow/
 │   │   │   └── visual/              # YAML-Mirrored Visual Score Editor submodules
 │   │   │       ├── visualEditorTypes.ts # Shared authoring & ShotTimingCallbacks interfaces
 │   │   │       ├── VisualScoreEditor.tsx # Top-to-bottom YAML-mirrored collapsible score editor
+│   │   │       ├── dnd/             # `@dnd-kit` drag-reordering primitives (SortableList, SortableItem)
+│   │   │       ├── SortableFieldList.tsx # Reusable `@dnd-kit` sortable YAML key wrapper dispatching `reorder-map-key`
 │   │   │       ├── FigmaNumberPill.tsx # Horizontal pointer-capture numeric scrubber + click-to-type pill
 │   │   │       ├── Vec3ScrubRow.tsx # Single-row X/Y/Z triplet of FigmaNumberPill scrubbers
 │   │   │       ├── TargetAnchorControl.tsx # Entity ID, multi-entity & [x, y, z] target selector

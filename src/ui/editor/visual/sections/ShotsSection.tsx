@@ -19,8 +19,6 @@ export interface ShotsSectionProps {
   shots: VisualShotItem[];
   activeShotId: string | null;
   isSectionExpanded: boolean;
-  bulkExpandSeq: number;
-  bulkExpandMode: 'expand' | 'collapse';
   focusedShotId: string | null;
   focusedShotSeq: number;
   onToggleSection: () => void;
@@ -39,8 +37,6 @@ export const ShotsSection: React.FC<ShotsSectionProps> = React.memo(
     shots,
     activeShotId,
     isSectionExpanded,
-    bulkExpandSeq,
-    bulkExpandMode,
     focusedShotId,
     focusedShotSeq,
     onToggleSection,
@@ -104,8 +100,6 @@ export const ShotsSection: React.FC<ShotsSectionProps> = React.memo(
                   shot={shot}
                   index={idx}
                   totalShots={shots.length}
-                  bulkExpandSeq={bulkExpandSeq}
-                  bulkExpandMode={bulkExpandMode}
                   focusExpandSeq={focusedShotId === shot.id ? focusedShotSeq : 0}
                   isActiveShot={activeShotId === shot.id}
                   timingCallbacks={timingCallbacks}

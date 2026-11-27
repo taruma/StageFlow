@@ -1,14 +1,16 @@
 /**
- * Collapsible `entities:` section with per-entity cards, color dots,
- * reorder/delete actions, and "+" insert-between seams.
+ * Collapsible `entities:` section with drag-sortable entity cards (`@dnd-kit`),
+ * sortable entity property keys, color dots, reorder/delete actions, and "+" insert-between seams.
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { ChevronDown, ChevronRight, Plus } from 'lucide-react';
 import type { VisualEntityItem } from '../../../../core/scoreYamlProjectionHelpers';
 import type { VisualEditorCallbacks } from '../visualEditorTypes';
 import { CollapsibleYamlSection } from '../CollapsibleYamlSection';
-import { SchemaFieldRow } from '../SchemaFieldRow';
+import { SortableList } from '../dnd/SortableList';
+import { SortableItem } from '../dnd/SortableItem';
+import { SortableFieldList } from '../SortableFieldList';
 import { AddPropertyPopover } from '../AddPropertyPopover';
 import { InsertBetweenSeam } from '../InsertBetweenSeam';
 import { CardReorderActions } from '../CardReorderActions';
@@ -16,8 +18,6 @@ import { CardReorderActions } from '../CardReorderActions';
 export interface EntitiesSectionProps {
   entities: VisualEntityItem[];
   isSectionExpanded: boolean;
-  bulkExpandSeq: number;
-  bulkExpandMode: 'expand' | 'collapse';
   onToggleSection: () => void;
   callbacks: VisualEditorCallbacks;
 }
@@ -26,48 +26,44 @@ const EntityCard: React.FC<{
   ent: VisualEntityItem;
   idx: number;
   total: number;
-  bulkExpandSeq: number;
-  bulkExpandMode: 'expand' | 'collapse';
+  dragHandle?: React.ReactNode;
   callbacks: VisualEditorCallbacks;
-}> = React.memo(({ ent, idx, total, bulkExpandSeq, bulkExpandMode, callbacks }) => {
+}> = React.memo(({ ent, idx, total, dragHandle, callbacks }) => {
   const [isOpen, setIsOpen] = useState(false);
-
-  useEffect(() => {
-    if (bulkExpandSeq > 0) {
-      setIsOpen(bulkExpandMode === 'expand');
-    }
-  }, [bulkExpandSeq, bulkExpandMode]);
 
   const toggleOpen = useCallback(() => setIsOpen((v) => !v), []);
   const { disabled, onCommand } = callbacks;
 
   return (
     <div className="rounded-lg border border-border-main bg-app/50 overflow-visible">
-      <div className="flex items-center justify-between gap-2 px-2.5 py-1.5">
-        <button
-          type="button"
-          onClick={toggleOpen}
-          className="flex items-center gap-2 min-w-0 flex-1 text-left cursor-pointer"
-        >
-          {isOpen ? (
-            <ChevronDown className="w-3 h-3 text-text-muted shrink-0" />
-          ) : (
-            <ChevronRight className="w-3 h-3 text-text-muted shrink-0" />
-          )}
-          <span
-            className="w-2.5 h-2.5 rounded-full shrink-0 border border-white/20"
-            style={{ backgroundColor: ent.color }}
-          />
-          <span className="text-[11px] font-mono font-semibold text-text-main truncate">
-            {ent.label}
-          </span>
-          <span className="text-[10px] font-mono text-text-faint truncate">
-            {ent.id}
-          </span>
-          <span className="px-1.5 py-0 rounded text-[9px] font-mono bg-surface-subtle border border-border-subtle text-text-muted shrink-0">
-            {ent.kind}
-          </span>
-        </button>
+      <div className="flex items-center justify-between gap-2 px-2 py-1.5">
+        <div className="flex items-center gap-1 min-w-0 flex-1">
+          {dragHandle}
+          <button
+            type="button"
+            onClick={toggleOpen}
+            className="flex items-center gap-2 min-w-0 flex-1 text-left cursor-pointer"
+          >
+            {isOpen ? (
+              <ChevronDown className="w-3 h-3 text-text-muted shrink-0" />
+            ) : (
+              <ChevronRight className="w-3 h-3 text-text-muted shrink-0" />
+            )}
+            <span
+              className="w-2.5 h-2.5 rounded-full shrink-0 border border-white/20"
+              style={{ backgroundColor: ent.color }}
+            />
+            <span className="text-[11px] font-mono font-semibold text-text-main truncate">
+              {ent.label}
+            </span>
+            <span className="text-[10px] font-mono text-text-faint truncate">
+              {ent.id}
+            </span>
+            <span className="px-1.5 py-0 rounded text-[9px] font-mono bg-surface-subtle border border-border-subtle text-text-muted shrink-0">
+              {ent.kind}
+            </span>
+          </button>
+        </div>
 
         <CardReorderActions
           disabled={disabled}
@@ -94,9 +90,11 @@ const EntityCard: React.FC<{
 
       {isOpen && (
         <div className="px-2.5 pb-2 pt-1 border-t border-border-subtle space-y-0.5">
-          {ent.fields.map((f) => (
-            <SchemaFieldRow key={f.key} field={f} callbacks={callbacks} />
-          ))}
+          <SortableFieldList
+            parentPath={ent.yamlPath}
+            fields={ent.fields}
+            callbacks={callbacks}
+          />
           <div className="pt-1 flex justify-end">
             <AddPropertyPopover
               section="entity"
@@ -114,15 +112,25 @@ const EntityCard: React.FC<{
 });
 
 export const EntitiesSection: React.FC<EntitiesSectionProps> = React.memo(
-  ({
-    entities,
-    isSectionExpanded,
-    bulkExpandSeq,
-    bulkExpandMode,
-    onToggleSection,
-    callbacks,
-  }) => {
+  ({ entities, isSectionExpanded, onToggleSection, callbacks }) => {
     const { disabled, onCommand } = callbacks;
+
+    const sortableIds = useMemo(() => {
+      const counts = new Map<string, number>();
+      return entities.map((e) => {
+        const base = e.id || 'entity';
+        const c = (counts.get(base) ?? 0) + 1;
+        counts.set(base, c);
+        return c === 1 ? base : `${base}#${c}`;
+      });
+    }, [entities]);
+
+    const handleReorderEntities = useCallback(
+      (fromIndex: number, toIndex: number) => {
+        onCommand({ type: 'reorder-entity', fromIndex, toIndex });
+      },
+      [onCommand]
+    );
 
     return (
       <CollapsibleYamlSection
@@ -155,27 +163,43 @@ export const EntitiesSection: React.FC<EntitiesSectionProps> = React.memo(
             No entities defined.
           </p>
         ) : (
-          <div>
-            {entities.map((ent, idx) => (
-              <React.Fragment key={`entity:${idx}:${ent.id}`}>
-                <EntityCard
-                  ent={ent}
-                  idx={idx}
-                  total={entities.length}
-                  bulkExpandSeq={bulkExpandSeq}
-                  bulkExpandMode={bulkExpandMode}
-                  callbacks={callbacks}
-                />
-                <InsertBetweenSeam
-                  label="Insert entity"
-                  disabled={disabled}
-                  onInsert={() =>
-                    onCommand({ type: 'insert-entity', afterIndex: idx })
-                  }
-                />
-              </React.Fragment>
-            ))}
-          </div>
+          <SortableList
+            items={sortableIds}
+            disabled={disabled || entities.length < 2}
+            onReorder={handleReorderEntities}
+          >
+            <div>
+              {entities.map((ent, idx) => {
+                const sortId = sortableIds[idx];
+                return (
+                  <React.Fragment key={sortId}>
+                    <SortableItem
+                      id={sortId}
+                      disabled={disabled || entities.length < 2}
+                      handleTitle={`Drag to reorder ${ent.label}`}
+                    >
+                      {({ dragHandle }) => (
+                        <EntityCard
+                          ent={ent}
+                          idx={idx}
+                          total={entities.length}
+                          dragHandle={dragHandle}
+                          callbacks={callbacks}
+                        />
+                      )}
+                    </SortableItem>
+                    <InsertBetweenSeam
+                      label="Insert entity"
+                      disabled={disabled}
+                      onInsert={() =>
+                        onCommand({ type: 'insert-entity', afterIndex: idx })
+                      }
+                    />
+                  </React.Fragment>
+                );
+              })}
+            </div>
+          </SortableList>
         )}
       </CollapsibleYamlSection>
     );

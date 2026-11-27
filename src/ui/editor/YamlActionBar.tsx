@@ -1,6 +1,6 @@
 /**
  * Directorial Action Bar for the Score Editor ([ Visual | YAML ]).
- * Houses Undo/Redo, mode-specific helpers (Collapse/Expand/Active Shot or Wrap),
+ * Houses Undo/Redo, mode-specific helpers (Fold/Unfold Sections & Active Shot or Wrap),
  * Copy, and Fork-to-Edit action pills.
  */
 
@@ -25,12 +25,12 @@ export interface YamlActionBarProps {
   wordWrap: boolean;
   canUndo: boolean;
   canRedo: boolean;
+  anySectionExpanded?: boolean;
   hasActiveShot?: boolean;
   onUndo: () => void;
   onRedo: () => void;
   onToggleWordWrap: () => void;
-  onCollapseAll?: () => void;
-  onExpandAll?: () => void;
+  onToggleFoldSections?: () => void;
   onJumpToActiveShot?: () => void;
   onForkScore?: () => void;
 }
@@ -43,12 +43,12 @@ export const YamlActionBar: React.FC<YamlActionBarProps> = React.memo(
     wordWrap,
     canUndo,
     canRedo,
+    anySectionExpanded = true,
     hasActiveShot = false,
     onUndo,
     onRedo,
     onToggleWordWrap,
-    onCollapseAll,
-    onExpandAll,
+    onToggleFoldSections,
     onJumpToActiveShot,
     onForkScore,
   }) => {
@@ -109,24 +109,28 @@ export const YamlActionBar: React.FC<YamlActionBarProps> = React.memo(
             </button>
           ) : (
             <div className="inline-flex items-center gap-1">
-              {onCollapseAll && (
+              {onToggleFoldSections && (
                 <button
                   type="button"
-                  onClick={onCollapseAll}
-                  className="px-1.5 py-1 rounded-md bg-surface-subtle hover:bg-surface-hover border border-border-main text-[10px] font-mono text-text-body hover:text-text-main flex items-center gap-1 cursor-pointer transition-colors"
-                  title="Collapse all sections and cards"
+                  onClick={onToggleFoldSections}
+                  className="px-2 py-1 rounded-md bg-surface-subtle hover:bg-surface-hover border border-border-main text-[10px] font-mono text-text-body hover:text-text-main flex items-center gap-1 cursor-pointer transition-colors"
+                  title={
+                    anySectionExpanded
+                      ? 'Fold all sections'
+                      : 'Unfold all sections'
+                  }
                 >
-                  <ChevronsDownUp className="w-3 h-3 text-text-muted" />
-                </button>
-              )}
-              {onExpandAll && (
-                <button
-                  type="button"
-                  onClick={onExpandAll}
-                  className="px-1.5 py-1 rounded-md bg-surface-subtle hover:bg-surface-hover border border-border-main text-[10px] font-mono text-text-body hover:text-text-main flex items-center gap-1 cursor-pointer transition-colors"
-                  title="Expand all sections and cards"
-                >
-                  <ChevronsUpDown className="w-3 h-3 text-text-muted" />
+                  {anySectionExpanded ? (
+                    <>
+                      <ChevronsDownUp className="w-3 h-3 text-text-muted" />
+                      <span>Fold</span>
+                    </>
+                  ) : (
+                    <>
+                      <ChevronsUpDown className="w-3 h-3 text-text-muted" />
+                      <span>Unfold</span>
+                    </>
+                  )}
                 </button>
               )}
               {hasActiveShot && onJumpToActiveShot && (
@@ -134,7 +138,7 @@ export const YamlActionBar: React.FC<YamlActionBarProps> = React.memo(
                   type="button"
                   onClick={onJumpToActiveShot}
                   className="px-2 py-1 rounded-md bg-surface-subtle hover:bg-surface-hover border border-border-main text-[10px] font-mono text-text-body hover:text-amber-500 flex items-center gap-1 cursor-pointer transition-colors"
-                  title="Scroll to currently active playhead shot"
+                  title="Expand & scroll to currently active playhead shot"
                 >
                   <Crosshair className="w-3 h-3 text-amber-500" />
                   <span>Active</span>

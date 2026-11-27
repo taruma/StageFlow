@@ -6,7 +6,7 @@ import React from 'react';
 import type { VisualWaypointItem } from '../../../core/scoreYamlProjectionHelpers';
 import type { VisualEditorCallbacks } from './visualEditorTypes';
 import { AddPropertyPopover } from './AddPropertyPopover';
-import { SchemaFieldRow } from './SchemaFieldRow';
+import { SortableFieldList } from './SortableFieldList';
 
 export interface WaypointsBlockProps {
   waypoints?: VisualWaypointItem[];
@@ -40,9 +40,11 @@ export const WaypointsBlock: React.FC<WaypointsBlockProps> = React.memo(
                 onCommand={callbacks.onCommand}
               />
             </div>
-            {wp.fields.map((wf) => (
-              <SchemaFieldRow key={wf.key} field={wf} callbacks={callbacks} />
-            ))}
+            <SortableFieldList
+              parentPath={wp.yamlPath}
+              fields={wp.fields}
+              callbacks={callbacks}
+            />
           </div>
         ))}
       </div>

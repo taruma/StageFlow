@@ -6,7 +6,7 @@ import React from 'react';
 import type { VisualNamedBlockNode } from '../../../core/scoreYamlProjectionHelpers';
 import type { VisualEditorCallbacks } from './visualEditorTypes';
 import { AddPropertyPopover } from './AddPropertyPopover';
-import { SchemaFieldRow } from './SchemaFieldRow';
+import { SortableFieldList } from './SortableFieldList';
 
 export interface EntityOverridesBlockProps {
   overrides: VisualNamedBlockNode[];
@@ -39,9 +39,11 @@ export const EntityOverridesBlock: React.FC<EntityOverridesBlockProps> =
                 onCommand={callbacks.onCommand}
               />
             </div>
-            {ov.fields.map((f) => (
-              <SchemaFieldRow key={f.key} field={f} callbacks={callbacks} />
-            ))}
+            <SortableFieldList
+              parentPath={ov.yamlPath}
+              fields={ov.fields}
+              callbacks={callbacks}
+            />
           </div>
         ))}
       </>

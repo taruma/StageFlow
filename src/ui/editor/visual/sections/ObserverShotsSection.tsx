@@ -2,12 +2,12 @@
  * Collapsible `observer_shots:` section for decoupled Observer Camera choreography.
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { ChevronDown, ChevronRight, Plus } from 'lucide-react';
 import type { VisualObserverShotItem } from '../../../../core/scoreYamlProjectionHelpers';
 import type { VisualEditorCallbacks } from '../visualEditorTypes';
 import { CollapsibleYamlSection } from '../CollapsibleYamlSection';
-import { SchemaFieldRow } from '../SchemaFieldRow';
+import { SortableFieldList } from '../SortableFieldList';
 import { AddPropertyPopover } from '../AddPropertyPopover';
 import { InsertBetweenSeam } from '../InsertBetweenSeam';
 import { CardReorderActions } from '../CardReorderActions';
@@ -17,8 +17,6 @@ import { CameraBlockCard } from './CameraBlockCard';
 export interface ObserverShotsSectionProps {
   observerShots: VisualObserverShotItem[];
   isSectionExpanded: boolean;
-  bulkExpandSeq: number;
-  bulkExpandMode: 'expand' | 'collapse';
   onToggleSection: () => void;
   callbacks: VisualEditorCallbacks;
 }
@@ -27,17 +25,9 @@ const ObserverShotCard: React.FC<{
   os: VisualObserverShotItem;
   idx: number;
   total: number;
-  bulkExpandSeq: number;
-  bulkExpandMode: 'expand' | 'collapse';
   callbacks: VisualEditorCallbacks;
-}> = React.memo(({ os, idx, total, bulkExpandSeq, bulkExpandMode, callbacks }) => {
+}> = React.memo(({ os, idx, total, callbacks }) => {
   const [isOpen, setIsOpen] = useState(false);
-
-  useEffect(() => {
-    if (bulkExpandSeq > 0) {
-      setIsOpen(bulkExpandMode === 'expand');
-    }
-  }, [bulkExpandSeq, bulkExpandMode]);
 
   const { disabled, onCommand, onSeekToTime } = callbacks;
   const handleHeaderClick = useCallback(() => {
@@ -94,11 +84,11 @@ const ObserverShotCard: React.FC<{
 
       {isOpen && (
         <div className="px-2.5 pb-2 pt-1 border-t border-border-subtle space-y-1.5">
-          <div className="space-y-0.5">
-            {os.fields.map((f) => (
-              <SchemaFieldRow key={f.key} field={f} callbacks={callbacks} />
-            ))}
-          </div>
+          <SortableFieldList
+            parentPath={os.yamlPath}
+            fields={os.fields}
+            callbacks={callbacks}
+          />
 
           {os.camera && (
             <CameraBlockCard
@@ -131,14 +121,7 @@ const ObserverShotCard: React.FC<{
 
 export const ObserverShotsSection: React.FC<ObserverShotsSectionProps> =
   React.memo(
-    ({
-      observerShots,
-      isSectionExpanded,
-      bulkExpandSeq,
-      bulkExpandMode,
-      onToggleSection,
-      callbacks,
-    }) => {
+    ({ observerShots, isSectionExpanded, onToggleSection, callbacks }) => {
       const { disabled, onCommand } = callbacks;
 
       return (
@@ -179,8 +162,6 @@ export const ObserverShotsSection: React.FC<ObserverShotsSectionProps> =
                     os={os}
                     idx={idx}
                     total={observerShots.length}
-                    bulkExpandSeq={bulkExpandSeq}
-                    bulkExpandMode={bulkExpandMode}
                     callbacks={callbacks}
                   />
                   <InsertBetweenSeam
