@@ -4,20 +4,15 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-  ArrowDown,
-  ArrowUp,
-  ChevronDown,
-  ChevronRight,
-  Plus,
-  Trash2,
-} from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus } from 'lucide-react';
 import type { VisualBlockingItem } from '../../../../core/scoreYamlProjectionHelpers';
 import type { VisualEditorCallbacks } from '../visualEditorTypes';
 import { CollapsibleYamlSection } from '../CollapsibleYamlSection';
 import { SchemaFieldRow } from '../SchemaFieldRow';
 import { AddPropertyPopover } from '../AddPropertyPopover';
 import { InsertBetweenSeam } from '../InsertBetweenSeam';
+import { CardReorderActions } from '../CardReorderActions';
+import { EntityOverridesBlock } from '../EntityOverridesBlock';
 
 export interface BlockingSectionProps {
   blocking: VisualBlockingItem[];
@@ -81,50 +76,27 @@ const BlockingCard: React.FC<{
           ) : null}
         </button>
 
-        {!disabled && (
-          <div className="flex items-center gap-0.5 shrink-0">
-            {idx > 0 && (
-              <button
-                type="button"
-                onClick={() =>
-                  onCommand({
-                    type: 'reorder-blocking',
-                    fromIndex: idx,
-                    toIndex: idx - 1,
-                  })
-                }
-                className="p-0.5 rounded text-text-faint hover:text-text-main cursor-pointer"
-                title="Move up"
-              >
-                <ArrowUp className="w-3 h-3" />
-              </button>
-            )}
-            {idx < total - 1 && (
-              <button
-                type="button"
-                onClick={() =>
-                  onCommand({
-                    type: 'reorder-blocking',
-                    fromIndex: idx,
-                    toIndex: idx + 1,
-                  })
-                }
-                className="p-0.5 rounded text-text-faint hover:text-text-main cursor-pointer"
-                title="Move down"
-              >
-                <ArrowDown className="w-3 h-3" />
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => onCommand({ type: 'delete-blocking', index: idx })}
-              className="p-0.5 rounded text-text-faint hover:text-rose-500 cursor-pointer"
-              title={`Delete ${cue.id}`}
-            >
-              <Trash2 className="w-3 h-3" />
-            </button>
-          </div>
-        )}
+        <CardReorderActions
+          disabled={disabled}
+          canMoveUp={idx > 0}
+          canMoveDown={idx < total - 1}
+          deleteTitle={`Delete ${cue.id}`}
+          onMoveUp={() =>
+            onCommand({
+              type: 'reorder-blocking',
+              fromIndex: idx,
+              toIndex: idx - 1,
+            })
+          }
+          onMoveDown={() =>
+            onCommand({
+              type: 'reorder-blocking',
+              fromIndex: idx,
+              toIndex: idx + 1,
+            })
+          }
+          onDelete={() => onCommand({ type: 'delete-blocking', index: idx })}
+        />
       </div>
 
       {isOpen && (
@@ -133,29 +105,10 @@ const BlockingCard: React.FC<{
             <SchemaFieldRow key={f.key} field={f} callbacks={callbacks} />
           ))}
 
-          {cue.entityOverrides.map((ov) => (
-            <div
-              key={ov.name}
-              className="mt-1 pl-2.5 border-l-2 border-emerald-500/40 space-y-0.5"
-            >
-              <div className="flex items-center justify-between gap-2 py-0.5">
-                <span className="text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                  {ov.name}:
-                </span>
-                <AddPropertyPopover
-                  section="blockingEntity"
-                  parentPath={ov.yamlPath}
-                  authoredRawKeys={ov.fields.map((f) => f.key)}
-                  label="+ Key"
-                  disabled={disabled}
-                  onCommand={onCommand}
-                />
-              </div>
-              {ov.fields.map((f) => (
-                <SchemaFieldRow key={f.key} field={f} callbacks={callbacks} />
-              ))}
-            </div>
-          ))}
+          <EntityOverridesBlock
+            overrides={cue.entityOverrides}
+            callbacks={callbacks}
+          />
 
           <div className="pt-1 flex justify-end">
             <AddPropertyPopover

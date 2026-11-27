@@ -187,16 +187,20 @@ stageflow/
 │   │   │   ├── useCodeMirrorTheme.ts # Dynamic theme extension for Dark/Warm/Light/Pure Black
 │   │   │   ├── useYamlEditor.ts     # Compartments, unified Undo/Redo keymap & ~150ms debouncer
 │   │   │   └── visual/              # YAML-Mirrored Visual Score Editor submodules
-│   │   │       ├── visualEditorTypes.ts # Shared callback & timing mode types
+│   │   │       ├── visualEditorTypes.ts # Shared authoring & ShotTimingCallbacks interfaces
 │   │   │       ├── VisualScoreEditor.tsx # Top-to-bottom YAML-mirrored collapsible score editor
 │   │   │       ├── FigmaNumberPill.tsx # Horizontal pointer-capture numeric scrubber + click-to-type pill
 │   │   │       ├── Vec3ScrubRow.tsx # Single-row X/Y/Z triplet of FigmaNumberPill scrubbers
 │   │   │       ├── TargetAnchorControl.tsx # Entity ID, multi-entity & [x, y, z] target selector
-│   │   │       ├── SchemaFieldRow.tsx # Schema-driven field control + unregistered key fallback
+│   │   │       ├── FieldValueControl.tsx # Schema-typed value control dispatcher (scrubber, presets, enum, color, raw)
+│   │   │       ├── SchemaFieldRow.tsx # Key label row shell delegating input rendering to FieldValueControl
 │   │   │       ├── AddPropertyPopover.tsx # Categorized "+ Property" menu backed by scoreSchema.ts
 │   │   │       ├── CollapsibleYamlSection.tsx # Top-level collapsible YAML block with count pill
 │   │   │       ├── InsertBetweenSeam.tsx # Hover-revealed "+" insertion seam between cards
-│   │   │       └── sections/        # Section renderers (CameraBlockCard, SceneAndStage, Entities, Blocking, ShotCard, Shots, ObserverShots)
+│   │   │       ├── CardReorderActions.tsx # Shared Up/Down/Delete card header action buttons
+│   │   │       ├── WaypointsBlock.tsx # Shared `waypoints:` list block for CameraBlockCard & ObserverShotsSection
+│   │   │       ├── EntityOverridesBlock.tsx # Shared `entities:` override block for BlockingSection & ShotCard
+│   │   │       └── sections/        # Section renderers (CameraBlockCard, SceneAndStage, Entities, Blocking, ShotTimingBar, ShotCard, Shots, ObserverShots)
 │   │   ├── guide/                   # In-app choreography score & script specification manual
 │   │   │   ├── index.ts             # Barrel exports for guide documentation views
 │   │   │   ├── ScoreAuthoringGuideView.tsx # Standalone Markdown + KaTeX manual view (?mode=guide / ?mode=spec) with .md download

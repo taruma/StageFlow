@@ -1,11 +1,16 @@
 /**
- * Collapsible `shots:` section with Split-Between "+" seams and active shot highlighting.
+ * Collapsible `shots:` section with Split-Between "+" seams, active shot highlighting,
+ * and section-scoped `timingMode` (`Free | Roll | Ripple`) state.
  */
 
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { Plus } from 'lucide-react';
+import type { ShotTimingEditMode } from '../../../../core/types';
 import type { VisualShotItem } from '../../../../core/scoreYamlProjectionHelpers';
-import type { VisualEditorCallbacks } from '../visualEditorTypes';
+import type {
+  ShotTimingCallbacks,
+  VisualEditorCallbacks,
+} from '../visualEditorTypes';
 import { CollapsibleYamlSection } from '../CollapsibleYamlSection';
 import { InsertBetweenSeam } from '../InsertBetweenSeam';
 import { ShotCard } from './ShotCard';
@@ -19,6 +24,13 @@ export interface ShotsSectionProps {
   focusedShotId: string | null;
   focusedShotSeq: number;
   onToggleSection: () => void;
+  onTimingScrubPreview: (
+    shotIndex: number,
+    edge: 'start' | 'end',
+    nextValueSec: number,
+    mode: ShotTimingEditMode
+  ) => void;
+  getCurrentTimeSec: () => number;
   callbacks: VisualEditorCallbacks;
 }
 
@@ -32,9 +44,22 @@ export const ShotsSection: React.FC<ShotsSectionProps> = React.memo(
     focusedShotId,
     focusedShotSeq,
     onToggleSection,
+    onTimingScrubPreview,
+    getCurrentTimeSec,
     callbacks,
   }) => {
     const { disabled, onCommand } = callbacks;
+    const [timingMode, setTimingMode] = useState<ShotTimingEditMode>('roll');
+
+    const timingCallbacks: ShotTimingCallbacks = useMemo(
+      () => ({
+        timingMode,
+        onChangeTimingMode: setTimingMode,
+        onTimingScrubPreview,
+        getCurrentTimeSec,
+      }),
+      [timingMode, onTimingScrubPreview, getCurrentTimeSec]
+    );
 
     return (
       <CollapsibleYamlSection
@@ -83,6 +108,7 @@ export const ShotsSection: React.FC<ShotsSectionProps> = React.memo(
                   bulkExpandMode={bulkExpandMode}
                   focusExpandSeq={focusedShotId === shot.id ? focusedShotSeq : 0}
                   isActiveShot={activeShotId === shot.id}
+                  timingCallbacks={timingCallbacks}
                   callbacks={callbacks}
                 />
                 <InsertBetweenSeam

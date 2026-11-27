@@ -3,20 +3,15 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-  ArrowDown,
-  ArrowUp,
-  ChevronDown,
-  ChevronRight,
-  Plus,
-  Trash2,
-} from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus } from 'lucide-react';
 import type { VisualObserverShotItem } from '../../../../core/scoreYamlProjectionHelpers';
 import type { VisualEditorCallbacks } from '../visualEditorTypes';
 import { CollapsibleYamlSection } from '../CollapsibleYamlSection';
 import { SchemaFieldRow } from '../SchemaFieldRow';
 import { AddPropertyPopover } from '../AddPropertyPopover';
 import { InsertBetweenSeam } from '../InsertBetweenSeam';
+import { CardReorderActions } from '../CardReorderActions';
+import { WaypointsBlock } from '../WaypointsBlock';
 import { CameraBlockCard } from './CameraBlockCard';
 
 export interface ObserverShotsSectionProps {
@@ -72,52 +67,29 @@ const ObserverShotCard: React.FC<{
           </span>
         </button>
 
-        {!disabled && (
-          <div className="flex items-center gap-0.5 shrink-0">
-            {idx > 0 && (
-              <button
-                type="button"
-                onClick={() =>
-                  onCommand({
-                    type: 'reorder-observer-shot',
-                    fromIndex: idx,
-                    toIndex: idx - 1,
-                  })
-                }
-                className="p-0.5 rounded text-text-faint hover:text-text-main cursor-pointer"
-                title="Move up"
-              >
-                <ArrowUp className="w-3 h-3" />
-              </button>
-            )}
-            {idx < total - 1 && (
-              <button
-                type="button"
-                onClick={() =>
-                  onCommand({
-                    type: 'reorder-observer-shot',
-                    fromIndex: idx,
-                    toIndex: idx + 1,
-                  })
-                }
-                className="p-0.5 rounded text-text-faint hover:text-text-main cursor-pointer"
-                title="Move down"
-              >
-                <ArrowDown className="w-3 h-3" />
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() =>
-                onCommand({ type: 'delete-observer-shot', index: idx })
-              }
-              className="p-0.5 rounded text-text-faint hover:text-rose-500 cursor-pointer"
-              title={`Delete ${os.id}`}
-            >
-              <Trash2 className="w-3 h-3" />
-            </button>
-          </div>
-        )}
+        <CardReorderActions
+          disabled={disabled}
+          canMoveUp={idx > 0}
+          canMoveDown={idx < total - 1}
+          deleteTitle={`Delete ${os.id}`}
+          onMoveUp={() =>
+            onCommand({
+              type: 'reorder-observer-shot',
+              fromIndex: idx,
+              toIndex: idx - 1,
+            })
+          }
+          onMoveDown={() =>
+            onCommand({
+              type: 'reorder-observer-shot',
+              fromIndex: idx,
+              toIndex: idx + 1,
+            })
+          }
+          onDelete={() =>
+            onCommand({ type: 'delete-observer-shot', index: idx })
+          }
+        />
       </div>
 
       {isOpen && (
@@ -136,40 +108,10 @@ const ObserverShotCard: React.FC<{
             />
           )}
 
-          {os.flatWaypoints && os.flatWaypoints.length > 0 && (
-            <div className="pl-2.5 border-l-2 border-violet-500/40 space-y-1">
-              <div className="text-[10px] font-mono font-bold text-violet-600 dark:text-violet-400">
-                waypoints: ({os.flatWaypoints.length})
-              </div>
-              {os.flatWaypoints.map((wp) => (
-                <div
-                  key={wp.index}
-                  className="rounded-lg bg-surface-subtle/60 border border-border-subtle p-1.5 space-y-0.5"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[9px] font-mono font-semibold text-text-muted">
-                      #{wp.index + 1}
-                    </span>
-                    <AddPropertyPopover
-                      section="waypoint"
-                      parentPath={wp.yamlPath}
-                      authoredRawKeys={wp.fields.map((f) => f.key)}
-                      label="+ Key"
-                      disabled={disabled}
-                      onCommand={onCommand}
-                    />
-                  </div>
-                  {wp.fields.map((wf) => (
-                    <SchemaFieldRow
-                      key={wf.key}
-                      field={wf}
-                      callbacks={callbacks}
-                    />
-                  ))}
-                </div>
-              ))}
-            </div>
-          )}
+          <WaypointsBlock
+            waypoints={os.flatWaypoints}
+            callbacks={callbacks}
+          />
 
           <div className="pt-1 flex justify-end">
             <AddPropertyPopover

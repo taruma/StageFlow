@@ -1,26 +1,23 @@
 /**
- * Individual Shot Card inside `ShotsSection`, featuring:
- * - Click-to-seek playhead & subtle active-shot border
- * - Free | Roll | Ripple timing bar with Figma scrubbers & 1-click Stamp Playhead `t`
- * - Indented child blocks (stage_camera, observer_camera, entities overrides)
+ * Individual Shot Card inside `ShotsSection`, composing:
+ * - Click-to-seek header, reorder actions & active-shot border
+ * - Standalone `ShotTimingBar` (Free | Roll | Ripple + Start/End + Stamp t)
+ * - Shot-level scalar/polymorphic fields, nested camera blocks & `EntityOverridesBlock`
  */
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import {
-  ArrowDown,
-  ArrowUp,
-  ChevronDown,
-  ChevronRight,
-  Clock,
-  Trash2,
-} from 'lucide-react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import type { VisualShotItem } from '../../../../core/scoreYamlProjectionHelpers';
-import type { ShotTimingEditMode } from '../../../../core/types';
-import type { VisualEditorCallbacks } from '../visualEditorTypes';
-import { FigmaNumberPill } from '../FigmaNumberPill';
+import type {
+  ShotTimingCallbacks,
+  VisualEditorCallbacks,
+} from '../visualEditorTypes';
 import { SchemaFieldRow } from '../SchemaFieldRow';
 import { AddPropertyPopover } from '../AddPropertyPopover';
+import { CardReorderActions } from '../CardReorderActions';
+import { EntityOverridesBlock } from '../EntityOverridesBlock';
 import { CameraBlockCard } from './CameraBlockCard';
+import { ShotTimingBar } from './ShotTimingBar';
 
 export interface ShotCardProps {
   shot: VisualShotItem;
@@ -30,14 +27,9 @@ export interface ShotCardProps {
   bulkExpandMode: 'expand' | 'collapse';
   focusExpandSeq: number;
   isActiveShot: boolean;
+  timingCallbacks: ShotTimingCallbacks;
   callbacks: VisualEditorCallbacks;
 }
-
-const TIMING_MODES: readonly { id: ShotTimingEditMode; label: string; tip: string }[] = [
-  { id: 'free', label: 'Free', tip: 'Edit this shot timestamp independently' },
-  { id: 'roll', label: 'Roll', tip: 'Move cut boundary together with adjacent shot' },
-  { id: 'ripple', label: 'Ripple', tip: 'Shift all downstream shots & scene duration' },
-];
 
 export const ShotCard: React.FC<ShotCardProps> = React.memo(
   ({
@@ -48,6 +40,7 @@ export const ShotCard: React.FC<ShotCardProps> = React.memo(
     bulkExpandMode,
     focusExpandSeq,
     isActiveShot,
+    timingCallbacks,
     callbacks,
   }) => {
     const [isExpanded, setIsExpanded] = useState(false);
@@ -64,16 +57,7 @@ export const ShotCard: React.FC<ShotCardProps> = React.memo(
       }
     }, [focusExpandSeq]);
 
-    const {
-      disabled,
-      timingMode,
-      onChangeTimingMode,
-      onCommand,
-      onTimingScrubPreview,
-      onCancelScrub,
-      onSeekToTime,
-      getCurrentTimeSec,
-    } = callbacks;
+    const { disabled, onCommand, onCancelScrub, onSeekToTime } = callbacks;
 
     const scalarFields = useMemo(
       () =>
@@ -83,57 +67,22 @@ export const ShotCard: React.FC<ShotCardProps> = React.memo(
       [shot.fields]
     );
 
-    const handleScrubStart = useCallback(
-      (nextVal: number) => {
-        onTimingScrubPreview(index, 'start', nextVal, timingMode);
-      },
-      [index, onTimingScrubPreview, timingMode]
-    );
-
-    const handleScrubEnd = useCallback(
-      (nextVal: number) => {
-        onTimingScrubPreview(index, 'end', nextVal, timingMode);
-      },
-      [index, onTimingScrubPreview, timingMode]
-    );
-
-    const handleTimingCommit = useCallback(
-      (edge: 'start' | 'end', nextVal: number) => {
-        onCommand({
-          type: 'adjust-shot-timing',
-          shotIndex: index,
-          edge,
-          nextValueSec: nextVal,
-          mode: timingMode,
-        });
-      },
-      [index, onCommand, timingMode]
-    );
-
-    const handleCommitStart = useCallback(
-      (nextVal: number) => handleTimingCommit('start', nextVal),
-      [handleTimingCommit]
-    );
-
-    const handleCommitEnd = useCallback(
-      (nextVal: number) => handleTimingCommit('end', nextVal),
-      [handleTimingCommit]
-    );
-
     const handleToggleHeader = useCallback(() => {
       onSeekToTime(shot.startSec);
       setIsExpanded((prev) => !prev);
     }, [onSeekToTime, shot.startSec]);
 
-    const handleStampStart = useCallback(() => {
-      const t = Math.round(getCurrentTimeSec() * 1000) / 1000;
-      handleTimingCommit('start', t);
-    }, [getCurrentTimeSec, handleTimingCommit]);
+    const handleMoveUp = useCallback(() => {
+      onCommand({ type: 'reorder-shot', fromIndex: index, toIndex: index - 1 });
+    }, [index, onCommand]);
 
-    const handleStampEnd = useCallback(() => {
-      const t = Math.round(getCurrentTimeSec() * 1000) / 1000;
-      handleTimingCommit('end', t);
-    }, [getCurrentTimeSec, handleTimingCommit]);
+    const handleMoveDown = useCallback(() => {
+      onCommand({ type: 'reorder-shot', fromIndex: index, toIndex: index + 1 });
+    }, [index, onCommand]);
+
+    const handleDelete = useCallback(() => {
+      onCommand({ type: 'delete-shot', index });
+    }, [index, onCommand]);
 
     return (
       <div
@@ -175,54 +124,18 @@ export const ShotCard: React.FC<ShotCardProps> = React.memo(
             <span className="text-[10px] font-mono text-text-muted tabular-nums">
               {shot.startSec.toFixed(2)}–{shot.endSec.toFixed(2)}s
             </span>
-            {!disabled && (
-              <div className="flex items-center gap-0.5 ml-1">
-                {index > 0 && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onCommand({
-                        type: 'reorder-shot',
-                        fromIndex: index,
-                        toIndex: index - 1,
-                      })
-                    }
-                    className="p-0.5 rounded text-text-faint hover:text-text-main cursor-pointer"
-                    title="Move shot up"
-                  >
-                    <ArrowUp className="w-3 h-3" />
-                  </button>
-                )}
-                {index < totalShots - 1 && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onCommand({
-                        type: 'reorder-shot',
-                        fromIndex: index,
-                        toIndex: index + 1,
-                      })
-                    }
-                    className="p-0.5 rounded text-text-faint hover:text-text-main cursor-pointer"
-                    title="Move shot down"
-                  >
-                    <ArrowDown className="w-3 h-3" />
-                  </button>
-                )}
-                {totalShots > 1 && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onCommand({ type: 'delete-shot', index })
-                    }
-                    className="p-0.5 rounded text-text-faint hover:text-rose-500 cursor-pointer"
-                    title={`Delete ${shot.id}`}
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </button>
-                )}
-              </div>
-            )}
+            <CardReorderActions
+              disabled={disabled}
+              canMoveUp={index > 0}
+              canMoveDown={index < totalShots - 1}
+              canDelete={totalShots > 1}
+              moveUpTitle="Move shot up"
+              moveDownTitle="Move shot down"
+              deleteTitle={`Delete ${shot.id}`}
+              onMoveUp={handleMoveUp}
+              onMoveDown={handleMoveDown}
+              onDelete={handleDelete}
+            />
           </div>
         </div>
 
@@ -252,94 +165,22 @@ export const ShotCard: React.FC<ShotCardProps> = React.memo(
         {/* Expanded Body */}
         {isExpanded && (
           <div className="px-2.5 pb-2.5 pt-2 border-t border-border-subtle space-y-2">
-            {/* Shot Timing Bar: Free | Roll | Ripple + Start/End + Stamp t */}
-            <div className="rounded-lg bg-surface-subtle/70 border border-border-subtle p-1.5 space-y-1.5">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-text-muted">
-                  Timing ({(shot.endSec - shot.startSec).toFixed(2)}s)
-                </span>
-                <div className="inline-flex items-center rounded-md bg-surface border border-border-main p-0.5">
-                  {TIMING_MODES.map((m) => (
-                    <button
-                      key={m.id}
-                      type="button"
-                      onClick={() => onChangeTimingMode(m.id)}
-                      title={m.tip}
-                      className={`px-1.5 py-0.2 rounded text-[9px] font-mono cursor-pointer transition-colors ${
-                        timingMode === m.id
-                          ? 'bg-amber-500/20 text-amber-600 dark:text-amber-300 font-bold'
-                          : 'text-text-muted hover:text-text-main'
-                      }`}
-                    >
-                      {m.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+            <ShotTimingBar
+              shotIndex={index}
+              startSec={shot.startSec}
+              endSec={shot.endSec}
+              disabled={disabled}
+              timingCallbacks={timingCallbacks}
+              onCommand={onCommand}
+              onCancelScrub={onCancelScrub}
+            />
 
-              <div className="flex flex-wrap items-center justify-between gap-1.5">
-                <div className="flex items-center gap-1">
-                  <FigmaNumberPill
-                    label="Start"
-                    value={shot.startSec}
-                    unit="s"
-                    min={0}
-                    max={3600}
-                    step={0.05}
-                    precision={3}
-                    disabled={disabled}
-                    onScrubPreview={handleScrubStart}
-                    onCommit={handleCommitStart}
-                    onCancelScrub={onCancelScrub}
-                  />
-                  {!disabled && (
-                    <button
-                      type="button"
-                      onClick={handleStampStart}
-                      className="p-1 rounded bg-surface hover:bg-surface-hover border border-border-main text-text-muted hover:text-amber-500 cursor-pointer"
-                      title="Set Start to current playhead time"
-                    >
-                      <Clock className="w-2.5 h-2.5" />
-                    </button>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-1">
-                  <FigmaNumberPill
-                    label="End"
-                    value={shot.endSec}
-                    unit="s"
-                    min={0.1}
-                    max={3600}
-                    step={0.05}
-                    precision={3}
-                    disabled={disabled}
-                    onScrubPreview={handleScrubEnd}
-                    onCommit={handleCommitEnd}
-                    onCancelScrub={onCancelScrub}
-                  />
-                  {!disabled && (
-                    <button
-                      type="button"
-                      onClick={handleStampEnd}
-                      className="p-1 rounded bg-surface hover:bg-surface-hover border border-border-main text-text-muted hover:text-amber-500 cursor-pointer"
-                      title="Set End to current playhead time"
-                    >
-                      <Clock className="w-2.5 h-2.5" />
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Shot Scalar & Flat Polymorphic Fields */}
             <div className="space-y-0.5">
               {scalarFields.map((f) => (
                 <SchemaFieldRow key={f.key} field={f} callbacks={callbacks} />
               ))}
             </div>
 
-            {/* Nested Stage Camera Block */}
             {shot.stageCamera && (
               <CameraBlockCard
                 block={shot.stageCamera}
@@ -348,7 +189,6 @@ export const ShotCard: React.FC<ShotCardProps> = React.memo(
               />
             )}
 
-            {/* Nested Coupled Observer Camera Block */}
             {shot.observerCamera && (
               <CameraBlockCard
                 block={shot.observerCamera}
@@ -359,34 +199,11 @@ export const ShotCard: React.FC<ShotCardProps> = React.memo(
               />
             )}
 
-            {/* Nested Coupled Shot Entity Overrides */}
-            {shot.entityOverrides.map((ov) => (
-              <div
-                key={ov.name}
-                className="pl-2.5 border-l-2 border-emerald-500/40 space-y-0.5"
-              >
-                <div className="flex items-center justify-between gap-2 py-0.5">
-                  <span className="text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                    entities.{ov.name}:
-                  </span>
-                  <AddPropertyPopover
-                    section="blockingEntity"
-                    parentPath={ov.yamlPath}
-                    authoredRawKeys={ov.fields.map((f) => f.key)}
-                    label="+ Key"
-                    disabled={disabled}
-                    onCommand={onCommand}
-                  />
-                </div>
-                {ov.fields.map((f) => (
-                  <SchemaFieldRow
-                    key={f.key}
-                    field={f}
-                    callbacks={callbacks}
-                  />
-                ))}
-              </div>
-            ))}
+            <EntityOverridesBlock
+              overrides={shot.entityOverrides}
+              keyPrefix="entities."
+              callbacks={callbacks}
+            />
 
             <div className="pt-1 flex justify-end">
               <AddPropertyPopover

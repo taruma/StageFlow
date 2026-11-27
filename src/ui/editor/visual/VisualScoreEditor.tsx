@@ -85,7 +85,6 @@ export const VisualScoreEditor = React.memo(
       ref
     ) => {
       const scrollContainerRef = useRef<HTMLDivElement | null>(null);
-      const [timingMode, setTimingMode] = useState<ShotTimingEditMode>('roll');
 
       const [expandedSections, setExpandedSections] = useState<{
         scene: boolean;
@@ -186,27 +185,20 @@ export const VisualScoreEditor = React.memo(
         () => ({
           disabled: isBundled,
           entities,
-          timingMode,
-          onChangeTimingMode: setTimingMode,
           onCommand,
           onScrubPreview,
-          onTimingScrubPreview,
           onCommitScrub,
           onCancelScrub,
           onSeekToTime,
-          getCurrentTimeSec,
         }),
         [
           isBundled,
           entities,
-          timingMode,
           onCommand,
           onScrubPreview,
-          onTimingScrubPreview,
           onCommitScrub,
           onCancelScrub,
           onSeekToTime,
-          getCurrentTimeSec,
         ]
       );
 
@@ -281,6 +273,8 @@ export const VisualScoreEditor = React.memo(
             focusedShotId={focusedShot?.shotId ?? null}
             focusedShotSeq={focusedShot?.seq ?? 0}
             onToggleSection={toggleShots}
+            onTimingScrubPreview={onTimingScrubPreview}
+            getCurrentTimeSec={getCurrentTimeSec}
             callbacks={callbacks}
           />
 

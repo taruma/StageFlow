@@ -4,20 +4,14 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-  ArrowDown,
-  ArrowUp,
-  ChevronDown,
-  ChevronRight,
-  Plus,
-  Trash2,
-} from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus } from 'lucide-react';
 import type { VisualEntityItem } from '../../../../core/scoreYamlProjectionHelpers';
 import type { VisualEditorCallbacks } from '../visualEditorTypes';
 import { CollapsibleYamlSection } from '../CollapsibleYamlSection';
 import { SchemaFieldRow } from '../SchemaFieldRow';
 import { AddPropertyPopover } from '../AddPropertyPopover';
 import { InsertBetweenSeam } from '../InsertBetweenSeam';
+import { CardReorderActions } from '../CardReorderActions';
 
 export interface EntitiesSectionProps {
   entities: VisualEntityItem[];
@@ -75,50 +69,27 @@ const EntityCard: React.FC<{
           </span>
         </button>
 
-        {!disabled && (
-          <div className="flex items-center gap-0.5 shrink-0">
-            {idx > 0 && (
-              <button
-                type="button"
-                onClick={() =>
-                  onCommand({
-                    type: 'reorder-entity',
-                    fromIndex: idx,
-                    toIndex: idx - 1,
-                  })
-                }
-                className="p-0.5 rounded text-text-faint hover:text-text-main cursor-pointer"
-                title="Move up"
-              >
-                <ArrowUp className="w-3 h-3" />
-              </button>
-            )}
-            {idx < total - 1 && (
-              <button
-                type="button"
-                onClick={() =>
-                  onCommand({
-                    type: 'reorder-entity',
-                    fromIndex: idx,
-                    toIndex: idx + 1,
-                  })
-                }
-                className="p-0.5 rounded text-text-faint hover:text-text-main cursor-pointer"
-                title="Move down"
-              >
-                <ArrowDown className="w-3 h-3" />
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => onCommand({ type: 'delete-entity', index: idx })}
-              className="p-0.5 rounded text-text-faint hover:text-rose-500 cursor-pointer"
-              title={`Delete ${ent.id}`}
-            >
-              <Trash2 className="w-3 h-3" />
-            </button>
-          </div>
-        )}
+        <CardReorderActions
+          disabled={disabled}
+          canMoveUp={idx > 0}
+          canMoveDown={idx < total - 1}
+          deleteTitle={`Delete ${ent.id}`}
+          onMoveUp={() =>
+            onCommand({
+              type: 'reorder-entity',
+              fromIndex: idx,
+              toIndex: idx - 1,
+            })
+          }
+          onMoveDown={() =>
+            onCommand({
+              type: 'reorder-entity',
+              fromIndex: idx,
+              toIndex: idx + 1,
+            })
+          }
+          onDelete={() => onCommand({ type: 'delete-entity', index: idx })}
+        />
       </div>
 
       {isOpen && (

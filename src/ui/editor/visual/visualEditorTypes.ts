@@ -13,19 +13,11 @@ import type {
 export interface VisualEditorCallbacks {
   disabled: boolean;
   entities: readonly SceneEntityDef[];
-  timingMode: ShotTimingEditMode;
-  onChangeTimingMode: (mode: ShotTimingEditMode) => void;
   onCommand: (command: ScoreYamlCommand) => void;
   onScrubPreview: (
     path: YamlPath,
     rawHumanValue: unknown,
     format?: ScalarFormatHint
-  ) => void;
-  onTimingScrubPreview: (
-    shotIndex: number,
-    edge: 'start' | 'end',
-    nextValueSec: number,
-    mode: ShotTimingEditMode
   ) => void;
   onCommitScrub: (
     path: YamlPath,
@@ -34,6 +26,17 @@ export interface VisualEditorCallbacks {
   ) => void;
   onCancelScrub: () => void;
   onSeekToTime: (sec: number) => void;
-  getCurrentTimeSec: () => number;
   onJumpToYamlLine?: (line: number) => void;
+}
+
+export interface ShotTimingCallbacks {
+  timingMode: ShotTimingEditMode;
+  onChangeTimingMode: (mode: ShotTimingEditMode) => void;
+  onTimingScrubPreview: (
+    shotIndex: number,
+    edge: 'start' | 'end',
+    nextValueSec: number,
+    mode: ShotTimingEditMode
+  ) => void;
+  getCurrentTimeSec: () => number;
 }

@@ -9,6 +9,7 @@ import type { VisualCameraBlockNode } from '../../../../core/scoreYamlProjection
 import type { VisualEditorCallbacks } from '../visualEditorTypes';
 import { SchemaFieldRow } from '../SchemaFieldRow';
 import { AddPropertyPopover } from '../AddPropertyPopover';
+import { WaypointsBlock } from '../WaypointsBlock';
 
 export interface CameraBlockCardProps {
   block: VisualCameraBlockNode;
@@ -110,40 +111,7 @@ export const CameraBlockCard: React.FC<CameraBlockCardProps> = React.memo(
               </div>
             )}
 
-            {block.waypoints.length > 0 && (
-              <div className="mt-1.5 pl-2.5 border-l-2 border-violet-500/40 space-y-1">
-                <div className="text-[10px] font-mono font-bold text-violet-600 dark:text-violet-400">
-                  waypoints: ({block.waypoints.length})
-                </div>
-                {block.waypoints.map((wp) => (
-                  <div
-                    key={wp.index}
-                    className="rounded-lg bg-surface-subtle/60 border border-border-subtle p-1.5 space-y-0.5"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-[9px] font-mono font-semibold text-text-muted">
-                        #{wp.index + 1}
-                      </span>
-                      <AddPropertyPopover
-                        section="waypoint"
-                        parentPath={wp.yamlPath}
-                        authoredRawKeys={wp.fields.map((f) => f.key)}
-                        label="+ Key"
-                        disabled={callbacks.disabled}
-                        onCommand={callbacks.onCommand}
-                      />
-                    </div>
-                    {wp.fields.map((wf) => (
-                      <SchemaFieldRow
-                        key={wf.key}
-                        field={wf}
-                        callbacks={callbacks}
-                      />
-                    ))}
-                  </div>
-                ))}
-              </div>
-            )}
+            <WaypointsBlock waypoints={block.waypoints} callbacks={callbacks} />
           </div>
         )}
       </div>
