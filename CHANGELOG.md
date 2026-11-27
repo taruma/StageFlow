@@ -66,6 +66,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Blank Score Generator Canonical Schema Parity (`src/core/scoreCatalog.ts`, `tests/unit/scoreSchemaContract.test.ts`)**:
+  - Updated `generateBlankScoreYaml()` to emit canonical parser-aligned YAML (`rotation: 0` instead of dead `facing: 0`, nested `stage_camera:` with `maneuver: "cut"` and `easing: "smooth"`, `shot: 1`, `label:`, `"procedural://${id}"`, and `#38bdf8` actor accent color), guarded by a new 0-unregistered-key contract test in `tests/unit/scoreSchemaContract.test.ts`.
 - **Headless Multi-Worker Shard-Boundary & Inner-R3F Commit Race (`src/recorder/recorderSync.ts`, `src/recorder/recorderTypes.ts`, `src/recorder/HeadlessRecorderView.tsx`, `src/stage/DioramaCanvas.tsx`, `scripts/record/workerRecorder.ts`, `tests/unit/recorder.test.ts`, `docs/ARCHITECTURE_FILE_MAP.md`, `docs/VIEWPORT_RECORDER_GUIDE.md`)**:
   - Added `src/recorder/recorderSync.ts` (`resolveRecorderFrameTimestampSec`, `isRecorderR3fReadyForStep`, `shouldAdvanceDuringRecorderInit`) and optional `RecorderConfig.initialFrameIndex`, passed by `workerRecorder.ts` (`startFrame`) so parallel worker shards initialize directly at their shard start timestamp instead of `t = 0.00s`.
   - Added an inner-R3F commit barrier (`uiFrameRevision` / `onUiFrameCommit`) to `HeadlessAdvanceBridge` placed after all sibling 3D scene/rig/DoF components inside `DioramaCanvas.tsx`, preventing `HeadlessRecorderView.tsx` `stepFrame()` and `init()` from calling `advance()` before the nested R3F reconciler commits boundary `uiFrame` updates (eliminating 1-frame `shot-01` flashes at shard seams with `.glb` skins).

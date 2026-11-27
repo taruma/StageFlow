@@ -16,6 +16,7 @@ import {
   parseDofPreset,
 } from '../../src/core/scorePrimitives';
 import { parseStageScore } from '../../src/core/scoreParser';
+import { generateBlankScoreYaml } from '../../src/core/scoreCatalog';
 import { projectVisualScoreIR } from '../../src/core/scoreYamlProjection';
 
 const SCORES_ROOT = path.resolve(__dirname, '../../src/scores');
@@ -175,5 +176,47 @@ describe('scoreSchemaContract', () => {
     expect(lookupFieldDescriptor('shot', 'distance')).toBeNull();
     expect(lookupFieldDescriptor('shot', 'maneuver')).toBeNull();
     expect(lookupFieldDescriptor('shot', 'target')).toBeNull();
+  });
+
+  it('generates blank score YAML with canonical schema keys and zero unregistered fields', () => {
+    const raw = generateBlankScoreYaml('blank-contract-test', 'Blank Test');
+    const parsed = parseStageScore(raw, 'blank-contract-test');
+    expect(parsed.error).toBeNull();
+    expect(parsed.warning).toBeNull();
+    expect(parsed.score?.shots[0]?.stageCamera?.maneuver).toBe('cut');
+    expect(parsed.score?.shots[0]?.stageCamera?.easing).toBe('smooth');
+
+    const { ir, error } = projectVisualScoreIR(raw, parsed.score);
+    expect(error).toBeNull();
+    const doc = ir!;
+    const unregistered: string[] = [];
+
+    for (const f of doc.rootFields) {
+      if (!f.descriptor) unregistered.push(`root.${f.key}`);
+    }
+    for (const f of doc.stage.fields) {
+      if (!f.descriptor) unregistered.push(`stage.${f.key}`);
+    }
+    for (const f of doc.stage.observerCamera?.fields ?? []) {
+      if (!f.descriptor) unregistered.push(`stage.observer_camera.${f.key}`);
+    }
+    for (const f of doc.stage.stageCamera?.fields ?? []) {
+      if (!f.descriptor) unregistered.push(`stage.stage_camera.${f.key}`);
+    }
+    for (const ent of doc.entities) {
+      for (const f of ent.fields) {
+        if (!f.descriptor) unregistered.push(`entity[${ent.id}].${f.key}`);
+      }
+    }
+    for (const shot of doc.shots) {
+      for (const f of shot.fields) {
+        if (!f.descriptor) unregistered.push(`shot[${shot.id}].${f.key}`);
+      }
+      for (const f of shot.stageCamera?.fields ?? []) {
+        if (!f.descriptor) unregistered.push(`shot[${shot.id}].stageCamera.${f.key}`);
+      }
+    }
+
+    expect(unregistered).toEqual([]);
   });
 });

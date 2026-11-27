@@ -291,7 +291,7 @@ version: "1.0"
 id: "${id}"
 title: "${title}"
 subtitle: "Custom 3D Staging & Camera Diorama"
-video: "procedural://demo"
+video: "procedural://${id}"
 aspect_ratio: "16:9"
 duration: 10.0
 
@@ -317,19 +317,20 @@ entities:
     label: "Actor 1"
     kind: "character"
     position: [0, 0, 0]
-    facing: 0
+    rotation: 0
     height: 1.75
-    color: "#00d2ff"
+    color: "#38bdf8"
 
 shots:
-  - id: "shot_01"
-    name: "Establishing Shot"
+  - id: "shot-1"
+    shot: 1
+    label: "Establishing Shot"
     start: 0.0
     end: 10.0
-    maneuver: "static"
-    easing: "smooth"
-    camera:
+    stage_camera:
       target: "actor_1"
+      maneuver: "cut"
+      easing: "smooth"
       distance: 4.5
       pitch: 5
       yaw: 0
