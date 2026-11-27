@@ -14,10 +14,13 @@ export interface YamlEditorHandle {
 export interface YamlEditorCanvasProps {
   rawYaml: string;
   sceneId?: string;
+  historyRevision?: number;
   isBundled: boolean;
   effectiveTheme: 'dark' | 'warm' | 'light';
   wordWrap?: boolean;
   onChangeYaml: (newYaml: string) => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
 }
 
 export const YamlEditorCanvas = React.memo(
@@ -26,10 +29,13 @@ export const YamlEditorCanvas = React.memo(
       {
         rawYaml,
         sceneId,
+        historyRevision = 0,
         isBundled,
         effectiveTheme,
         wordWrap,
         onChangeYaml,
+        onUndo,
+        onRedo,
       },
       ref
     ) => {
@@ -39,10 +45,13 @@ export const YamlEditorCanvas = React.memo(
         containerRef,
         rawYaml,
         sceneId,
+        historyRevision,
         isBundled,
         effectiveTheme,
         wordWrap,
         onChangeYaml,
+        onUndo,
+        onRedo,
         debounceMs: 150,
       });
 

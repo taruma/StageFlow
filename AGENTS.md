@@ -130,12 +130,12 @@ Verification in StageFlow is calibrated into two tiers to balance rigorous mathe
 | Tier | When to Apply | Automated Commands | Requirement |
 | :--- | :--- | :--- | :--- |
 | **Tier 1: Fast Dev Loop** | Localized UI/styling, minor bugfixes, copy tweaks, isolated single-file components | `npm run lint`<br>`npm run typecheck` (`tsc -b`)<br>Targeted Vitest (if applicable) | `oxlint` 0 warnings; `tsc -b` 0 TypeScript errors (< 6s). Eliminates the 2-minute Vite chunking overhead on trivial edits. |
-| **Tier 2: Core Engine & Full Release** | Core math, kinematics, schema/DSL syntax, 3D diorama rigs, media sync, dependencies, refactors | `npm test`<br>`npm run build` (`tsc -b && vite build`)<br>`npm run lint` | All Vitest unit & integration suites pass (382 tests); zero TypeScript/Vite bundling errors; `oxlint` 0 warnings. |
+| **Tier 2: Core Engine & Full Release** | Core math, kinematics, schema/DSL syntax, 3D diorama rigs, media sync, dependencies, refactors | `npm test`<br>`npm run build` (`tsc -b && vite build`)<br>`npm run lint` | All Vitest unit & integration suites pass (414 tests); zero TypeScript/Vite bundling errors; `oxlint` 0 warnings. |
 
 ### Pre-Delivery Audit Checklist
 Before reporting completion of any task:
 1. **Self-Audit Chaining & Edge Cases**: For forward-chaining or state-persistence changes (`trajectoryChain.ts`, `entity*Evaluator.ts`, `scoreParser.ts`), verify both explicit-value and omitted-field fallback branches so composite states (e.g. `baseTarget + offset`) never double-accumulate, and assert final 3D world-space transforms in unit tests.
-2. **DSL Polymorphism Audit**: Verify that newly introduced or modified properties are accepted both flat at the cue root and nested inside spec blocks (e.g. `camera:` / `observer_camera:`), and verify scoped child overrides.
+2. **DSL Polymorphism & Schema SSOT Audit**: Verify that newly introduced or modified YAML properties are registered in `src/core/scoreSchema.ts`, accepted both flat at the cue root and nested inside spec blocks (e.g. `camera:` / `observer_camera:`), and pass `tests/unit/scoreSchemaContract.test.ts`.
 3. **Compiler Strictness Verification**: Always run `npm run typecheck` (`tsc -b`) or `npm run build` (`tsc -b && vite build`) alongside tests. Never rely on transpiled Vitest passes alone, as esbuild strips types without enforcing strict flags (`noUnusedParameters`, strict null checks).
 4. **Docs-as-Code Fixture Awareness**: In documentation suites that act as live test fixtures (e.g. `tests/unit/guideSnippets.test.ts`), any added or modified markdown YAML block directly impacts unit test suites. Run tests after updating docs.
 5. **Dual-Tier Documentation Sync**: When updating documentation for schema changes, update both descriptive guide prose (`YAML_AUTHORING_GUIDE.md`) AND formal AST contract tables (`STAGEFLOW_SCRIPT_SPECIFICATION.md §7.2`).

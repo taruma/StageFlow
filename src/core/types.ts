@@ -3,6 +3,20 @@
  * Zero React or DOM dependencies.
  */
 
+import type {
+  CAMERA_DIRECTIONS,
+  CAMERA_EASINGS,
+  CAMERA_MANEUVERS,
+  CAMERA_RIG_TYPES,
+  CHARACTER_STYLES,
+  DOF_PRESETS,
+  ENTITY_KINDS,
+  MARKER_SHAPES,
+  MARKER_STYLES,
+  PROP_SHAPES,
+  PROP_STYLES,
+} from './schema/scoreSchemaTypes';
+
 export interface Vec3 {
   x: number;
   y: number;
@@ -33,29 +47,15 @@ export interface CameraTransform3D {
   aspectRatio: number; // Gate aspect ratio (e.g. 16/9 = 1.7778, 2.39)
 }
 
-export type CameraManeuver =
-  | 'cut'
-  | 'dolly'
-  | 'straight'
-  | 'arc'
-  | 'swoop'
-  | 'orbit'
-  | 'sweep'
-  | 'spiral'
-  | 'dive'
-  | 'recoil'
-  | 'spline';
+export type CameraManeuver = (typeof CAMERA_MANEUVERS)[number];
 
-export type CameraEasing =
-  | 'smooth'
-  | 'linear'
-  | 'ease-in'
-  | 'ease-out'
-  | 'expo'
-  | 'pop'
-  | 'accel'
-  | 'deccel'
-  | 'cruise';
+export type CameraEasing = (typeof CAMERA_EASINGS)[number];
+
+export type CameraDirection = (typeof CAMERA_DIRECTIONS)[number];
+
+export type EditorStudioMode = 'visual' | 'yaml';
+
+export type ShotTimingEditMode = 'free' | 'roll' | 'ripple';
 
 export type CameraViewMode = 'scripted' | 'free' | 'stage-pov';
 
@@ -99,15 +99,15 @@ export interface ToastNotification {
   type?: 'info' | 'success' | 'warning' | 'error';
 }
 
-export type EntityKind = 'character' | 'prop' | 'marker';
+export type EntityKind = (typeof ENTITY_KINDS)[number];
 
-export type PropShape = 'box' | 'cylinder' | 'sphere' | 'capsule';
-export type MarkerShape = 'x' | 't' | 'circle' | 'puck';
+export type PropShape = (typeof PROP_SHAPES)[number];
+export type MarkerShape = (typeof MARKER_SHAPES)[number];
 export type EntityShape = PropShape | MarkerShape;
 
-export type CharacterStyle = 'mannequin' | 'edges' | 'silhouette' | 'wireframe';
-export type PropStyle = 'edges' | 'glass' | 'solid' | 'wireframe';
-export type MarkerStyle = 'tape' | 'glow' | 'beacon';
+export type CharacterStyle = (typeof CHARACTER_STYLES)[number];
+export type PropStyle = (typeof PROP_STYLES)[number];
+export type MarkerStyle = (typeof MARKER_STYLES)[number];
 export type EntityStyle = CharacterStyle | PropStyle | MarkerStyle;
 
 export interface SceneEntityDef {
@@ -198,7 +198,7 @@ export interface EvaluatedEntityState {
   trailPoints: Vec3[]; // Sampled ground trail when moving during active cue/shot
 }
 
-export type DofPreset = 'shallow' | 'medium' | 'deep';
+export type DofPreset = (typeof DOF_PRESETS)[number];
 
 export interface ScoreOpticsConfig {
   dofBlur: boolean;              // Opt-in bokeh blur in Stage Cam POV (default: false)
@@ -237,7 +237,7 @@ export interface CameraWaypointSpec {
   at?: number;
 }
 
-export type CameraRigType = 'tripod' | 'track' | 'spline_track';
+export type CameraRigType = (typeof CAMERA_RIG_TYPES)[number];
 
 export interface CameraRigSpec {
   type: CameraRigType;

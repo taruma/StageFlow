@@ -1,26 +1,32 @@
 /**
  * LayoutSegmentedControl Component for StageFlow Studio Header.
- * Houses the 2 workspace layout modes (Split | Full) in a SceneFlow-style centered segmented pill.
+ * Houses the workspace layout modes (Split | Full) and the companion
+ * [ Visual | YAML ] dual-mode authoring studio switcher.
  */
 
 import React from 'react';
-import { Columns2, Edit2, Maximize2 } from 'lucide-react';
-import type { SplitPreset } from '../../core/types';
+import { Code2, Columns2, Maximize2, SlidersHorizontal } from 'lucide-react';
+import type { EditorStudioMode, SplitPreset } from '../../core/types';
 import { UI_TOKENS } from '../tokens/ui';
 
 export interface LayoutSegmentedControlProps {
   splitPreset: SplitPreset;
   onSelectSplitPreset: (preset: SplitPreset) => void;
   isEditMode: boolean;
-  onToggleEditMode: () => void;
+  editorMode: EditorStudioMode;
+  onSelectEditorMode: (mode: EditorStudioMode) => void;
 }
 
 export const LayoutSegmentedControl: React.FC<LayoutSegmentedControlProps> = ({
   splitPreset,
   onSelectSplitPreset,
   isEditMode,
-  onToggleEditMode,
+  editorMode,
+  onSelectEditorMode,
 }) => {
+  const isVisualActive = isEditMode && editorMode === 'visual';
+  const isYamlActive = isEditMode && editorMode === 'yaml';
+
   return (
     <div className="flex items-center gap-1.5">
       <div
@@ -61,26 +67,52 @@ export const LayoutSegmentedControl: React.FC<LayoutSegmentedControlProps> = ({
         </button>
       </div>
 
-      {/* Companion Edit Mode Action Pill */}
-      <button
-        type="button"
-        role="button"
-        aria-pressed={isEditMode}
-        onClick={onToggleEditMode}
-        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] lg:text-xs font-bold transition-all active:scale-95 cursor-pointer border shadow-2xs ${
-          isEditMode
-            ? 'bg-surface text-amber-600 dark:text-amber-400 border-amber-500/30 shadow-xs ring-1 ring-amber-500/20'
-            : 'bg-surface hover:bg-surface-subtle text-text-muted hover:text-text-main border-border-main'
-        }`}
-        title={
-          isEditMode
-            ? 'Exit Authoring Studio'
-            : 'Enter Authoring Studio & YAML Editor'
-        }
+      {/* Companion [ Visual | YAML ] Authoring Studio Switcher */}
+      <div
+        role="group"
+        aria-label="Authoring Editor Mode"
+        className={UI_TOKENS.button.segmentedGroup}
       >
-        <Edit2 className="w-3.5 h-3.5" />
-        <span>Edit</span>
-      </button>
+        <button
+          type="button"
+          role="button"
+          aria-pressed={isVisualActive}
+          onClick={() => onSelectEditorMode('visual')}
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] lg:text-xs font-bold transition-all active:scale-95 cursor-pointer ${
+            isVisualActive
+              ? 'bg-surface text-amber-600 dark:text-amber-400 shadow-xs ring-1 ring-amber-500/25'
+              : 'text-text-muted hover:text-text-main hover:bg-surface-subtle'
+          }`}
+          title={
+            isVisualActive
+              ? 'Close Visual Score Editor'
+              : 'Open YAML-Mirrored Visual Score Editor'
+          }
+        >
+          <SlidersHorizontal className="w-3.5 h-3.5" />
+          <span>Visual</span>
+        </button>
+
+        <button
+          type="button"
+          role="button"
+          aria-pressed={isYamlActive}
+          onClick={() => onSelectEditorMode('yaml')}
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] lg:text-xs font-bold transition-all active:scale-95 cursor-pointer ${
+            isYamlActive
+              ? 'bg-surface text-amber-600 dark:text-amber-400 shadow-xs ring-1 ring-amber-500/25'
+              : 'text-text-muted hover:text-text-main hover:bg-surface-subtle'
+          }`}
+          title={
+            isYamlActive
+              ? 'Close Live YAML Editor'
+              : 'Open Live YAML Code Editor'
+          }
+        >
+          <Code2 className="w-3.5 h-3.5" />
+          <span>YAML</span>
+        </button>
+      </div>
     </div>
   );
 };

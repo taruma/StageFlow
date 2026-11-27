@@ -375,3 +375,22 @@ All video export geometry, dual-handle range clamping, storyboard shot sampling,
   - `hasStageFrameBoundaryChanged()` detects changes across `stageCamera.shotId`, `observerCamera.shotId`, and entity `id` / `cueId` / `highlighted` / `visible` / `trailPoints` references so offscreen and headless WebGL renderers skip redundant React JSX reconciliations within continuous shots.
 - **2D Top-Down Minimap Geometry (`src/core/minimapMath.ts`)**:
   - `computeDioramaMinimapBounds()` samples entities and shot keyframes to produce a static padded SVG `viewBox` (`gridStepM`, `unitScale`) without mid-playback jitter; `computeStageCameraMinimapGeometry()` projects the horizontal FOV cone and optical focus bar, and `computeObserverMinimapGeometry()` clamps zoomed-out Observer coordinates neatly to the radar border.
+
+---
+
+## 8. Plain-Text-as-Truth Visual Authoring Engine (`scoreSchema.ts`, `scoreHistory.ts`, `scoreYamlProjection.ts`, `scoreYamlMutator.ts`, `scoreHotPatch.ts`)
+
+To power the YAML-mirrored Visual Editor without duplicating mutable state or breaking Plain-Text-as-Truth:
+
+1. **Single-Source Schema Registry (`src/core/scoreSchema.ts` & `src/core/schema/`)**:
+   - Centralizes runtime `as const` enum arrays (`CAMERA_MANEUVERS`, `CAMERA_EASINGS`, `DOF_PRESETS`, `ENTITY_KINDS`, `PROP_SHAPES`, `MARKER_SHAPES`, `CHARACTER_STYLES`, `PROP_STYLES`, `MARKER_STYLES`, `CAMERA_RIG_TYPES`, `CAMERA_DIRECTIONS`, `STANDARD_LENS_PRESETS_MM`) consumed directly by `types.ts` and Visual Editor dropdowns/menus.
+   - Maps every YAML section (`root`, `optics`, `stage`, `entity`, `blockingCue`, `blockingEntity`, `shot`, `cameraCue`, `rig`, `waypoint`, `observerShot`) to typed `FieldDescriptor` definitions (`kind`, `unit`, `min`, `max`, `step`, `group`, `hint`, `defaultOnAdd`, `aliases`).
+   - Enforced across all 19 bundled scores via `tests/unit/scoreSchemaContract.test.ts`, while gracefully projecting any unregistered custom YAML keys as editable `raw-yaml` fallback rows.
+2. **Unified Document Undo/Redo (`src/core/scoreHistory.ts`)**:
+   - Pure stack over canonical `rawYaml` (`createScoreHistory`, `commitScoreHistory`, `undoScoreHistory`, `redoScoreHistory`) supporting `'coalesce'` (typing bursts within `800ms` and `32` chars) and `'checkpoint'` (structural commands and Figma-pill drag releases), incrementing a monotonic `revision` counter so CodeMirror 6 and the Visual Editor share one synchronized `Cmd/Ctrl+Z` stack.
+3. **Single-Parse Authoring Projection (`src/core/scoreYamlProjection.ts`)**:
+   - Uses `yaml.parseDocument(rawYaml, { lineCounter })` to project a read-only `VisualScoreIR` containing only authored keys, exact `yamlPath` coordinates (preserving coupled `shots[].observer_camera`/`entities`, decoupled `blocking:`/`observer_shots:`, and flat vs. nested polymorphic shot keys without rewriting files), source `lineRange`s, and resolved/inherited hints from `StageScore`.
+4. **Comment-Preserving YAML AST Mutator (`src/core/scoreYamlMutator.ts`, `src/core/scoreYamlTimingMutator.ts`)**:
+   - `applyScoreYamlCommand(rawYaml, cmd)` mutates only targeted `YAML.Document` nodes in place (`set-field`, `add-field`, `remove-field`, entity/blocking/shot/observer CRUD & reorders, `insert-shot-split`, and `adjust-shot-timing` across `'free'`, `'roll'`, and `'ripple'` timing modes), preserving `#` section banners, inline comments, key order, and compact `[x, y, z]` flow formatting.
+5. **60fps Drag Preview Hot-Patcher (`src/core/scoreHotPatch.ts`)**:
+   - `applyScoreHotPatch(score, path, rawHumanValue)` shallow-clones only the touched numeric scalar in `StageScore` during pointer scrubbing (converting human degrees to radians and clamping via `CAMERA_LIMITS`), delivering locked 60fps 3D diorama feedback before committing a single YAML AST `'checkpoint'` on pointer release.

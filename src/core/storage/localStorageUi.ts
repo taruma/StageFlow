@@ -7,6 +7,7 @@ import { isLabelDisplayMode } from '../constants';
 import type {
   AppThemeMode,
   DioramaThemeMode,
+  EditorStudioMode,
   LabelDisplayMode,
   LibraryFilterTab,
   LibrarySortDirection,
@@ -25,6 +26,7 @@ const STORAGE_KEYS = {
   THEME_MODE: 'stageflow:ui:theme-mode',
   DIORAMA_THEME_MODE: 'stageflow:ui:diorama-theme-mode',
   EDIT_MODE: 'stageflow:ui:edit-mode',
+  EDITOR_MODE: 'stageflow:ui:editor-mode',
   LEFT_SPLIT_PCT: 'stageflow:ui:left-split-pct',
   RIGHT_SPLIT_PCT: 'stageflow:ui:right-split-pct',
   VIDEO_HEIGHT_PCT: 'stageflow:ui:video-height-pct',
@@ -230,6 +232,26 @@ export function loadStoredEditMode(): boolean | null {
 export function saveStoredEditMode(isEdit: boolean): void {
   try {
     localStorage.setItem(STORAGE_KEYS.EDIT_MODE, String(isEdit));
+  } catch {
+    // Ignore storage quota or access errors
+  }
+}
+
+export function loadStoredEditorMode(): EditorStudioMode | null {
+  try {
+    const val = localStorage.getItem(STORAGE_KEYS.EDITOR_MODE);
+    if (val === 'visual' || val === 'yaml') {
+      return val;
+    }
+  } catch {
+    // Ignore localStorage access restrictions
+  }
+  return null;
+}
+
+export function saveStoredEditorMode(mode: EditorStudioMode): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.EDITOR_MODE, mode);
   } catch {
     // Ignore storage quota or access errors
   }

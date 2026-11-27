@@ -3,27 +3,53 @@
  * Features:
  * - Dynamic Compartments for zero-reload Theme & Read-Only swapping
  * - Debounced re-evaluation (~150ms) protecting 60fps WebGL diorama performance
+ * - Unified document-level Undo/Redo (`historyRevision`) replacing CodeMirror's isolated stack
  * - Bidirectional sync guard preventing external-props echo loops
  * - Jump-to-line helper for instant syntax diagnostic navigation
  */
 
 import { useEffect, useRef, useCallback } from 'react';
-import { EditorState, Compartment } from '@codemirror/state';
-import { EditorView, keymap } from '@codemirror/view';
-import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
-import { searchKeymap, search } from '@codemirror/search';
+import { EditorState, Compartment, Prec } from '@codemirror/state';
+import {
+  EditorView,
+  keymap,
+  lineNumbers,
+  highlightActiveLineGutter,
+  highlightSpecialChars,
+  drawSelection,
+  dropCursor,
+  rectangularSelection,
+  crosshairCursor,
+  highlightActiveLine,
+} from '@codemirror/view';
+import { defaultKeymap, indentWithTab } from '@codemirror/commands';
+import {
+  foldGutter,
+  foldKeymap,
+  indentOnInput,
+  syntaxHighlighting,
+  defaultHighlightStyle,
+  bracketMatching,
+} from '@codemirror/language';
+import {
+  searchKeymap,
+  search,
+  highlightSelectionMatches,
+} from '@codemirror/search';
 import { yaml } from '@codemirror/lang-yaml';
-import { basicSetup } from 'codemirror';
 import { createStageflowCodeMirrorTheme } from './useCodeMirrorTheme';
 
 export interface UseYamlEditorOptions {
   containerRef: React.RefObject<HTMLDivElement | null>;
   rawYaml: string;
   sceneId?: string;
+  historyRevision?: number;
   isBundled: boolean;
   effectiveTheme: 'dark' | 'warm' | 'light';
   wordWrap?: boolean;
   onChangeYaml: (newYaml: string) => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
   debounceMs?: number;
 }
 
@@ -36,10 +62,13 @@ export function useYamlEditor({
   containerRef,
   rawYaml,
   sceneId,
+  historyRevision = 0,
   isBundled,
   effectiveTheme,
   wordWrap = true,
   onChangeYaml,
+  onUndo,
+  onRedo,
   debounceMs = 150,
 }: UseYamlEditorOptions): UseYamlEditorResult {
   const viewRef = useRef<EditorView | null>(null);
@@ -48,32 +77,90 @@ export function useYamlEditor({
   const wrapCompartmentRef = useRef(new Compartment());
   const lastDispatchedTextRef = useRef<string>(rawYaml);
   const lastSceneIdRef = useRef<string | undefined>(sceneId);
+  const lastHistoryRevisionRef = useRef<number>(historyRevision);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Keep latest onChange in ref to avoid re-initializing CodeMirror
   const onChangeYamlRef = useRef(onChangeYaml);
   onChangeYamlRef.current = onChangeYaml;
+  const onUndoRef = useRef(onUndo);
+  onUndoRef.current = onUndo;
+  const onRedoRef = useRef(onRedo);
+  onRedoRef.current = onRedo;
+
+  const flushPendingDebounce = useCallback((view: EditorView) => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+      const pendingText = view.state.doc.toString();
+      if (pendingText !== lastDispatchedTextRef.current) {
+        lastDispatchedTextRef.current = pendingText;
+        onChangeYamlRef.current(pendingText);
+      }
+    }
+  }, []);
 
   // 1. Mount CodeMirror EditorView once on container attachment
   useEffect(() => {
     const parent = containerRef.current;
     if (!parent) return;
 
+    const unifiedHistoryKeymap = Prec.highest(
+      keymap.of([
+        {
+          key: 'Mod-z',
+          run: (view) => {
+            flushPendingDebounce(view);
+            onUndoRef.current?.();
+            return true;
+          },
+        },
+        {
+          key: 'Mod-Shift-z',
+          run: (view) => {
+            flushPendingDebounce(view);
+            onRedoRef.current?.();
+            return true;
+          },
+        },
+        {
+          key: 'Ctrl-y',
+          run: (view) => {
+            flushPendingDebounce(view);
+            onRedoRef.current?.();
+            return true;
+          },
+        },
+      ])
+    );
+
     const startState = EditorState.create({
       doc: rawYaml,
       extensions: [
-        basicSetup,
+        lineNumbers(),
+        highlightActiveLineGutter(),
+        highlightSpecialChars(),
+        foldGutter(),
+        drawSelection(),
+        dropCursor(),
+        EditorState.allowMultipleSelections.of(true),
+        indentOnInput(),
+        syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+        bracketMatching(),
+        rectangularSelection(),
+        crosshairCursor(),
+        highlightActiveLine(),
+        highlightSelectionMatches(),
         yaml(),
         wrapCompartmentRef.current.of(
           wordWrap ? EditorView.lineWrapping : []
         ),
-        history(),
         search({ top: true }),
+        unifiedHistoryKeymap,
         keymap.of([
           indentWithTab,
           ...defaultKeymap,
-          ...historyKeymap,
           ...searchKeymap,
+          ...foldKeymap,
         ]),
         themeCompartmentRef.current.of(
           createStageflowCodeMirrorTheme(effectiveTheme)
@@ -90,7 +177,7 @@ export function useYamlEditor({
             }
 
             debounceTimerRef.current = setTimeout(() => {
-              // Record exact text dispatched to React so incoming props can be identified as echo
+              debounceTimerRef.current = null;
               lastDispatchedTextRef.current = nextText;
               onChangeYamlRef.current(nextText);
             }, debounceMs);
@@ -105,10 +192,13 @@ export function useYamlEditor({
     });
 
     viewRef.current = view;
+    lastDispatchedTextRef.current = rawYaml;
+    lastHistoryRevisionRef.current = historyRevision;
 
     return () => {
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = null;
       }
       view.destroy();
       viewRef.current = null;
@@ -117,17 +207,21 @@ export function useYamlEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [containerRef]);
 
-  // 2. Reconcile external changes to rawYaml (e.g. Score Library switch, drop loader)
+  // 2. Reconcile external changes to rawYaml (Score Library switch, drop loader, unified Undo/Redo)
   useEffect(() => {
     const view = viewRef.current;
     if (!view) return;
 
-    // Check if the scene identity has switched (e.g. user selected another blueprint/custom score)
     const isSceneSwitched =
       sceneId !== undefined && sceneId !== lastSceneIdRef.current;
     if (isSceneSwitched) {
       lastSceneIdRef.current = sceneId;
+      lastHistoryRevisionRef.current = historyRevision;
       lastDispatchedTextRef.current = rawYaml;
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = null;
+      }
 
       const currentDoc = view.state.doc.toString();
       if (currentDoc !== rawYaml) {
@@ -140,17 +234,35 @@ export function useYamlEditor({
       return;
     }
 
-    // If incoming text matches what was just dispatched to React, this is an echo from local typing—ignore it!
+    const revisionChanged = historyRevision !== lastHistoryRevisionRef.current;
+    if (revisionChanged) {
+      lastHistoryRevisionRef.current = historyRevision;
+      lastDispatchedTextRef.current = rawYaml;
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = null;
+      }
+      const currentDoc = view.state.doc.toString();
+      if (currentDoc !== rawYaml) {
+        const currentSelection = view.state.selection.main;
+        const safeAnchor = Math.min(currentSelection.anchor, rawYaml.length);
+        const safeHead = Math.min(currentSelection.head, rawYaml.length);
+        view.dispatch({
+          changes: { from: 0, to: currentDoc.length, insert: rawYaml },
+          selection: { anchor: safeAnchor, head: safeHead },
+        });
+      }
+      return;
+    }
+
     if (rawYaml === lastDispatchedTextRef.current) {
       return;
     }
 
-    // If the user has active focus on the editor, do not clobber their in-flight typing!
     if (view.hasFocus) {
       return;
     }
 
-    // External change applied while not actively focused (e.g. drag & drop YAML, external reset)
     lastDispatchedTextRef.current = rawYaml;
     const currentDoc = view.state.doc.toString();
     if (currentDoc !== rawYaml) {
@@ -163,7 +275,7 @@ export function useYamlEditor({
         selection: { anchor: safeAnchor, head: safeHead },
       });
     }
-  }, [rawYaml, sceneId]);
+  }, [rawYaml, sceneId, historyRevision]);
 
   // 3. Dynamic Read-Only Reconfiguration
   useEffect(() => {
@@ -201,7 +313,7 @@ export function useYamlEditor({
     });
   }, [wordWrap]);
 
-  // 5. Jump to designated line & column
+  // 6. Jump to designated line & column
   const jumpToLine = useCallback((line: number, column = 1) => {
     const view = viewRef.current;
     if (!view) return;

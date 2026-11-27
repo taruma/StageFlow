@@ -24,6 +24,9 @@ export interface YamlInspectorDrawerProps {
   onClose: () => void;
 }
 
+const NOOP = () => {};
+const ZERO_TIME = () => 0;
+
 export const YamlInspectorDrawer: React.FC<YamlInspectorDrawerProps> = ({
   isOpen,
   rawYaml,
@@ -41,8 +44,17 @@ export const YamlInspectorDrawer: React.FC<YamlInspectorDrawerProps> = ({
   return (
     <YamlStudioPanel
       isOpen={isOpen}
+      editorMode="yaml"
+      onChangeEditorMode={NOOP}
       rawYaml={rawYaml}
+      historyRevision={0}
+      canUndo={false}
+      canRedo={false}
       sceneId={sceneId}
+      visualIR={null}
+      visualIRError={null}
+      entities={[]}
+      activeShotId={null}
       parseError={parseError}
       parseWarning={parseWarning}
       diagnostics={diagnostics}
@@ -50,6 +62,15 @@ export const YamlInspectorDrawer: React.FC<YamlInspectorDrawerProps> = ({
       isBundled={isBundled}
       effectiveTheme={effectiveTheme}
       onChangeYaml={onChangeYaml}
+      onVisualCommand={NOOP}
+      onScrubPreview={NOOP}
+      onTimingScrubPreview={NOOP}
+      onCommitScrub={NOOP}
+      onCancelScrub={NOOP}
+      onSeekToTime={NOOP}
+      getCurrentTimeSec={ZERO_TIME}
+      onUndo={NOOP}
+      onRedo={NOOP}
       onForkScore={onForkScore}
       onClose={onClose}
     />

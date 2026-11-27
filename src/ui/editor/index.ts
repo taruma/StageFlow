@@ -5,3 +5,4 @@ export { YamlDiagnosticsBanner, type YamlDiagnosticsBannerProps } from './YamlDi
 export { YamlEditorCanvas, type YamlEditorCanvasProps, type YamlEditorHandle } from './YamlEditorCanvas';
 export { useYamlEditor } from './useYamlEditor';
 export { createStageflowCodeMirrorTheme, useCodeMirrorTheme } from './useCodeMirrorTheme';
+export { VisualScoreEditor, type VisualScoreEditorHandle, type VisualScoreEditorProps } from './visual/VisualScoreEditor';

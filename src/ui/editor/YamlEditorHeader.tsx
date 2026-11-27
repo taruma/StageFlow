@@ -1,14 +1,15 @@
 /**
- * Top Header Bar for the YAML Score Editor Studio.
- * Houses title, active synchronization indicator, and close button.
- * Editorial actions (Guide, Wrap, Copy) reside in the companion YamlActionBar.
+ * Top Header Bar for the Dual-Mode Choreography Score Studio ([ Visual | YAML ]).
+ * Houses title, active synchronization indicator, Spec/Guide links, and close button.
  */
 
 import React, { useCallback } from 'react';
-import { BookOpen, Code2, FileText, X } from 'lucide-react';
+import { BookOpen, Code2, FileText, SlidersHorizontal, X } from 'lucide-react';
+import type { EditorStudioMode } from '../../core/types';
 import { UI_TOKENS } from '../tokens/ui';
 
 export interface YamlEditorHeaderProps {
+  editorMode: EditorStudioMode;
   isBundled: boolean;
   onOpenSpec?: () => void;
   onOpenGuide?: () => void;
@@ -16,7 +17,7 @@ export interface YamlEditorHeaderProps {
 }
 
 export const YamlEditorHeader: React.FC<YamlEditorHeaderProps> = React.memo(
-  ({ isBundled, onOpenSpec, onOpenGuide, onClose }) => {
+  ({ editorMode, isBundled, onOpenSpec, onOpenGuide, onClose }) => {
     const handleDefaultOpenSpec = useCallback(() => {
       const url = `${window.location.origin}${window.location.pathname}?mode=spec`;
       window.open(url, '_blank', 'noopener,noreferrer');
@@ -33,10 +34,14 @@ export const YamlEditorHeader: React.FC<YamlEditorHeaderProps> = React.memo(
     return (
       <div className="h-10 px-4 border-b border-border-main flex items-center justify-between gap-2 select-none bg-surface-subtle shrink-0">
         <div className="flex items-center gap-2 min-w-0">
-          <Code2 className="w-4 h-4 text-amber-500 shrink-0" />
+          {editorMode === 'visual' ? (
+            <SlidersHorizontal className="w-4 h-4 text-amber-500 shrink-0" />
+          ) : (
+            <Code2 className="w-4 h-4 text-amber-500 shrink-0" />
+          )}
           <div className="flex items-center gap-2 min-w-0">
             <span className="text-xs font-mono font-bold text-text-main truncate">
-              Live YAML Score
+              {editorMode === 'visual' ? 'Visual Score' : 'Live YAML Score'}
             </span>
             {isBundled ? (
               <span className="px-1.5 py-0.2 rounded text-[9px] font-mono bg-sky-500/15 text-sky-600 dark:text-sky-300 border border-sky-400/30 shrink-0">

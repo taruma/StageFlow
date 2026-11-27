@@ -1,19 +1,25 @@
 /**
  * Custom hook encapsulating resizable 3-column studio layout state,
- * subpanel expansion, edit mode toggles, and localStorage persistence.
+ * subpanel expansion, [Visual | YAML] edit mode toggles, and localStorage persistence.
  * Layer 3 hook.
  */
 
-import { useState, useCallback } from 'react';
-import type { SplitPreset, ToastNotification } from '../core/types';
+import { useState, useCallback, useRef } from 'react';
+import type {
+  EditorStudioMode,
+  SplitPreset,
+  ToastNotification,
+} from '../core/types';
 import {
   loadStoredEditMode,
+  loadStoredEditorMode,
   loadStoredLeftSplitPct,
   loadStoredRightSplitPct,
   loadStoredSplitPreset,
   loadStoredSubpanelCollapsed,
   loadStoredVideoHeightPct,
   saveStoredEditMode,
+  saveStoredEditorMode,
   saveStoredLeftSplitPct,
   saveStoredRightSplitPct,
   saveStoredSplitPreset,
@@ -33,6 +39,15 @@ export function useWorkspaceLayout(options?: UseWorkspaceLayoutOptions) {
   const [isEditMode, setIsEditModeState] = useState<boolean>(
     () => loadStoredEditMode() ?? false
   );
+
+  const [editorMode, setEditorModeState] = useState<EditorStudioMode>(
+    () => loadStoredEditorMode() ?? 'visual'
+  );
+
+  const isEditModeRef = useRef(isEditMode);
+  isEditModeRef.current = isEditMode;
+  const editorModeRef = useRef(editorMode);
+  editorModeRef.current = editorMode;
 
   const [leftSplitPct, setLeftSplitPctState] = useState<number>(
     () => loadStoredLeftSplitPct() ?? 30
@@ -56,22 +71,58 @@ export function useWorkspaceLayout(options?: UseWorkspaceLayoutOptions) {
   }, []);
 
   const handleToggleEditMode = useCallback(() => {
-    setIsEditModeState((prev) => {
-      const next = !prev;
-      saveStoredEditMode(next);
-      if (next) {
-        setIsSubpanelCollapsedState(false);
-        saveStoredSubpanelCollapsed(false);
-      }
-      return next;
-    });
+    const next = !isEditModeRef.current;
+    isEditModeRef.current = next;
+    setIsEditModeState(next);
+    saveStoredEditMode(next);
+    if (next) {
+      setIsSubpanelCollapsedState(false);
+      saveStoredSubpanelCollapsed(false);
+    }
   }, []);
 
-  const openEditMode = useCallback(() => {
+  const handleSelectEditorMode = useCallback((mode: EditorStudioMode) => {
+    if (!isEditModeRef.current) {
+      isEditModeRef.current = true;
+      editorModeRef.current = mode;
+      setIsEditModeState(true);
+      saveStoredEditMode(true);
+      setEditorModeState(mode);
+      saveStoredEditorMode(mode);
+      setIsSubpanelCollapsedState(false);
+      saveStoredSubpanelCollapsed(false);
+      return;
+    }
+
+    if (editorModeRef.current === mode) {
+      isEditModeRef.current = false;
+      setIsEditModeState(false);
+      saveStoredEditMode(false);
+      return;
+    }
+
+    editorModeRef.current = mode;
+    setEditorModeState(mode);
+    saveStoredEditorMode(mode);
+  }, []);
+
+  const openEditMode = useCallback((mode?: EditorStudioMode) => {
+    isEditModeRef.current = true;
     setIsEditModeState(true);
     saveStoredEditMode(true);
+    if (mode) {
+      editorModeRef.current = mode;
+      setEditorModeState(mode);
+      saveStoredEditorMode(mode);
+    }
     setIsSubpanelCollapsedState(false);
     saveStoredSubpanelCollapsed(false);
+  }, []);
+
+  const closeEditMode = useCallback(() => {
+    isEditModeRef.current = false;
+    setIsEditModeState(false);
+    saveStoredEditMode(false);
   }, []);
 
   const handleToggleSubpanelCollapse = useCallback(() => {
@@ -119,13 +170,16 @@ export function useWorkspaceLayout(options?: UseWorkspaceLayoutOptions) {
   return {
     splitPreset,
     isEditMode,
+    editorMode,
     leftSplitPct,
     rightSplitPct,
     videoHeightPct,
     isSubpanelCollapsed,
     handleSelectSplitPreset,
     handleToggleEditMode,
+    handleSelectEditorMode,
     openEditMode,
+    closeEditMode,
     handleToggleSubpanelCollapse,
     handleLeftSplitChange,
     handleRightSplitChange,

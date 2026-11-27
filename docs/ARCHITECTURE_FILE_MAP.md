@@ -74,6 +74,17 @@ stageflow/
 │   │   ├── studies/                 # Directorial Scene Studies (see docs/SCORE_CATALOG.md)
 │   │   └── blueprints/              # Factory camera-blocking presets (see docs/SCORE_CATALOG.md)
 │   ├── core/                        # Layer 1: Pure TypeScript Math, Optics & Stateless Frame Engine
+│   │   ├── schema/                  # Single-Source YAML Schema Registry submodules
+│   │   │   ├── scoreSchemaTypes.ts  # Runtime enum constants (`CAMERA_MANEUVERS`, `CAMERA_EASINGS`, etc.) & `FieldDescriptor` types
+│   │   │   ├── scoreSchemaRegistry.ts # Field descriptors for root, optics, stage, entity & blocking sections
+│   │   │   └── scoreCameraSchemaRegistry.ts # Field descriptors for shot, cameraCue, rig, waypoint & observerShot sections
+│   │   ├── scoreSchema.ts           # Unified SSOT facade (`SCORE_SCHEMA_REGISTRY`, `lookupFieldDescriptor`, `getAvailableAddFields`)
+│   │   ├── scoreHistory.ts          # Pure document-level Undo/Redo history engine over `rawYaml` (`coalesce` / `checkpoint` + `revision`)
+│   │   ├── scoreYamlProjectionHelpers.ts # Read-only `VisualScoreIR` node types & YAML AST projection helpers
+│   │   ├── scoreYamlProjection.ts   # Single-parse `projectVisualScoreIR(rawYaml, score)` preserving yamlPath & line ranges
+│   │   ├── scoreYamlTimingMutator.ts# Pure AST shot split-insert (`insert-shot-split`) & `Free`/`Roll`/`Ripple` timing mutator
+│   │   ├── scoreYamlMutator.ts      # Comment-preserving YAML AST command mutator (`yaml.parseDocument()`)
+│   │   ├── scoreHotPatch.ts         # Shallow-clone numeric `StageScore` hot-patcher for 60fps scrub previews
 │   │   ├── types.ts                 # Canonical interfaces (StageScore, ShotCue, ObserverShotCue, BlockingCueSpec, StageFrame)
 │   │   ├── constants.ts             # Metric bounds, sensor constants, blueprint color palette
 │   │   ├── stageDisplayOptions.ts   # Pure session-only visual diorama display filters (floor mode, object/character visibility, cues)
@@ -120,7 +131,8 @@ stageflow/
 │   │   ├── useFileDropLoader.ts     # Pane-scoped drag-and-drop (anti-flicker depth counter) & file-picker loader for .yaml, video, and .glb/.gltf skins
 │   │   ├── useStageSkins.ts         # Ephemeral session .glb/.gltf stage & entity skin queue, visibility & blob cleanup
 │   │   ├── useScorePersistence.ts   # Startup hydration, draft auto-saving & confirmed reset
-│   │   ├── useWorkspaceLayout.ts    # Split workspace presets, column percentages & storage sync
+│   │   ├── useScoreDocument.ts      # Unified Plain-Text-as-Truth document state, Undo/Redo, Visual IR & 60fps scrub previews
+│   │   ├── useWorkspaceLayout.ts    # Split workspace presets, `[Visual | YAML]` mode, column percentages & storage sync
 │   │   ├── useStudioDisplaySettings.ts # 3D diorama label modes, guides, DoF blur, top-down minimap, session HUD visibility & 'L'/'G'/'B'/'M'/'H' hotkeys
 │   │   ├── useToastNotifications.ts # Floating toast notification queue & auto-dismiss timers
 │   │   ├── useIsMobile.ts           # Zero-polling responsive mobile breakpoint tracker (<768px)
@@ -165,15 +177,26 @@ stageflow/
 │   │   │   ├── SceneProductionBrief.tsx   # Executive Scene Production Sheet & Call Sheet (Premise, specs, lenses)
 │   │   │   ├── SceneMetadataCard.tsx      # Collapsible scene-wide metadata card (music, gear, notes, markdown)
 │   │   │   └── SceneEntityRoster.tsx      # Categorized Cast, Props & Markers lineup with dimension badges
-│   │   ├── editor/                  # Modular CodeMirror 6 YAML Score Studio submodules
+│   │   ├── editor/                  # Modular Dual-Mode Choreography Score Studio ([ Visual | YAML ]) submodules
 │   │   │   ├── index.ts             # Barrel exports for editor studio components
-│   │   │   ├── YamlStudioPanel.tsx  # In-flow right-column choreography score studio container
-│   │   │   ├── YamlEditorHeader.tsx # Top header with title, sync badge, Guide trigger & close
-│   │   │   ├── YamlActionBar.tsx    # Directorial action bar (Wrap toggle, Copy, Fork)
+│   │   │   ├── YamlStudioPanel.tsx  # In-flow right-column dual-mode choreography score studio container
+│   │   │   ├── YamlEditorHeader.tsx # Top header with mode title, sync badge, Spec/Guide triggers & close
+│   │   │   ├── YamlActionBar.tsx    # Directorial action bar (Undo/Redo, Wrap/Collapse/Expand/Active, Copy, Fork)
 │   │   │   ├── YamlDiagnosticsBanner.tsx # Diagnostic alert banner with line/col jump
 │   │   │   ├── YamlEditorCanvas.tsx # CodeMirror 6 DOM mounting & virtualized canvas
 │   │   │   ├── useCodeMirrorTheme.ts # Dynamic theme extension for Dark/Warm/Light/Pure Black
-│   │   │   └── useYamlEditor.ts     # Compartments, external sync guard & ~150ms debouncer
+│   │   │   ├── useYamlEditor.ts     # Compartments, unified Undo/Redo keymap & ~150ms debouncer
+│   │   │   └── visual/              # YAML-Mirrored Visual Score Editor submodules
+│   │   │       ├── visualEditorTypes.ts # Shared callback & timing mode types
+│   │   │       ├── VisualScoreEditor.tsx # Top-to-bottom YAML-mirrored collapsible score editor
+│   │   │       ├── FigmaNumberPill.tsx # Horizontal pointer-capture numeric scrubber + click-to-type pill
+│   │   │       ├── Vec3ScrubRow.tsx # Single-row X/Y/Z triplet of FigmaNumberPill scrubbers
+│   │   │       ├── TargetAnchorControl.tsx # Entity ID, multi-entity & [x, y, z] target selector
+│   │   │       ├── SchemaFieldRow.tsx # Schema-driven field control + unregistered key fallback
+│   │   │       ├── AddPropertyPopover.tsx # Categorized "+ Property" menu backed by scoreSchema.ts
+│   │   │       ├── CollapsibleYamlSection.tsx # Top-level collapsible YAML block with count pill
+│   │   │       ├── InsertBetweenSeam.tsx # Hover-revealed "+" insertion seam between cards
+│   │   │       └── sections/        # Section renderers (CameraBlockCard, SceneAndStage, Entities, Blocking, ShotCard, Shots, ObserverShots)
 │   │   ├── guide/                   # In-app choreography score & script specification manual
 │   │   │   ├── index.ts             # Barrel exports for guide documentation views
 │   │   │   ├── ScoreAuthoringGuideView.tsx # Standalone Markdown + KaTeX manual view (?mode=guide / ?mode=spec) with .md download
@@ -270,6 +293,11 @@ stageflow/
         ├── scorePrimitives.test.ts
         ├── cameraCueParser.test.ts
         ├── scoreParser.test.ts
+        ├── scoreSchemaContract.test.ts
+        ├── scoreHistory.test.ts
+        ├── scoreYamlProjection.test.ts
+        ├── scoreYamlMutator.test.ts
+        ├── scoreHotPatch.test.ts
         ├── scoreYamlUtils.test.ts
         ├── scoreUrlLoader.test.ts
         ├── scoreCatalogFilters.test.ts

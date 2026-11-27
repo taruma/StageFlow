@@ -148,7 +148,7 @@ Scene entities (`character`, `prop`, `marker`) are rendered with unambiguous ori
 ### 4.1 Three-Wing Studio Header & Score Library (`WorkspaceHeader.tsx`, `ScoreLibraryModal.tsx`)
 - **SceneFlow 3-Wing Architecture**: Aligned with sister application **SceneFlow**, the top studio header bar is divided into three ergonomic wings:
   - **Left Wing**: Responsive Brand Identity (desktop displays the full horizontal `StageFlow` logo `/StageFlow - LOGO - WHITE.png` or `/StageFlow - LOGO - BLACK.png` adapted to active theme; mobile viewports `< 768px` display the theme-adaptive rounded box icon with `/StageFlow - ICON - Square.png` switching between light and dark inverted styling), tiered `File ▾` dropdown (`FileMenuDropdown.tsx`), and the interactive `ActiveScoreIndicator.tsx` pill displaying the active score title with uncluttered clarity (technical storage badges like `Bundled Baseline` and `Custom` are reserved for the YAML drawer and Score Library). Clicking the active score chip immediately opens the Score Library.
-  - **Center Stage**: Centered `LayoutSegmentedControl.tsx` housing the 2 workspace layout modes (`Split` | `Full`) and an adjacent amber-accented **`[ ✎ Edit ]`** toggle pill in an elevated container.
+  - **Center Stage**: Centered `LayoutSegmentedControl.tsx` housing the 2 workspace layout modes (`Split` | `Full`) and an adjacent amber-accented **`[ Visual | YAML ]`** dual-mode authoring studio switcher in an elevated container.
   - **Right Wing**: Theme mode dropdown (`ThemeSelectorDropdown.tsx`), standalone amber `[ 📖 Library ]` gateway button opening `ScoreLibraryModal.tsx`, a tactile 1-click **`[ Reset Layout ]`** button, native fullscreen toggle, and an **About / Info** button (`AppInfoModal.tsx`) with global `?` keyboard shortcut.
   - **Authoritative Stacking Context**: The header uses `relative z-30`, ensuring all dropdown menus (`File ▾`, `Color Themes ▾`) and popovers render safely above viewport HUD elements, labels, and badges.
 - **Tiered `File ▾` Menu (`FileMenuDropdown.tsx`)**:
@@ -176,17 +176,17 @@ Scene entities (`character`, `prop`, `marker`) are rendered with unambiguous ori
     - **Mode C (`Map`)**: The live 2D SVG top-down stage minimap (`DioramaMinimap` in `variant="panel"`), throttled to ~25 Hz during playback and scaled cleanly to fit the Scene Desk without adding any WebGL context.
     Utilizes pure CSS container-query aspect-fit containment (`.aspect-fit-container` and `.aspect-fit-box` via `min(100cqw, calc(100cqh * ratio))`) across both viewports, strictly maintaining film aspect ratios (16:9, 2.39:1) with automatic letterboxing/pillarboxing and SMPTE 90% safe-action guides without vertical squishing.
   - **Center Column (~40%)**: Dedicated, uninterrupted 3D Blueprint Diorama viewport with 4-corner directorial HUD.
-  - **Right Column (~30%)**: Dedicated, full-height YAML Score Studio (`YamlStudioPanel.tsx` in flex column mode) for real-time score authoring and validation.
+  - **Right Column (~30%)**: Dedicated, full-height Dual-Mode Score Studio (`YamlStudioPanel.tsx` in flex column mode) switching cleanly between the YAML-mirrored **Visual Score Editor** (`VisualScoreEditor.tsx`) and the **Live YAML Code Editor** (`YamlEditorCanvas.tsx`).
 - **1-Click Reset Layout & Fullscreen Viewport Controls (`WorkspaceHeader.tsx`, `useWorkspaceLayout.ts`)**:
   - Clicking **Reset Layout** in the header right wing (desktop viewports $\ge 768\text{px}$) restores default column widths (30/40/30), video height (45%), and subpanel expansion, persisting changes to `localStorage` with a confirmation toast.
   - A 1-click native browser **Fullscreen** toggle button (`Maximize`/`Minimize` via `document.documentElement.requestFullscreen()` and `document.exitFullscreen()`) is mounted in the header right wing across both desktop and mobile viewports, dynamically tracking browser `fullscreenchange` events with descriptive tooltips.
 - **Center Header Workflow & Layout Pairing (`LayoutSegmentedControl.tsx`)**:
-  - Couples the layout mode segmented pill `[ ◫ Split | ⛶ Full ]` with an adjacent **`[ ✎ Edit ]`** toggle pill (styled with SceneFlow-aligned amber accent active state).
+  - Couples the layout mode segmented pill `[ ◫ Split | ⛶ Full ]` with the adjacent **`[ Visual | YAML ]`** studio mode switcher (persisted in `stageflow:ui:editor-mode`, defaulting to `'visual'` when opened). Clicking an inactive mode opens/switches the right studio column; clicking the active mode collapses it.
 - **Workspace State Matrix**:
-  - `Split + Edit OFF`: Classic 2-column playback view (Video 50% / Diorama 50%). Subpanel collapses into minimal header.
-  - `Split + Edit ON`: Full 3-Column Studio (Left 30% [Video + Subpanel] | Center 40% [Diorama] | Right 30% [YAML]). Subpanel defaults to expanded.
-  - `Full + Edit OFF`: 100% 3D Diorama stage. Reference video is mounted offscreen (`fixed -left-[99999px]`) to maintain media clock and audio sync without interruption.
-  - `Full + Edit ON`: 2-Column Mode (Diorama 60% | YAML 40%, video cleanly offscreened). Perfect for procedural blueprint scores.
+  - `Split + Studio Closed`: Classic 2-column playback view (Video 50% / Diorama 50%). Subpanel collapses into minimal header.
+  - `Split + Visual/YAML`: Full 3-Column Studio (Left 30% [Video + Subpanel] | Center 40% [Diorama] | Right 30% [Visual or YAML]). Subpanel defaults to expanded.
+  - `Full + Studio Closed`: 100% 3D Diorama stage. Reference video is mounted offscreen (`fixed -left-[99999px]`) to maintain media clock and audio sync without interruption.
+  - `Full + Visual/YAML`: 2-Column Mode (Diorama 60% | Visual or YAML 40%, video cleanly offscreened). Perfect for procedural blueprint scores.
 - **Continuous 3-Way Resizing**:
   - Left vertical divider (col-resize) adjusts Left Column width ($18\%$ to $45\%$, clamped to preserve $\ge 22\%$ Center Diorama width when YAML Studio is open).
   - Right vertical divider (col-resize) adjusts Right Column width ($18\%$ to $45\%$, clamped to preserve $\ge 22\%$ Center Diorama width when Left Column is visible).
@@ -242,19 +242,25 @@ Adopts professional 3D viewport convention (Blender, Unreal Engine, Maya) distri
   - **Right Wing**: Unified `[ View ▾ ]` popover consolidating 1-click angle presets (Top, Iso, Front, Side, Reset), 3D label display modes (All, Cast, Cam, Off), session-only Stage Display filters (Floor `Solid/Grid/Off`, Scene Objects + per-character toggles, Entity Cues), and viewfinder guides toggle into an accessible, collision-free dropdown.
   - **Outside Click Dismissal**: Automatically closes open popovers on outside pointer interactions.
 
-### 4.5 Code-First YAML Score Studio (`src/ui/editor/`, `YamlStudioPanel.tsx`)
-- Mounted full-height in the right studio column when Edit Mode is active (`[ ✎ Edit ]` toggle).
+### 4.5 Dual-Mode Choreography Score Studio (`src/ui/editor/`, `YamlStudioPanel.tsx`, `VisualScoreEditor.tsx`)
+- Mounted full-height in the right studio column when **`Visual`** or **`YAML`** is active (`[ Visual | YAML ]` switcher).
+- **Plain-Text-as-Truth & Unified Undo/Redo (`useScoreDocument.ts`, `scoreHistory.ts`)**:
+  - Both modes read and mutate a single canonical `rawYaml` history stack (`Cmd/Ctrl+Z`, `Cmd/Ctrl+Shift+Z`, `Ctrl+Y`) with `Undo`/`Redo` toolbar controls and `data-native-undo="true"` / `aria-modal="true"` input isolation.
+  - CodeMirror 6 replaces `basicSetup` with explicit extensions excluding CodeMirror's isolated `history()`, routing `Mod-z` / `Mod-Shift-z` / `Ctrl-y` directly into `scoreHistory.ts` and syncing via `historyRevision`.
+- **YAML-Mirrored Visual Score Editor (`src/ui/editor/visual/`, `VisualScoreEditor.tsx`)**:
+  - Renders the exact top-to-bottom YAML structure as collapsible sections with live item counts (`scene:`, `stage:`, `entities: (N)`, `blocking: (N)`, `shots: (N)`, `observer_shots: (N)`), preserving coupled (`shots[].observer_camera`/`entities`), decoupled (`blocking:`/`observer_shots:`), and flat vs. nested shot polymorphism without rewriting authored files.
+  - **Figma-Style Numeric Scrubbers (`FigmaNumberPill.tsx`, `Vec3ScrubRow.tsx`)**: Dragging horizontally scrubs values in real time at 60fps via `applyScoreHotPatch` (supporting `Shift` coarse and `Alt` precision modifiers, `Esc` cancel, and click-to-type exact entry), committing a single comment-preserving AST `'checkpoint'` on release.
+  - **Schema-Driven Discovery (`SchemaFieldRow.tsx`, `AddPropertyPopover.tsx`, `TargetAnchorControl.tsx`)**: Cards display authored keys alongside a categorized `+ Property` menu backed by `scoreSchema.ts`, live `entities:` target pickers, lens quick-picks, and graceful `raw` fallback controls for unregistered custom keys.
+  - **Shot Timing & Split-Insert (`ShotCard.tsx`, `InsertBetweenSeam.tsx`)**: Hover `+` seams between shots trigger **Split Previous Shot** (`insert-shot-split`); shot timing supports **`Free | Roll | Ripple`** boundary editing plus 1-click **"Stamp `t`"** from the playhead. Clicking any shot or blocking card seeks the diorama playhead to that cue while active playback only applies a subtle highlight border without hijacking scroll.
+  - **Syntax Error Recovery**: If `rawYaml` has a syntax error, Visual mode displays a clean recovery card with 1-click **`Fix in YAML (Line X)`** switching directly to CodeMirror at the failing line.
 - **CodeMirror 6 Engine (`YamlEditorCanvas.tsx`, `useYamlEditor.ts`)**:
-  - Replaces plain `<textarea>` with a virtualized, responsive CodeMirror 6 editor featuring Lezer-based YAML grammar (`@codemirror/lang-yaml`), line numbers gutter, soft line-wrapping, 2-space tab indent (`indentWithTab`), and native search/replace (`Ctrl+F`).
-  - **Dynamic Theme Adaptation (`useCodeMirrorTheme.ts`)**: Uses CodeMirror `Compartment` instances to dynamically adapt editor chrome, line numbers, cursor, selection, and syntax tokens (amber keys, emerald strings, sky measurements, purple booleans, and muted slate comments) across StageFlow's 4 active themes (`Dark Obsidian`, `Warm Paper`, `Light Stone`, `Pure Black`) with zero reload lag.
-- **Protected Bundled Presets (Read-Only)**: When viewing factory presets (Scene Studies or Blueprints 01–07), editing is locked (`EditorState.readOnly.of(true)`) and surfaces a sky-blue banner with a prominent **`[ Fork to Edit → ]`** button. Clicking it clones the score into IndexedDB and immediately unlocks the editor.
-- **Debounced Live Sync & Re-Evaluation (~150ms)**: When editing custom projects, typing updates locally with zero input latency at 60fps/144fps, while `parseStageScore` and 3D diorama re-evaluation trigger after 150ms of typing inactivity, debouncing writes to IndexedDB and preventing WebGL stutter.
-  - **Playback & Focus Collision Guards**: Protects in-flight typing against background 10Hz React UI sync renders during looped playback via a three-tier guard (`lastDispatchedTextRef` updated upon actual debounce dispatch, `view.hasFocus` write protection, and `sceneId` transition boundary detection with safe selection clamping).
-- **Top Panel Header (`YamlEditorHeader.tsx`)**:
-  - Compact title bar housing the editor title (`Live YAML Score`), a status badge (`● Live Sync` with pulsing dot or `Read-Only` for bundled blueprints), **`[ SPEC ]`** (`?mode=spec`) and **`[ Guide ]`** (`?mode=guide`) trigger buttons opening the specification and authoring manuals in a new tab, and an isolated **`[ ✕ ]`** close button.
-  - Omit redundant clutter (`Meters...` subtitle, storage badges, and mathematical slogans) for a clean directorial look.
-- **Directorial Action Bar (`YamlActionBar.tsx`)**:
-  - Dedicated sub-header strip housing primary buffer actions: **`[ Wrap ]`** (toggles soft line-wrapping on `.cm-scroller` via a dynamic CodeMirror `Compartment`, persisted in `localStorage` under `stageflow:ui:editor-word-wrap`), **`[ Copy ]`** (copies full YAML with visual feedback), and **`[ Fork to Edit → ]`** (when viewing bundled blueprints).
+  - Unmounted while `editorMode === 'visual'` for zero background dispatch overhead; mounts on `YAML` with Lezer-based YAML grammar (`@codemirror/lang-yaml`), line numbers gutter, soft line-wrapping, 2-space tab indent (`indentWithTab`), and native search/replace (`Ctrl+F`).
+  - **Dynamic Theme Adaptation (`useCodeMirrorTheme.ts`)**: Uses CodeMirror `Compartment` instances to dynamically adapt editor chrome, line numbers, cursor, selection, and syntax tokens across StageFlow's 4 active themes (`Dark Obsidian`, `Warm Paper`, `Light Stone`, `Pure Black`).
+- **Protected Bundled Presets (Read-Only)**: When viewing factory presets (Scene Studies or Blueprints 01–07), editing is locked across both Visual and YAML modes and surfaces a sky-blue **`[ Fork to Edit → ]`** button. Clicking it clones the score into IndexedDB and immediately unlocks editing.
+- **Debounced Live Sync & Re-Evaluation (~150ms)**: In `YAML` mode, typing updates locally at 60fps while `parseStageScore` and 3D diorama re-evaluation trigger after 150ms of inactivity (`mode: 'coalesce'`).
+- **Top Panel Header (`YamlEditorHeader.tsx`) & Action Bar (`YamlActionBar.tsx`)**:
+  - Header adapts between `Visual Score` and `Live YAML Score` with `Live Sync` / `Read-Only`, **`[ SPEC ]`**, **`[ Guide ]`**, and **`[ ✕ ]`** close.
+  - Action Bar hosts **`Undo` / `Redo`**, mode-specific helpers (**`Collapse All` / `Expand All` / `Active`** in Visual; **`[ Wrap ]`** in YAML persisted under `stageflow:ui:editor-word-wrap`), **`[ Copy ]`**, and **`[ Fork to Edit → ]`**.
 
 ### 4.6 Directorial Playback Transport Suite (`DirectorialTransportBar.tsx`, `src/ui/transport/`)
 Decomposed into 3 focused submodules to preserve the $\le 250$ line modularity standard:

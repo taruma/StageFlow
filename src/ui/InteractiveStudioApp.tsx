@@ -9,7 +9,7 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import type { CameraPresetType } from '../stage/cameraPresets';
-import type { ScoreDiagnostic, StageScore } from '../core/types';
+import type { StageScore } from '../core/types';
 import {
   INITIAL_CATALOG_ITEMS,
   findCatalogItem,
@@ -51,6 +51,7 @@ import {
   type DroppedAssetKind,
 } from '../core/fileDropClassifier';
 import { useScorePersistence } from '../hooks/useScorePersistence';
+import { useScoreDocument } from '../hooks/useScoreDocument';
 import { useAppShellTheme } from '../hooks/useAppShellTheme';
 import { useWorkspaceLayout } from '../hooks/useWorkspaceLayout';
 import { useStudioDisplaySettings } from '../hooks/useStudioDisplaySettings';
@@ -196,25 +197,40 @@ export const InteractiveStudioApp: React.FC = () => {
     score: parseStageScore(initialBlankYaml!, activeSceneId).score!,
   };
 
-  const [rawYaml, setRawYaml] = useState<string>(initialItem.rawYaml);
-  const [activeScore, setActiveScore] = useState(initialItem.score);
   const [sceneResetSeq, setSceneResetSeq] = useState<number>(0);
   const triggerScoreReset = useCallback(() => {
     setSceneResetSeq((seq) => seq + 1);
   }, []);
-  const [parseError, setParseError] = useState<string | null>(null);
-  const [parseWarning, setParseWarning] = useState<string | null>(null);
-  const [parseDiagnostics, setParseDiagnostics] = useState<
-    ScoreDiagnostic[] | undefined
-  >(undefined);
   const [videoOverrideUrl, setVideoOverrideUrl] = useState<string | null>(null);
+
+  const saveDraftRef = useRef<
+    ((nextYaml: string, parsedScore: StageScore) => void) | null
+  >(null);
+  const handleSaveDraftProxy = useCallback(
+    (nextYaml: string, parsedScore: StageScore) => {
+      saveDraftRef.current?.(nextYaml, parsedScore);
+    },
+    []
+  );
+  const handleClearVideoOverride = useCallback(() => {
+    setVideoOverrideUrl(null);
+  }, []);
+
+  const doc = useScoreDocument({
+    initialYaml: initialItem.rawYaml,
+    initialScore: initialItem.score,
+    activeSceneId,
+    isBundled: isBundledSceneId(activeSceneId),
+    onSaveDraftDebounced: handleSaveDraftProxy,
+    onVideoUrlActive: handleClearVideoOverride,
+  });
 
   // Sync YAML score `optics.dof_blur` preference when a score explicitly opts in
   useEffect(() => {
-    if (activeScore.optics?.dofBlur === true) {
+    if (doc.activeScore.optics?.dofBlur === true) {
       display.setDofBlurEnabled(true);
     }
-  }, [activeScore.optics?.dofBlur, display.setDofBlurEnabled]);
+  }, [doc.activeScore.optics?.dofBlur, display.setDofBlurEnabled]);
 
   const handleExportScore = useCallback(
     async (item: ScoreCatalogItem) => {
@@ -248,17 +264,17 @@ export const InteractiveStudioApp: React.FC = () => {
   const handleExportActiveScore = useCallback(() => {
     void handleExportScore({
       id: activeSceneId,
-      title: activeScore.title,
+      title: doc.activeScore.title,
       category: 'custom',
-      durationSec: activeScore.durationSec,
-      shotCount: activeScore.shots.length,
-      aspectRatio: activeScore.aspectRatio,
-      videoUrl: activeScore.videoUrl,
-      rawYaml,
-      score: activeScore,
+      durationSec: doc.activeScore.durationSec,
+      shotCount: doc.activeScore.shots.length,
+      aspectRatio: doc.activeScore.aspectRatio,
+      videoUrl: doc.activeScore.videoUrl,
+      rawYaml: doc.rawYaml,
+      score: doc.activeScore,
       isCustom: false,
     });
-  }, [activeSceneId, activeScore, rawYaml, handleExportScore]);
+  }, [activeSceneId, doc.activeScore, doc.rawYaml, handleExportScore]);
 
   // IndexedDB Score Persistence Hook (Hydration, Forking, Draft Auto-saving, Project Lifecycle)
   const [remoteModalState, setRemoteModalState] = useState<{
@@ -326,18 +342,19 @@ export const InteractiveStudioApp: React.FC = () => {
   const scorePersistence = useScorePersistence({
     catalog,
     activeSceneId,
-    rawYaml,
+    rawYaml: doc.rawYaml,
     initialMountedSceneId: initialItem.id,
     setCatalog,
     setActiveSceneId,
-    setRawYaml,
-    setActiveScore,
-    onClearVideoOverride: () => setVideoOverrideUrl(null),
+    setRawYaml: doc.setRawYamlExternal,
+    setActiveScore: doc.setActiveScoreExternal,
+    onClearVideoOverride: handleClearVideoOverride,
     onScoreReset: triggerScoreReset,
     onScoreNotFound: handleScoreNotFound,
     onPendingRemoteUrl: handlePendingRemoteUrl,
     onOpenedExistingScore: handleOpenedExistingScore,
   });
+  saveDraftRef.current = scorePersistence.saveYamlDraftDebounced;
 
   const stageSyncCallbackRef = useRef<(() => void) | null>(null);
   const handleStageTimeJump = useCallback(() => {
@@ -346,7 +363,7 @@ export const InteractiveStudioApp: React.FC = () => {
 
   // 1. Universal Media Clock (Local HTML5 Video, YouTube IFrame, or Procedural Slate)
   const mediaClock = useMediaClock(
-    activeScore,
+    doc.effectiveScore,
     videoOverrideUrl,
     handleStageTimeJump,
     sceneResetSeq
@@ -354,7 +371,7 @@ export const InteractiveStudioApp: React.FC = () => {
 
   // 2. Dual-Tier 60fps Frame Evaluation Loop
   const stageLoop = useStageFrameLoop(
-    activeScore,
+    doc.effectiveScore,
     mediaClock.driverRef,
     mediaClock.loopActiveShot,
     mediaClock.isPlaying,
@@ -432,15 +449,11 @@ export const InteractiveStudioApp: React.FC = () => {
 
       mediaClock.pause();
       setActiveSceneId(found.id);
-      setRawYaml(resolvedYaml);
-      setActiveScore(resolvedScore);
-      setParseError(null);
-      setParseWarning(null);
-      setParseDiagnostics(undefined);
+      doc.resetDocument(resolvedYaml, resolvedScore);
       setVideoOverrideUrl(null);
       triggerScoreReset();
     },
-    [catalog, mediaClock, setActiveSceneId, showToast, triggerScoreReset]
+    [catalog, doc.resetDocument, mediaClock, setActiveSceneId, showToast, triggerScoreReset]
   );
 
   const handleEnsureScoreLoaded = useCallback(
@@ -461,36 +474,6 @@ export const InteractiveStudioApp: React.FC = () => {
       }
     },
     [catalog]
-  );
-
-  // Live YAML editing in the Inspector Drawer (custom projects only)
-  const handleChangeYaml = useCallback(
-    (nextYaml: string) => {
-      setRawYaml(nextYaml);
-      const result = parseStageScore(nextYaml, activeSceneId);
-      if (result.score) {
-        setActiveScore(result.score);
-        setParseError(null);
-        setParseWarning(result.warning ?? null);
-        setParseDiagnostics(undefined);
-
-        // If YAML score specifies a video URL or changed it, clear ephemeral video override
-        if (
-          result.score.videoUrl &&
-          result.score.videoUrl !== 'procedural://demo'
-        ) {
-          setVideoOverrideUrl(null);
-        }
-
-        // Auto-save draft to IndexedDB (debounced)
-        scorePersistence.saveYamlDraftDebounced(nextYaml, result.score);
-      } else {
-        setParseError(result.error);
-        setParseWarning(null);
-        setParseDiagnostics(result.diagnostics);
-      }
-    },
-    [activeSceneId, scorePersistence.saveYamlDraftDebounced]
   );
 
   const handleForkScore = useCallback(async () => {
@@ -582,11 +565,8 @@ export const InteractiveStudioApp: React.FC = () => {
         });
 
         setActiveSceneId(newItem.id);
-        setRawYaml(finalYaml);
-        setActiveScore(resolvedScore);
-        setParseError(null);
-        setParseWarning(finalParsed.warning ?? result.warning ?? null);
-        setParseDiagnostics(undefined);
+        doc.resetDocument(finalYaml, resolvedScore);
+        doc.setParseWarning(finalParsed.warning ?? result.warning ?? null);
         setVideoOverrideUrl(null);
         triggerScoreReset();
 
@@ -669,8 +649,7 @@ export const InteractiveStudioApp: React.FC = () => {
           prev.map((item) => (item.id === existing.id ? updatedItem : item))
         );
         setActiveSceneId(existing.id);
-        setRawYaml(finalYaml);
-        setActiveScore(resolvedScore);
+        doc.resetDocument(finalYaml, resolvedScore);
         triggerScoreReset();
         handleCloseRemoteModal();
         showToast(
@@ -722,8 +701,7 @@ export const InteractiveStudioApp: React.FC = () => {
 
         setCatalog((prev) => [...prev, newItem]);
         setActiveSceneId(newItem.id);
-        setRawYaml(finalYaml);
-        setActiveScore(resolvedScore);
+        doc.resetDocument(finalYaml, resolvedScore);
         triggerScoreReset();
         handleCloseRemoteModal();
         showToast(
@@ -747,11 +725,8 @@ export const InteractiveStudioApp: React.FC = () => {
       const fallbackId = fileName.replace(/\.(yaml|yml|json)$/i, '');
       const parsed = parseStageScore(yamlText, fallbackId);
       if (!parsed.score) {
-        setRawYaml(yamlText);
-        setParseError(parsed.error);
-        setParseWarning(null);
-        setParseDiagnostics(parsed.diagnostics);
-        layout.openEditMode();
+        doc.resetDocument(yamlText);
+        layout.openEditMode('yaml');
         showToast(
           `Failed to parse YAML: ${parsed.error ?? 'Syntax error'}`,
           'error'
@@ -777,11 +752,7 @@ export const InteractiveStudioApp: React.FC = () => {
       if (match.kind === 'identical') {
         const existing = match.existingItem;
         setActiveSceneId(existing.id);
-        setRawYaml(existing.rawYaml);
-        setActiveScore(existing.score);
-        setParseError(null);
-        setParseWarning(null);
-        setParseDiagnostics(undefined);
+        doc.resetDocument(existing.rawYaml, existing.score);
         setVideoOverrideUrl(null);
         triggerScoreReset();
         showToast(
@@ -845,11 +816,8 @@ export const InteractiveStudioApp: React.FC = () => {
         return [...filtered, newItem];
       });
       setActiveSceneId(newItem.id);
-      setRawYaml(finalYaml);
-      setActiveScore(resolvedScore);
-      setParseError(null);
-      setParseWarning(finalParsed.warning ?? parsed.warning ?? null);
-      setParseDiagnostics(undefined);
+      doc.resetDocument(finalYaml, resolvedScore);
+      doc.setParseWarning(finalParsed.warning ?? parsed.warning ?? null);
       setVideoOverrideUrl(null);
       triggerScoreReset();
 
@@ -891,7 +859,7 @@ export const InteractiveStudioApp: React.FC = () => {
   );
 
   const stageSkins = useStageSkins({
-    entities: activeScore.entities,
+    entities: doc.activeScore.entities,
     onPreloadSkin: preloadStageEnvironmentSkin,
     onReleaseSkinCache: clearStageEnvironmentSkinCache,
     onNotify: showToast,
@@ -1003,6 +971,18 @@ export const InteractiveStudioApp: React.FC = () => {
     [mediaClock]
   );
 
+  const handleVisualSeekToTime = useCallback(
+    (targetSec: number) => {
+      mediaClock.pause();
+      mediaClock.seek(targetSec);
+    },
+    [mediaClock]
+  );
+
+  const getCurrentTimeSec = useCallback(() => {
+    return mediaClock.driverRef.current?.getCurrentTime() ?? 0;
+  }, [mediaClock.driverRef]);
+
   const handleStepFramesAndSync = useCallback(
     (frames: number) => {
       mediaClock.stepFrames(frames);
@@ -1013,7 +993,7 @@ export const InteractiveStudioApp: React.FC = () => {
   const { captureSnapshot } = stageCamSnapshot;
   const handleCaptureStageCamSnapshot = useCallback(() => {
     captureSnapshot({
-      score: activeScore,
+      score: doc.activeScore,
       timestampSec: stageLoop.frameRef.current.timestampSec,
       dofBlurEnabled: display.dofBlurEnabled,
       themeCategory: theme.effectiveDioramaCategory,
@@ -1022,7 +1002,7 @@ export const InteractiveStudioApp: React.FC = () => {
     });
   }, [
     captureSnapshot,
-    activeScore,
+    doc.activeScore,
     stageLoop.frameRef,
     display.dofBlurEnabled,
     theme.effectiveDioramaCategory,
@@ -1042,6 +1022,7 @@ export const InteractiveStudioApp: React.FC = () => {
         activeSceneId={activeSceneId}
         splitPreset={layout.splitPreset}
         isEditMode={layout.isEditMode}
+        editorMode={layout.editorMode}
         storageStatus={scorePersistence.storageStatus}
         isLibraryOpen={isLibraryOpen}
         isInfoOpen={isInfoOpen}
@@ -1051,7 +1032,7 @@ export const InteractiveStudioApp: React.FC = () => {
         effectiveDioramaCategory={theme.effectiveDioramaCategory}
         onSelectScene={handleSelectScene}
         onSelectSplitPreset={layout.handleSelectSplitPreset}
-        onToggleEditMode={layout.handleToggleEditMode}
+        onSelectEditorMode={layout.handleSelectEditorMode}
         onResetLayout={layout.handleResetLayout}
         onUploadFiles={menuFileDrop.processFiles}
         activeSkinsCount={stageSkins.activeSkinsCount}
@@ -1084,7 +1065,7 @@ export const InteractiveStudioApp: React.FC = () => {
 
       {/* Main Resizable Split Workspace (Video Panel + 3D Blueprint Diorama + YAML Studio) */}
       <ResizableSplitWorkspace
-        aspectRatio={activeScore.aspectRatio}
+        aspectRatio={doc.effectiveScore.aspectRatio}
         splitPreset={layout.splitPreset}
         isEditMode={layout.isEditMode}
         leftSplitPct={layout.leftSplitPct}
@@ -1103,7 +1084,7 @@ export const InteractiveStudioApp: React.FC = () => {
             className="relative w-full h-full"
           >
             <UniversalVideoViewport
-              score={activeScore}
+              score={doc.effectiveScore}
               sourceInfo={mediaClock.sourceInfo}
               html5VideoRef={mediaClock.html5VideoRef}
               youtubeContainerRef={mediaClock.youtubeContainerRef}
@@ -1144,7 +1125,7 @@ export const InteractiveStudioApp: React.FC = () => {
           <VideoWorkspaceSubpanel
             isCollapsed={layout.isSubpanelCollapsed}
             onToggleCollapse={layout.handleToggleSubpanelCollapse}
-            score={activeScore}
+            score={doc.effectiveScore}
             activeShot={stageLoop.uiSnapshot.frame.activeShot}
             shotIndex={stageLoop.uiSnapshot.frame.shotIndex}
             hasVideoAttached={mediaClock.sourceInfo.kind !== 'procedural'}
@@ -1153,7 +1134,7 @@ export const InteractiveStudioApp: React.FC = () => {
             stageCamSlot={
               mediaClock.sourceInfo.kind !== 'procedural' ? (
                 <StageCamMonitorCanvas
-                  score={activeScore}
+                  score={doc.effectiveScore}
                   frameRef={stageLoop.frameRef}
                   uiFrame={stageLoop.uiSnapshot.frame}
                   labelMode={display.labelMode}
@@ -1173,7 +1154,7 @@ export const InteractiveStudioApp: React.FC = () => {
             mapSlot={
               <DioramaMinimap
                 variant="panel"
-                score={activeScore}
+                score={doc.effectiveScore}
                 frameRef={stageLoop.frameRef}
                 liveViewportPoseRef={stageLoop.liveViewportPoseRef}
                 uiFrame={stageLoop.uiSnapshot.frame}
@@ -1195,7 +1176,7 @@ export const InteractiveStudioApp: React.FC = () => {
           >
             {/* 3D React Three Fiber Blueprint Diorama */}
             <DioramaCanvas
-              score={activeScore}
+              score={doc.effectiveScore}
               cameraMode={stageLoop.cameraMode}
               isPlaying={mediaClock.isPlaying}
               frameRef={stageLoop.frameRef}
@@ -1219,7 +1200,7 @@ export const InteractiveStudioApp: React.FC = () => {
 
             {/* Responsive Diorama HUD Overlays & POV Viewfinder Dock */}
             <DioramaOverlayContainer
-              score={activeScore}
+              score={doc.effectiveScore}
               frame={stageLoop.uiSnapshot.frame}
               frameRef={stageLoop.frameRef}
               liveViewportPose={stageLoop.uiSnapshot.liveViewportPose}
@@ -1269,24 +1250,42 @@ export const InteractiveStudioApp: React.FC = () => {
         rightEditorPane={
           <YamlStudioPanel
             isOpen={layout.isEditMode}
+            editorMode={layout.editorMode}
+            onChangeEditorMode={layout.openEditMode}
             sceneId={activeSceneId}
-            rawYaml={rawYaml}
-            parseError={parseError}
-            parseWarning={parseWarning}
-            diagnostics={parseDiagnostics}
+            rawYaml={doc.rawYaml}
+            historyRevision={doc.historyRevision}
+            canUndo={doc.canUndo}
+            canRedo={doc.canRedo}
+            visualIR={doc.visualIR}
+            visualIRError={doc.visualIRError}
+            entities={doc.activeScore.entities}
+            activeShotId={stageLoop.uiSnapshot.frame.activeShot?.id ?? null}
+            parseError={doc.parseError}
+            parseWarning={doc.parseWarning}
+            diagnostics={doc.parseDiagnostics}
             effectiveTheme={theme.effectiveCategory}
             storageStatus={scorePersistence.storageStatus}
             isBundled={isBundledSceneId(activeSceneId)}
-            onChangeYaml={handleChangeYaml}
+            onChangeYaml={doc.commitYamlText}
+            onVisualCommand={doc.applyVisualCommand}
+            onScrubPreview={doc.updateScrubPreview}
+            onTimingScrubPreview={doc.updateTimingScrubPreview}
+            onCommitScrub={doc.commitScrub}
+            onCancelScrub={doc.cancelScrub}
+            onSeekToTime={handleVisualSeekToTime}
+            getCurrentTimeSec={getCurrentTimeSec}
+            onUndo={doc.undo}
+            onRedo={doc.redo}
             onForkScore={handleForkScore}
-            onClose={layout.handleToggleEditMode}
+            onClose={layout.closeEditMode}
           />
         }
       />
 
       {/* Bottom Directorial Transport Deck (Streamlined Timeline Controls) */}
       <DirectorialTransportBar
-        score={activeScore}
+        score={doc.effectiveScore}
         frame={stageLoop.uiSnapshot.frame}
         durationSec={mediaClock.durationSec}
         isPlaying={mediaClock.isPlaying}
@@ -1309,7 +1308,7 @@ export const InteractiveStudioApp: React.FC = () => {
       {/* Reset Confirmation Dialog Modal */}
       <ConfirmResetModal
         isOpen={scorePersistence.isResetModalOpen}
-        sceneTitle={activeScore.title}
+        sceneTitle={doc.activeScore.title}
         onConfirm={scorePersistence.confirmResetActiveScore}
         onCancel={() => scorePersistence.setIsResetModalOpen(false)}
       />
@@ -1435,7 +1434,7 @@ export const InteractiveStudioApp: React.FC = () => {
       {/* In-Browser Clean Stage Cam & Observer MP4 Export Modal */}
       <CleanVideoExportModal
         isOpen={isVideoExportOpen}
-        score={activeScore}
+        score={doc.activeScore}
         activeShot={stageLoop.uiSnapshot.frame.activeShot}
         liveViewportPose={stageLoop.uiSnapshot.liveViewportPose}
         dofBlurEnabled={display.dofBlurEnabled}
@@ -1448,7 +1447,7 @@ export const InteractiveStudioApp: React.FC = () => {
       {/* Storyboard Contact Sheet Generator & Viewer Modal */}
       <StoryboardModal
         isOpen={isStoryboardOpen}
-        score={activeScore}
+        score={doc.activeScore}
         dofBlurEnabled={display.dofBlurEnabled}
         stageSkinUrl={stageSkins.effectiveStageSkinUrl}
         entitySkinUrls={stageSkins.effectiveEntitySkinUrls}
@@ -1459,7 +1458,7 @@ export const InteractiveStudioApp: React.FC = () => {
       {/* Direct Target Assignment Modal for Dropped / Picked .GLB / .GLTF Skins */}
       <AssignStageSkinModal
         pendingDrops={stageSkins.pendingSkinQueue}
-        entities={activeScore.entities}
+        entities={doc.activeScore.entities}
         stageSkin={stageSkins.stageSkin}
         entitySkins={stageSkins.entitySkins}
         onAssign={stageSkins.assignPendingSkin}

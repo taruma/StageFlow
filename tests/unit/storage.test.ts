@@ -16,6 +16,8 @@ import {
   saveStoredDioramaThemeMode,
   loadStoredEditMode,
   saveStoredEditMode,
+  loadStoredEditorMode,
+  saveStoredEditorMode,
   loadStoredLeftSplitPct,
   saveStoredLeftSplitPct,
   loadStoredRightSplitPct,
@@ -300,6 +302,16 @@ describe('localStorageUi — Synchronous UI Preferences Persistence', () => {
     expect(loadStoredLibrarySortDirection()).toBe('desc');
     globalThis.localStorage.setItem('stageflow:ui:library-sort-direction', 'sideways');
     expect(loadStoredLibrarySortDirection()).toBeNull();
+  });
+
+  it('persists and validates Visual vs YAML editor mode preference', () => {
+    expect(loadStoredEditorMode()).toBeNull();
+    saveStoredEditorMode('visual');
+    expect(loadStoredEditorMode()).toBe('visual');
+    saveStoredEditorMode('yaml');
+    expect(loadStoredEditorMode()).toBe('yaml');
+    globalThis.localStorage.setItem('stageflow:ui:editor-mode', 'invalid-mode');
+    expect(loadStoredEditorMode()).toBeNull();
   });
 
   it('provides distinct, valid hex colors for all diorama theme categories with light default', () => {
