@@ -60,10 +60,13 @@ export const ShotCard: React.FC<ShotCardProps> = React.memo(
       [shot.fields]
     );
 
-    const handleToggleHeader = useCallback(() => {
+    const handleFocusShot = useCallback(() => {
       onSeekToTime(shot.startSec);
-      setIsExpanded((prev) => !prev);
     }, [onSeekToTime, shot.startSec]);
+
+    const handleToggleExpand = useCallback(() => {
+      setIsExpanded((prev) => !prev);
+    }, []);
 
     const handleMoveUp = useCallback(() => {
       onCommand({ type: 'reorder-shot', fromIndex: index, toIndex: index - 1 });
@@ -86,73 +89,100 @@ export const ShotCard: React.FC<ShotCardProps> = React.memo(
             : UI_TOKENS.inspector.itemCard
         }
       >
-        {/* Shot Header Row */}
-        <div className="flex items-center justify-between gap-2 px-2.5 py-1.5">
-          <button
-            type="button"
-            onClick={handleToggleHeader}
-            className="flex items-center gap-1.5 min-w-0 flex-1 text-left cursor-pointer"
-            title="Click to jump playhead to shot & toggle details"
-          >
-            {isExpanded ? (
-              <ChevronDown className="w-3 h-3 text-text-muted shrink-0" />
-            ) : (
-              <ChevronRight className="w-3 h-3 text-text-muted shrink-0" />
-            )}
-            <span
-              className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-bold shrink-0 tabular-nums ${
-                isActiveShot
-                  ? 'bg-amber-500/20 text-amber-600 dark:text-amber-300'
-                  : 'bg-surface-subtle text-text-muted'
-              }`}
-            >
-              #{String(shot.shotNumber).padStart(2, '0')}
-            </span>
-            <span className="text-[11px] font-mono font-semibold text-text-main truncate">
-              {shot.label}
-            </span>
-          </button>
+        {/* Clickable Shot Focus Face (Header + Empty Space + Summary Strip) */}
+        <div
+          onClick={handleFocusShot}
+          onDoubleClick={handleToggleExpand}
+          className={`hover:bg-surface-subtle/50 transition-colors cursor-pointer ${
+            isExpanded ? 'rounded-t-lg' : 'rounded-lg'
+          }`}
+          title="Click to jump playhead to shot · Click chevron or double-click to expand"
+        >
+          {/* Shot Header Row */}
+          <div className="flex items-center justify-between gap-2 px-2.5 py-1.5">
+            <div className="flex items-center gap-1.5 min-w-0 flex-1">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleToggleExpand();
+                }}
+                onDoubleClick={(e) => e.stopPropagation()}
+                aria-expanded={isExpanded}
+                aria-label={
+                  isExpanded ? 'Collapse shot details' : 'Expand shot details'
+                }
+                title={
+                  isExpanded ? 'Collapse shot details' : 'Expand shot details'
+                }
+                className="p-0.5 -ml-0.5 rounded hover:bg-surface-hover text-text-muted hover:text-text-main cursor-pointer shrink-0 transition-colors"
+              >
+                {isExpanded ? (
+                  <ChevronDown className="w-3 h-3" />
+                ) : (
+                  <ChevronRight className="w-3 h-3" />
+                )}
+              </button>
+              <span
+                className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-bold shrink-0 tabular-nums ${
+                  isActiveShot
+                    ? 'bg-amber-500/20 text-amber-600 dark:text-amber-300'
+                    : 'bg-surface-subtle text-text-muted'
+                }`}
+              >
+                #{String(shot.shotNumber).padStart(2, '0')}
+              </span>
+              <span className="text-[11px] font-mono font-semibold text-text-main truncate">
+                {shot.label}
+              </span>
+            </div>
 
-          <div className="flex items-center gap-1 shrink-0">
-            <span className="text-[10px] font-mono text-text-muted tabular-nums">
-              {shot.startSec.toFixed(2)}–{shot.endSec.toFixed(2)}s
-            </span>
-            <CardReorderActions
-              disabled={disabled}
-              canMoveUp={index > 0}
-              canMoveDown={index < totalShots - 1}
-              canDelete={totalShots > 1}
-              moveUpTitle="Move shot up"
-              moveDownTitle="Move shot down"
-              deleteTitle={`Delete ${shot.id}`}
-              onMoveUp={handleMoveUp}
-              onMoveDown={handleMoveDown}
-              onDelete={handleDelete}
-            />
+            <div className="flex items-center gap-1 shrink-0">
+              <span className="text-[10px] font-mono text-text-muted tabular-nums">
+                {shot.startSec.toFixed(2)}–{shot.endSec.toFixed(2)}s
+              </span>
+              <div
+                onClick={(e) => e.stopPropagation()}
+                onDoubleClick={(e) => e.stopPropagation()}
+              >
+                <CardReorderActions
+                  disabled={disabled}
+                  canMoveUp={index > 0}
+                  canMoveDown={index < totalShots - 1}
+                  canDelete={totalShots > 1}
+                  moveUpTitle="Move shot up"
+                  moveDownTitle="Move shot down"
+                  deleteTitle={`Delete ${shot.id}`}
+                  onMoveUp={handleMoveUp}
+                  onMoveDown={handleMoveDown}
+                  onDelete={handleDelete}
+                />
+              </div>
+            </div>
           </div>
-        </div>
 
-        {/* Compact Summary Telemetry Strip */}
-        <div className="px-2.5 pb-1.5 flex flex-wrap items-center gap-1.5 text-[10px] font-mono text-text-faint">
-          <span className="text-sky-600 dark:text-sky-400 font-semibold">
-            {shot.summary.lensMm}mm
-          </span>
-          <span>·</span>
-          <span className="uppercase">{shot.summary.maneuver}</span>
-          <span>→</span>
-          <span className="text-text-muted truncate max-w-[140px]">
-            {shot.summary.targetLabel}
-          </span>
-          {shot.summary.hasRig && (
-            <span className="px-1 rounded bg-amber-500/10 text-amber-600 dark:text-amber-300 text-[9px]">
-              RIG
+          {/* Compact Summary Telemetry Strip */}
+          <div className="px-2.5 pb-1.5 flex flex-wrap items-center gap-1.5 text-[10px] font-mono text-text-faint">
+            <span className="text-sky-600 dark:text-sky-400 font-semibold">
+              {shot.summary.lensMm}mm
             </span>
-          )}
-          {shot.summary.hasObserver && (
-            <span className="px-1 rounded bg-sky-500/10 text-sky-600 dark:text-sky-300 text-[9px]">
-              OBS
+            <span>·</span>
+            <span className="uppercase">{shot.summary.maneuver}</span>
+            <span>→</span>
+            <span className="text-text-muted truncate max-w-[140px]">
+              {shot.summary.targetLabel}
             </span>
-          )}
+            {shot.summary.hasRig && (
+              <span className="px-1 rounded bg-amber-500/10 text-amber-600 dark:text-amber-300 text-[9px]">
+                RIG
+              </span>
+            )}
+            {shot.summary.hasObserver && (
+              <span className="px-1 rounded bg-sky-500/10 text-sky-600 dark:text-sky-300 text-[9px]">
+                OBS
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Expanded Body */}

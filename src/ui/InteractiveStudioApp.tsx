@@ -973,13 +973,12 @@ export const InteractiveStudioApp: React.FC = () => {
     [mediaClock]
   );
 
-  const { pause: pauseMediaClock, seek: seekMediaClock } = mediaClock;
+  const { seek: seekMediaClock } = mediaClock;
   const handleVisualSeekToTime = useCallback(
     (targetSec: number) => {
-      pauseMediaClock();
       seekMediaClock(targetSec);
     },
-    [pauseMediaClock, seekMediaClock]
+    [seekMediaClock]
   );
 
   const getCurrentTimeSec = useCallback(() => {

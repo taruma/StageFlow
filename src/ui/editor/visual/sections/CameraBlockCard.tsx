@@ -37,7 +37,7 @@ export const CameraBlockCard: React.FC<CameraBlockCardProps> = React.memo(
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
-            className="flex items-center gap-1.5 text-left cursor-pointer"
+            className="flex items-center gap-1.5 min-w-0 flex-1 text-left cursor-pointer"
           >
             {expanded ? (
               <ChevronDown className="w-3 h-3 text-text-faint" />

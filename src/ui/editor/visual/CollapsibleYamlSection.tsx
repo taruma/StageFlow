@@ -42,7 +42,7 @@ export const CollapsibleYamlSection: React.FC<CollapsibleYamlSectionProps> =
             <button
               type="button"
               onClick={onToggle}
-              className="flex items-center gap-2 min-w-0 text-left cursor-pointer"
+              className="flex items-center gap-2 min-w-0 flex-1 text-left cursor-pointer"
             >
               {isExpanded ? (
                 <ChevronDown className="w-3.5 h-3.5 text-text-muted shrink-0" />

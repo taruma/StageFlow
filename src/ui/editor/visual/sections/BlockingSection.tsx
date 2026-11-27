@@ -31,25 +31,42 @@ const BlockingCard: React.FC<{
   const [isOpen, setIsOpen] = useState(false);
 
   const { disabled, onCommand, onSeekToTime } = callbacks;
-  const handleHeaderClick = useCallback(() => {
+  const handleFocusCue = useCallback(() => {
     onSeekToTime(cue.startSec);
-    setIsOpen((v) => !v);
   }, [onSeekToTime, cue.startSec]);
+  const handleToggleExpand = useCallback(() => {
+    setIsOpen((v) => !v);
+  }, []);
 
   return (
     <div className={UI_TOKENS.inspector.itemCard}>
-      <div className="flex items-center justify-between gap-2 px-2.5 py-1.5">
-        <button
-          type="button"
-          onClick={handleHeaderClick}
-          className="flex items-center gap-2 min-w-0 flex-1 text-left cursor-pointer"
-          title="Click to jump playhead & expand cue"
-        >
-          {isOpen ? (
-            <ChevronDown className="w-3 h-3 text-text-muted shrink-0" />
-          ) : (
-            <ChevronRight className="w-3 h-3 text-text-muted shrink-0" />
-          )}
+      <div
+        onClick={handleFocusCue}
+        onDoubleClick={handleToggleExpand}
+        className={`flex items-center justify-between gap-2 px-2.5 py-1.5 hover:bg-surface-subtle/50 transition-colors cursor-pointer ${
+          isOpen ? 'rounded-t-lg' : 'rounded-lg'
+        }`}
+        title="Click to jump playhead to cue · Click chevron or double-click to expand"
+      >
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleToggleExpand();
+            }}
+            onDoubleClick={(e) => e.stopPropagation()}
+            aria-expanded={isOpen}
+            aria-label={isOpen ? 'Collapse cue details' : 'Expand cue details'}
+            title={isOpen ? 'Collapse cue details' : 'Expand cue details'}
+            className="p-0.5 -ml-0.5 rounded hover:bg-surface-hover text-text-muted hover:text-text-main cursor-pointer shrink-0 transition-colors"
+          >
+            {isOpen ? (
+              <ChevronDown className="w-3 h-3" />
+            ) : (
+              <ChevronRight className="w-3 h-3" />
+            )}
+          </button>
           <span className="px-1.5 py-0.2 rounded bg-surface-subtle border border-border-subtle text-[10px] font-mono text-violet-600 dark:text-violet-300 shrink-0 tabular-nums">
             {cue.startSec.toFixed(2)}–{cue.endSec.toFixed(2)}s
           </span>
@@ -65,29 +82,34 @@ const BlockingCard: React.FC<{
               ({cue.entityOverrides.length} entities)
             </span>
           ) : null}
-        </button>
+        </div>
 
-        <CardReorderActions
-          disabled={disabled}
-          canMoveUp={idx > 0}
-          canMoveDown={idx < total - 1}
-          deleteTitle={`Delete ${cue.id}`}
-          onMoveUp={() =>
-            onCommand({
-              type: 'reorder-blocking',
-              fromIndex: idx,
-              toIndex: idx - 1,
-            })
-          }
-          onMoveDown={() =>
-            onCommand({
-              type: 'reorder-blocking',
-              fromIndex: idx,
-              toIndex: idx + 1,
-            })
-          }
-          onDelete={() => onCommand({ type: 'delete-blocking', index: idx })}
-        />
+        <div
+          onClick={(e) => e.stopPropagation()}
+          onDoubleClick={(e) => e.stopPropagation()}
+        >
+          <CardReorderActions
+            disabled={disabled}
+            canMoveUp={idx > 0}
+            canMoveDown={idx < total - 1}
+            deleteTitle={`Delete ${cue.id}`}
+            onMoveUp={() =>
+              onCommand({
+                type: 'reorder-blocking',
+                fromIndex: idx,
+                toIndex: idx - 1,
+              })
+            }
+            onMoveDown={() =>
+              onCommand({
+                type: 'reorder-blocking',
+                fromIndex: idx,
+                toIndex: idx + 1,
+              })
+            }
+            onDelete={() => onCommand({ type: 'delete-blocking', index: idx })}
+          />
+        </div>
       </div>
 
       {isOpen && (
